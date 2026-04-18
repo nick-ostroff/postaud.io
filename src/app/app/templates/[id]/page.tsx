@@ -1,13 +1,14 @@
+import { notFound } from "next/navigation";
+import { mockTemplates } from "@/lib/mocks";
+import { TemplateBuilder } from "./TemplateBuilder";
+
 export default async function TemplateEditorPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return (
-    <div>
-      <h1 className="text-2xl font-semibold">Edit template</h1>
-      <p className="mt-2 text-sm text-neutral-600">Template {id}. TODO.</p>
-    </div>
-  );
+  const template = mockTemplates.find((t) => t.id === id);
+  if (!template) notFound();
+  return <TemplateBuilder initial={template} />;
 }
