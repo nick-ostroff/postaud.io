@@ -1,21 +1,22 @@
 import { verifyTwilioSignature } from "@/lib/twilio";
-import { twimlResponse, hangupWithMessage } from "@/server/telephony/twiml";
+import { twimlResponse, hangupWithMessage, VOICE } from "@/server/telephony/twiml";
 import { serviceClient } from "@/db/service";
 import { env } from "@/lib/env";
 
-function escapeXmlAttr(s: string): string {
+function escapeXml(s: string): string {
   return s
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
 }
 
 // POST /api/webhooks/twilio/voice/match
 // Resolves the DTMF code → interview_request, creates (or resumes) an
-// interview_sessions row, and hands the call off to our ConversationRelay
-// WebSocket (see src/server/voice/fsm-runner.ts).
+// interview_sessions row, speaks the first question, and hands off to a
+// chain of <Record> steps driven by /voice/answer-done. Pure HTTP/TwiML —
+// runs on Vercel serverless with no WebSocket requirement.
 export async function POST(req: Request) {
   const clone = req.clone();
   const form = await clone.formData();
@@ -52,14 +53,18 @@ export async function POST(req: Request) {
     .eq("id", request.contact_id)
     .maybeSingle();
 
-  const snapshot = request.template_snapshot as { intro_message?: string | null };
+  const snapshot = request.template_snapshot as {
+    intro_message?: string | null;
+    questions: { id: string; prompt: string; max_seconds?: number | null }[];
+  };
   const firstName = contact?.first_name ?? "there";
-  const intro = snapshot.intro_message?.trim() ?? "";
-  const greeting = [
-    `Hi ${firstName}.`,
-    intro || "Thanks for calling. I'll ask you a few quick questions.",
-    "This call is being recorded so the sender can review your answers.",
-  ].join(" ");
+  const intro = snapshot.intro_message?.trim() || "Thanks for calling. I'll ask you a few quick questions.";
+  const questions = snapshot.questions ?? [];
+  const firstQuestion = questions[0];
+
+  if (!firstQuestion) {
+    return hangupWithMessage("This interview doesn't have any questions configured. Goodbye.");
+  }
 
   const { data: session } = await svc
     .from("interview_sessions")
@@ -76,26 +81,25 @@ export async function POST(req: Request) {
     .single();
 
   const sessionId = session?.id ?? "";
-  const publicBase = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
-  const relayUrl = publicBase.replace(/^https?:\/\//, "wss://") + `/api/voice/relay?session=${sessionId}`;
+  const base = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  // Twilio requires `&` in the action URL to be XML-escaped (&amp;).
+  const actionUrl = `${base}/api/webhooks/twilio/voice/answer-done?session=${sessionId}&amp;q=0`;
+  const maxSec = firstQuestion.max_seconds ?? 90;
 
-  // Diagnostic: last call got `← setup` followed by `write after end` —
-  // Twilio opened the WS, sent setup, then immediately closed. Highly
-  // suspicious that welcomeGreeting rendering failed on this account.
-  // Test by removing welcomeGreeting; the FSM will synthesize the greeting
-  // via server-driven text frames instead. If Twilio keeps the WS open
-  // and plays our text, welcomeGreeting was the culprit.
-  void greeting;
   return twimlResponse(`
-    <Connect>
-      <ConversationRelay
-        url="${relayUrl}"
-        ttsProvider="Amazon"
-        voice="Joanna-Neural"
-        language="en-US"
-        dtmfDetection="true"
-        interruptible="true"
-      />
-    </Connect>
+    <Say voice="${VOICE}">Hi ${escapeXml(firstName)}. ${escapeXml(intro)} This call is being recorded so the sender can review your answers.</Say>
+    <Pause length="1"/>
+    <Say voice="${VOICE}">Here's the first question. ${escapeXml(firstQuestion.prompt)}</Say>
+    <Say voice="${VOICE}">Go ahead. Press star or pound when you're done.</Say>
+    <Record
+      action="${actionUrl}"
+      method="POST"
+      maxLength="${maxSec}"
+      playBeep="true"
+      finishOnKey="*#"
+      timeout="3"
+    />
+    <Say voice="${VOICE}">Thanks — I have your answer.</Say>
+    <Hangup/>
   `);
 }
