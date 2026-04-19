@@ -14,7 +14,9 @@ export async function adjustCreditsAction(formData: FormData) {
   const reason = String(formData.get("reason") ?? "").trim();
 
   if (!orgId) throw new Error("Missing orgId");
-  if (!Number.isFinite(delta) || delta === 0) throw new Error("Delta must be a non-zero number");
+  if (!Number.isInteger(delta) || delta === 0) {
+    throw new Error("Delta must be a non-zero integer");
+  }
   if (reason.length < 3) throw new Error("Reason is required");
 
   await adjustOrgCredits({ orgId, delta, reason, actorEmail: email });

@@ -10,7 +10,11 @@ export function CreditForm({ orgId }: { orgId: string }) {
     <form
       action={async (formData) => {
         setPending(true);
-        await adjustCreditsAction(formData);
+        try {
+          await adjustCreditsAction(formData);
+        } finally {
+          setPending(false);
+        }
       }}
       className="space-y-5"
     >
