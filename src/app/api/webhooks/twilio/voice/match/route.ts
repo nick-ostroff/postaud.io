@@ -3,6 +3,15 @@ import { twimlResponse, hangupWithMessage } from "@/server/telephony/twiml";
 import { serviceClient } from "@/db/service";
 import { env } from "@/lib/env";
 
+function escapeXmlAttr(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 // POST /api/webhooks/twilio/voice/match
 // Resolves the DTMF code → interview_request, creates (or resumes) an
 // interview_sessions row, and hands the call off to our ConversationRelay
@@ -37,6 +46,21 @@ export async function POST(req: Request) {
     return hangupWithMessage("This interview link has expired. Goodbye.");
   }
 
+  const { data: contact } = await svc
+    .from("contacts")
+    .select("first_name")
+    .eq("id", request.contact_id)
+    .maybeSingle();
+
+  const snapshot = request.template_snapshot as { intro_message?: string | null };
+  const firstName = contact?.first_name ?? "there";
+  const intro = snapshot.intro_message?.trim() ?? "";
+  const greeting = [
+    `Hi ${firstName}.`,
+    intro || "Thanks for calling. I'll ask you a few quick questions.",
+    "This call is being recorded so the sender can review your answers.",
+  ].join(" ");
+
   const { data: session } = await svc
     .from("interview_sessions")
     .upsert(
@@ -53,8 +77,6 @@ export async function POST(req: Request) {
 
   const sessionId = session?.id ?? "";
   const publicBase = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
-  // HTTPS public base → wss:// relay URL. CloudFlare tunnel and Vercel both
-  // upgrade WS requests on the same hostname/port as HTTP.
   const relayUrl = publicBase.replace(/^https?:\/\//, "wss://") + `/api/voice/relay?session=${sessionId}`;
 
   const voiceId = env().ELEVENLABS_VOICE_ID;
@@ -64,10 +86,15 @@ export async function POST(req: Request) {
     ? `ttsProvider="ElevenLabs" voice="${voiceId}"`
     : `ttsProvider="Amazon" voice="Polly.Ruth-Generative"`;
 
+  // welcomeGreeting plays via Twilio's TTS immediately after the WS opens,
+  // filling the silence while our FSM loads questions from the DB. Without it,
+  // Twilio closes the WS if we don't send a text frame within a short window.
   return twimlResponse(`
     <Connect>
       <ConversationRelay
         url="${relayUrl}"
+        welcomeGreeting="${escapeXmlAttr(greeting)}"
+        welcomeGreetingInterruptible="none"
         ${tts}
         dtmfDetection="true"
         interruptible="true"

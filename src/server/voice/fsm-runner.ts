@@ -15,27 +15,30 @@ type IncomingMsg =
 /**
  * Drives the interview over a Twilio ConversationRelay WebSocket.
  *
- * Protocol (simplified, https://www.twilio.com/docs/voice/twiml/connect/conversationrelay):
+ * Twilio closes the connection if the server doesn't respond to `setup` fast,
+ * so the message handler must attach BEFORE we hit the DB. The TwiML's
+ * `welcomeGreeting` plays the personalized intro via Twilio's own TTS, which
+ * keeps Twilio occupied while we load the question list.
+ *
  *   Twilio → us: setup, prompt{voicePrompt,last}, interrupt, dtmf, end, error
  *   us → Twilio: {type:"text", token, last}  → TTS-synthesized speech
  *                {type:"end"}                 → hang up the call
- *
- * We advance through questions on each finalized `prompt` (user finished
- * speaking). DTMF * or # also advances early. No AI follow-ups yet — those
- * are V3; for now the flow is rigid + scripted.
  */
 export async function runInterview(args: {
   ws: WebSocket;
   sessionId: string;
-  firstName: string;
-  intro: string;
-  questions: Question[];
 }): Promise<void> {
-  const { ws, sessionId, firstName, intro, questions } = args;
+  const { ws, sessionId } = args;
   const svc = serviceClient();
 
-  let questionIndex = -1; // -1 = haven't asked anything yet
+  let questions: Question[] = [];
+  let questionIndex = -1;
   let closed = false;
+
+  let resolveData: () => void = () => {};
+  const dataReady = new Promise<void>((r) => {
+    resolveData = r;
+  });
 
   function sendText(text: string) {
     if (closed || ws.readyState !== ws.OPEN) {
@@ -78,7 +81,6 @@ export async function runInterview(args: {
   async function finishInterview() {
     sendText("That's everything. Thanks so much for taking the time. Your responses are on their way to the sender. Goodbye.");
 
-    // Kick off the processing pipeline in the background.
     const base = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
     void fetch(`${base}/api/jobs/process-session`, {
       method: "POST",
@@ -86,7 +88,6 @@ export async function runInterview(args: {
       body: JSON.stringify({ session_id: sessionId }),
     }).catch((err) => console.error("[voice/relay] pipeline kickoff failed", err));
 
-    // Give the TTS a moment to play the goodbye before we hang up.
     setTimeout(() => sendEnd(), 4000);
   }
 
@@ -104,27 +105,21 @@ export async function runInterview(args: {
     void (async () => {
       switch (msg.type) {
         case "setup": {
-          // Greet + first question in one TTS pass so the call feels natural.
-          const greeting = [
-            `Hi ${firstName}.`,
-            intro || "Thanks for calling. I'll ask you a few quick questions.",
-            "This call is being recorded so the sender can review your answers.",
-          ].join(" ");
-          sendText(greeting);
-
+          // TwiML's welcomeGreeting plays the intro via Twilio; we just need to
+          // send the first question once the DB load completes.
+          await dataReady;
+          if (closed || ws.readyState !== ws.OPEN) return;
           if (questions.length === 0) {
             return finishInterview();
           }
-
           questionIndex = 0;
-          // Small pause so Twilio TTS finishes greeting before next text.
-          setTimeout(() => askCurrent(), 800);
+          askCurrent();
           return;
         }
 
         case "prompt": {
+          await dataReady;
           if (questionIndex < 0 || questionIndex >= questions.length) return;
-          // Only act on the final chunk of the turn.
           if (msg.last === false) return;
 
           const transcript = (msg.voicePrompt ?? "").trim();
@@ -140,8 +135,9 @@ export async function runInterview(args: {
 
         case "dtmf": {
           if (msg.digit === "*" || msg.digit === "#") {
+            await dataReady;
             if (questionIndex >= 0 && questionIndex < questions.length) {
-              await persistAnswer(questionIndex, ""); // no transcript — they skipped
+              await persistAnswer(questionIndex, "");
               questionIndex += 1;
               if (questionIndex >= questions.length) return finishInterview();
               askCurrent();
@@ -151,7 +147,6 @@ export async function runInterview(args: {
         }
 
         case "interrupt":
-          // User spoke during our TTS; Twilio stops the TTS automatically.
           return;
 
         case "error":
@@ -166,4 +161,38 @@ export async function runInterview(args: {
   });
 
   ws.on("close", () => { closed = true; });
+
+  try {
+    const { data: session } = await svc
+      .from("interview_sessions")
+      .select("id, request_id")
+      .eq("id", sessionId)
+      .maybeSingle();
+    if (!session) {
+      console.error("[voice/relay] session not found", sessionId);
+      ws.close(1008, "session not found");
+      return;
+    }
+
+    const { data: request } = await svc
+      .from("interview_requests")
+      .select("template_snapshot")
+      .eq("id", session.request_id)
+      .maybeSingle();
+    if (!request) {
+      console.error("[voice/relay] request not found", session.request_id);
+      ws.close(1008, "request not found");
+      return;
+    }
+
+    const snapshot = request.template_snapshot as {
+      questions?: Question[];
+    };
+    questions = snapshot.questions ?? [];
+    console.log("[voice/relay] loaded", questions.length, "questions for session", sessionId);
+    resolveData();
+  } catch (err) {
+    console.error("[voice/relay] data load failed", err);
+    try { ws.close(1011, "server error"); } catch { /* noop */ }
+  }
 }

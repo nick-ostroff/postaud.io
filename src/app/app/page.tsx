@@ -24,14 +24,14 @@ export default async function DashboardHome() {
     <div>
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="mt-1 text-sm text-neutral-600">
+          <h1 className="text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-50">Dashboard</h1>
+          <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
             Welcome, {user.email?.split("@")[0]}. You have {creditsRemaining} interview credits left this cycle.
           </p>
         </div>
         <Link
           href="/app/templates/new"
-          className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800"
+          className="rounded-lg bg-neutral-900 dark:bg-neutral-800 px-4 py-2.5 text-[13px] font-medium text-white hover:bg-neutral-800 dark:hover:bg-neutral-700 transition-colors shadow-sm"
         >
           New template
         </Link>
@@ -45,15 +45,15 @@ export default async function DashboardHome() {
       </div>
 
       {(sendCount ?? 0) === 0 && (
-        <div className="mt-10 rounded-xl border border-dashed border-neutral-300 bg-white p-8 text-center">
-          <div className="text-sm font-medium">No sends yet</div>
-          <p className="mx-auto mt-2 max-w-md text-sm text-neutral-600">
+        <div className="mt-10 rounded-[2rem] border border-dashed border-neutral-300 dark:border-neutral-800 bg-white dark:bg-[#111] p-12 text-center transition-colors">
+          <div className="text-[15px] text-neutral-900 dark:text-neutral-50 font-medium tracking-tight">No sends yet</div>
+          <p className="mx-auto mt-2 max-w-md text-[14px] text-neutral-600 dark:text-neutral-400 font-medium leading-relaxed">
             Create a template, then send an invite from the Sends page. The recipient will
             get a text with a tap-to-call link and the AI takes it from there.
           </p>
           <Link
             href="/app/templates/new"
-            className="mt-5 inline-block rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800"
+            className="mt-6 inline-block rounded-xl bg-blue-600 px-5 py-3 text-[14px] font-medium text-white hover:bg-blue-700 shadow-sm transition-colors"
           >
             Create your first template
           </Link>
@@ -65,11 +65,11 @@ export default async function DashboardHome() {
 
 function StatCard({ label, value, sub }: { label: string; value: number | string; sub?: string }) {
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white px-5 py-4">
-      <div className="text-xs font-medium uppercase tracking-wide text-neutral-500">{label}</div>
-      <div className="mt-1 flex items-baseline gap-2">
-        <div className="text-2xl font-semibold tracking-tight">{value}</div>
-        {sub && <div className="text-xs text-neutral-500">{sub}</div>}
+    <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#111] px-6 py-5 shadow-sm transition-colors">
+      <div className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">{label}</div>
+      <div className="mt-2 flex items-baseline gap-2">
+        <div className="text-3xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-50">{value}</div>
+        {sub && <div className="text-xs font-medium text-neutral-500 dark:text-neutral-500">{sub}</div>}
       </div>
     </div>
   );

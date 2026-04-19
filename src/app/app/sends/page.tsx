@@ -41,58 +41,58 @@ export default async function SendsPage() {
     <div>
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Sends</h1>
-          <p className="mt-1 text-sm text-neutral-600">Every interview request, ever.</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-50">Sends</h1>
+          <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">Every interview request, ever.</p>
         </div>
         <Link
           href="/app/sends/new"
-          className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800"
+          className="rounded-lg bg-neutral-900 dark:bg-neutral-800 px-4 py-2.5 text-[13px] font-medium text-white hover:bg-neutral-800 dark:hover:bg-neutral-700 transition-colors shadow-sm"
         >
           New send
         </Link>
       </div>
 
       {rows.length === 0 ? (
-        <div className="mt-10 rounded-xl border border-dashed border-neutral-300 bg-white p-8 text-center">
-          <div className="text-sm font-medium">No sends yet</div>
-          <p className="mx-auto mt-2 max-w-md text-sm text-neutral-600">
+        <div className="mt-10 rounded-[2rem] border border-dashed border-neutral-300 dark:border-neutral-800 bg-white dark:bg-[#111] p-12 text-center transition-colors">
+          <div className="text-[15px] font-medium text-neutral-900 dark:text-neutral-50 tracking-tight">No sends yet</div>
+          <p className="mx-auto mt-2 max-w-md text-[14px] text-neutral-600 dark:text-neutral-400 font-medium leading-relaxed">
             Pick a template and a contact, and PostAud will dispatch the invite.
           </p>
           <Link
             href="/app/sends/new"
-            className="mt-5 inline-block rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800"
+            className="mt-6 inline-block rounded-xl bg-blue-600 px-5 py-3 text-[14px] font-medium text-white hover:bg-blue-700 shadow-sm transition-colors"
           >
             Send your first interview
           </Link>
         </div>
       ) : (
-        <div className="mt-8 overflow-hidden rounded-xl border border-neutral-200 bg-white">
-          <table className="w-full text-sm">
-            <thead className="bg-neutral-50 text-left text-xs uppercase tracking-wide text-neutral-500">
+        <div className="mt-8 overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#111] shadow-sm transition-colors text-[13px] font-medium">
+          <table className="w-full text-left border-collapse">
+            <thead className="bg-neutral-50 dark:bg-[#1a1a1c] text-xs uppercase tracking-wider text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-800">
               <tr>
-                <th className="px-4 py-3 font-medium">Recipient</th>
-                <th className="px-4 py-3 font-medium">Template</th>
-                <th className="px-4 py-3 font-medium">Sent</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium"></th>
+                <th className="px-5 py-4 font-semibold">Recipient</th>
+                <th className="px-5 py-4 font-semibold">Template</th>
+                <th className="px-5 py-4 font-semibold">Sent</th>
+                <th className="px-5 py-4 font-semibold">Status</th>
+                <th className="px-5 py-4 font-semibold"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-100">
+            <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
               {rows.map((r) => {
                 const c = contacts.get(r.contact_id);
                 const t = templates.get(r.template_id);
                 const name = c ? [c.first_name, c.last_name].filter(Boolean).join(" ") || c.phone_e164 : "—";
                 return (
-                  <tr key={r.id} className="hover:bg-neutral-50">
-                    <td className="px-4 py-3">
-                      <div className="font-medium">{name}</div>
-                      <div className="text-xs text-neutral-500">{c?.phone_e164}</div>
+                  <tr key={r.id} className="hover:bg-neutral-50 dark:hover:bg-[#1a1a1c] transition-colors">
+                    <td className="px-5 py-3">
+                      <div className="text-neutral-900 dark:text-neutral-100">{name}</div>
+                      <div className="text-xs text-neutral-500 dark:text-neutral-500">{c?.phone_e164}</div>
                     </td>
-                    <td className="px-4 py-3 max-w-xs truncate">{t?.name ?? "(deleted)"}</td>
-                    <td className="px-4 py-3 text-neutral-600">{fmtDate(r.sent_at)}</td>
-                    <td className="px-4 py-3"><StatusBadge status={r.status as SendStatus} /></td>
-                    <td className="px-4 py-3 text-right">
-                      <Link href={`/app/sends/${r.id}`} className="text-sm font-medium text-neutral-900 hover:underline">
+                    <td className="px-5 py-3 max-w-xs truncate text-neutral-700 dark:text-neutral-300">{t?.name ?? "(deleted)"}</td>
+                    <td className="px-5 py-3 text-neutral-500 dark:text-neutral-500">{fmtDate(r.sent_at)}</td>
+                    <td className="px-5 py-3"><StatusBadge status={r.status as SendStatus} /></td>
+                    <td className="px-5 py-3 text-right">
+                      <Link href={`/app/sends/${r.id}`} className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
                         Open
                       </Link>
                     </td>

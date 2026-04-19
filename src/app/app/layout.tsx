@@ -14,7 +14,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const creditsTotal = PLAN_CREDITS[organization?.plan ?? "free"] ?? 3;
 
   return (
-    <div className="flex min-h-screen bg-neutral-50">
+    <div className="flex min-h-screen bg-[var(--background)]">
       <Sidebar
         orgName={orgName}
         email={email}
