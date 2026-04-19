@@ -85,16 +85,16 @@ export default async function SendDetailPage({
 
   return (
     <div>
-      <div className="flex items-center gap-2 text-sm text-neutral-500">
+      <div className="flex items-center gap-2 text-sm text-neutral-500 dark:text-neutral-400">
         <Link href="/app/sends" className="hover:underline">Sends</Link>
         <span>/</span>
-        <span className="text-neutral-700">{recipientName}</span>
+        <span className="text-neutral-700 dark:text-neutral-300">{recipientName}</span>
       </div>
 
       <div className="mt-3 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{recipientName}</h1>
-          <p className="mt-1 text-sm text-neutral-600">{snapshot.name}</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-50">{recipientName}</h1>
+          <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">{snapshot.name}</p>
         </div>
         <StatusBadge status={request.status as SendStatus} />
       </div>
@@ -107,7 +107,7 @@ export default async function SendDetailPage({
       </div>
 
       <Section title="The SMS we sent">
-        <div className="rounded-xl bg-neutral-900 p-4 text-neutral-100">
+        <div className="rounded-xl bg-neutral-900 dark:bg-[#1c1c1e] p-4 text-neutral-100 dark:text-neutral-100 ring-1 ring-inset ring-white/5">
           <div className="text-[10px] uppercase tracking-wide text-neutral-400">SMS to {contact?.phone_e164}</div>
           <div className="mt-1 text-sm">{linkify(smsPreview)}</div>
         </div>
@@ -120,7 +120,7 @@ export default async function SendDetailPage({
 
       <Section title="Call result">
         {!latestSession ? (
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">
             No call yet. When the recipient dials +18883158135, a session will appear here.
           </p>
         ) : (
@@ -138,13 +138,13 @@ export default async function SendDetailPage({
 
       {summary && (summary.short || summary.long || (summary.bullets as string[] | null)?.length) ? (
         <Section title="Summary">
-          {summary.short && <p className="text-sm">{summary.short}</p>}
-          {summary.long && <p className="mt-3 text-sm text-neutral-700">{summary.long}</p>}
+          {summary.short && <p className="text-sm text-neutral-900 dark:text-neutral-100">{summary.short}</p>}
+          {summary.long && <p className="mt-3 text-sm text-neutral-700 dark:text-neutral-300">{summary.long}</p>}
           {Array.isArray(summary.bullets) && summary.bullets.length > 0 && (
-            <ul className="mt-3 space-y-1 text-sm text-neutral-700">
+            <ul className="mt-3 space-y-1 text-sm text-neutral-700 dark:text-neutral-300">
               {(summary.bullets as string[]).map((b, i) => (
                 <li key={i} className="flex gap-2">
-                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-neutral-400" />
+                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-neutral-400 dark:bg-neutral-600" />
                   <span>{b}</span>
                 </li>
               ))}
@@ -160,14 +160,14 @@ export default async function SendDetailPage({
               const a = answersByQ.get(q.id);
               return (
                 <li key={q.id}>
-                  <div className="text-sm font-medium">{i + 1}. {q.prompt}</div>
+                  <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">{i + 1}. {q.prompt}</div>
                   {a?.answer_text ? (
-                    <p className="mt-1 text-sm text-neutral-700">{a.answer_text}</p>
+                    <p className="mt-1 text-sm text-neutral-700 dark:text-neutral-300">{a.answer_text}</p>
                   ) : (
-                    <p className="mt-1 text-sm italic text-neutral-400">— awaiting processing —</p>
+                    <p className="mt-1 text-sm italic text-neutral-400 dark:text-neutral-500">— awaiting processing —</p>
                   )}
                   {a?.confidence != null && (
-                    <div className="mt-1 text-xs text-neutral-500">
+                    <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-500">
                       confidence {Math.round(Number(a.confidence) * 100)}%
                     </div>
                   )}
@@ -180,13 +180,13 @@ export default async function SendDetailPage({
 
       {output?.rendered_text ? (
         <Section title={`Output — ${output.output_type}`}>
-          <pre className="max-h-[36rem] overflow-auto whitespace-pre-wrap rounded-lg bg-neutral-950 p-4 text-sm text-neutral-100">
+          <pre className="max-h-[36rem] overflow-auto whitespace-pre-wrap rounded-lg bg-neutral-950 dark:bg-[#0a0a0a] p-4 text-sm text-neutral-100 ring-1 ring-inset ring-white/5">
 {output.rendered_text}
           </pre>
         </Section>
       ) : latestSession ? (
         <Section title="Output">
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">
             {output?.error
               ? `Output generation failed: ${output.error}`
               : "Output will be generated here once processing completes."}
@@ -206,7 +206,7 @@ function linkify(text: string): React.ReactNode {
         href={part}
         target="_blank"
         rel="noopener noreferrer"
-        className="underline decoration-neutral-400 underline-offset-2 hover:text-white"
+        className="underline decoration-neutral-400 dark:decoration-neutral-500 underline-offset-2 hover:text-white"
       >
         {part}
       </a>
@@ -225,17 +225,17 @@ function fmtDuration(sec: number | null | undefined) {
 
 function KV({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white px-4 py-3">
-      <div className="text-xs font-medium uppercase tracking-wide text-neutral-500">{label}</div>
-      <div className="mt-1 text-sm tabular-nums">{value}</div>
+    <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#111] px-4 py-3 transition-colors">
+      <div className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">{label}</div>
+      <div className="mt-1 text-sm tabular-nums text-neutral-900 dark:text-neutral-100">{value}</div>
     </div>
   );
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mt-8 rounded-xl border border-neutral-200 bg-white p-5">
-      <h2 className="mb-3 text-sm font-medium tracking-wide text-neutral-500 uppercase">{title}</h2>
+    <section className="mt-8 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#111] p-5 shadow-sm transition-colors">
+      <h2 className="mb-3 text-sm font-medium tracking-wide text-neutral-500 dark:text-neutral-400 uppercase">{title}</h2>
       {children}
     </section>
   );

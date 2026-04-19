@@ -95,14 +95,14 @@ export function NewSendWizard({
 
   return (
     <div>
-      <div className="flex items-center gap-2 text-sm text-neutral-500">
+      <div className="flex items-center gap-2 text-sm text-neutral-500 dark:text-neutral-400">
         <Link href="/app/sends" className="hover:underline">Sends</Link>
         <span>/</span>
-        <span className="text-neutral-700">New</span>
+        <span className="text-neutral-700 dark:text-neutral-300">New</span>
       </div>
 
-      <h1 className="mt-3 text-2xl font-semibold tracking-tight">Send an interview</h1>
-      <p className="mt-1 text-sm text-neutral-600">
+      <h1 className="mt-3 text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-50">Send an interview</h1>
+      <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
         Pick a template and a recipient. {creditsRemaining} credit{creditsRemaining === 1 ? "" : "s"} left.
       </p>
 
@@ -112,7 +112,7 @@ export function NewSendWizard({
             <select
               value={templateId}
               onChange={(e) => setTemplateId(e.target.value)}
-              className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none"
+              className="w-full rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-[#1c1c1e] px-3 py-2 text-sm text-neutral-900 dark:text-neutral-100 focus:border-neutral-900 dark:focus:border-neutral-500 focus:outline-none transition-colors"
             >
               {templates.map((t) => (
                 <option key={t.id} value={t.id}>{t.name}</option>
@@ -126,7 +126,7 @@ export function NewSendWizard({
               !addingContact && (
                 <button
                   onClick={() => setAddingContact(true)}
-                  className="text-sm font-medium text-neutral-900 hover:underline"
+                  className="text-sm font-medium text-neutral-900 dark:text-neutral-100 hover:underline"
                 >
                   + Add new
                 </button>
@@ -141,7 +141,7 @@ export function NewSendWizard({
                   <Input label="Phone (E.164)" value={newPhone} onChange={setNewPhone} placeholder="+15555551234" required />
                 </div>
                 {contactErr && (
-                  <div className="mt-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                  <div className="mt-3 rounded-md border border-rose-200 bg-rose-50 dark:border-rose-900/50 dark:bg-rose-950/20 px-3 py-2 text-sm text-rose-700 dark:text-rose-400">
                     {contactErr}
                   </div>
                 )}
@@ -149,14 +149,14 @@ export function NewSendWizard({
                   <button
                     onClick={onAddContact}
                     disabled={!newPhone.trim()}
-                    className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-400"
+                    className="rounded-md bg-neutral-900 dark:bg-neutral-100 px-4 py-2 text-sm font-medium text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 disabled:cursor-not-allowed disabled:bg-neutral-400 dark:disabled:bg-neutral-700 dark:disabled:text-neutral-400 transition-colors"
                   >
                     Save contact
                   </button>
                   {contacts.length > 0 && (
                     <button
                       onClick={() => setAddingContact(false)}
-                      className="rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm hover:bg-neutral-50"
+                      className="rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-[#1c1c1e] px-4 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
                     >
                       Pick existing
                     </button>
@@ -167,7 +167,7 @@ export function NewSendWizard({
               <select
                 value={contactId}
                 onChange={(e) => setContactId(e.target.value)}
-                className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none"
+                className="w-full rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-[#1c1c1e] px-3 py-2 text-sm text-neutral-900 dark:text-neutral-100 focus:border-neutral-900 dark:focus:border-neutral-500 focus:outline-none transition-colors"
               >
                 {contacts.map((c) => {
                   const name = [c.first_name, c.last_name].filter(Boolean).join(" ") || "(no name)";
@@ -183,23 +183,23 @@ export function NewSendWizard({
 
           <Section title="3. Confirm">
             {errorMsg && (
-              <div className="mb-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+              <div className="mb-3 rounded-md border border-rose-200 bg-rose-50 dark:border-rose-900/50 dark:bg-rose-950/20 px-3 py-2 text-sm text-rose-700 dark:text-rose-400">
                 {errorMsg}
               </div>
             )}
             <button
               onClick={onSend}
               disabled={!canSend}
-              className="rounded-md bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-400"
+              className="rounded-md bg-neutral-900 dark:bg-neutral-100 px-5 py-2.5 text-sm font-medium text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 disabled:cursor-not-allowed disabled:bg-neutral-400 dark:disabled:bg-neutral-700 dark:disabled:text-neutral-400 transition-colors"
             >
               {sendState === "sending" ? "Sending…" : "Send invite"}
             </button>
             {creditsRemaining <= 0 && (
-              <p className="mt-2 text-xs text-rose-700">
+              <p className="mt-2 text-xs text-rose-700 dark:text-rose-400">
                 No credits left on this plan. Upgrade in <Link href="/app/settings/billing" className="underline">Billing</Link>.
               </p>
             )}
-            <p className="mt-3 text-xs text-neutral-500">
+            <p className="mt-3 text-xs text-neutral-500 dark:text-neutral-400">
               Twilio sends the SMS immediately. You can view the token and dial code on
               the send detail page.
             </p>
@@ -208,7 +208,7 @@ export function NewSendWizard({
 
         <aside className="space-y-6">
           <Section title="SMS preview">
-            <div className="rounded-xl bg-neutral-900 p-4 text-neutral-100">
+            <div className="rounded-xl bg-neutral-900 dark:bg-[#1c1c1e] p-4 text-neutral-100 ring-1 ring-inset ring-white/5">
               <div className="text-[10px] uppercase tracking-wide text-neutral-400">
                 SMS to {selectedContact?.phone_e164 ?? "—"}
               </div>
@@ -223,9 +223,9 @@ export function NewSendWizard({
 
 function Section({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-neutral-200 bg-white p-5">
+    <section className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#111] p-5 shadow-sm transition-colors">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-medium tracking-wide text-neutral-500 uppercase">{title}</h2>
+        <h2 className="text-sm font-medium tracking-wide text-neutral-500 dark:text-neutral-400 uppercase">{title}</h2>
         {action}
       </div>
       {children}
@@ -244,14 +244,14 @@ function Input({
 }) {
   return (
     <label className="block">
-      <span className="block text-xs font-medium text-neutral-600">
-        {label}{required && <span className="ml-0.5 text-rose-500">*</span>}
+      <span className="block text-xs font-medium text-neutral-600 dark:text-neutral-400">
+        {label}{required && <span className="ml-0.5 text-rose-500 dark:text-rose-400">*</span>}
       </span>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="mt-1 w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none"
+        className="mt-1 w-full rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-[#1c1c1e] px-3 py-2 text-sm text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-600 focus:border-neutral-900 dark:focus:border-neutral-500 focus:outline-none transition-colors"
       />
     </label>
   );

@@ -107,23 +107,23 @@ export function TemplateBuilder({ initial }: { initial?: MockTemplate }) {
 
   return (
     <div>
-      <div className="flex items-center gap-2 text-sm text-neutral-500">
+      <div className="flex items-center gap-2 text-sm text-neutral-500 dark:text-neutral-400">
         <Link href="/app/templates" className="hover:underline">Templates</Link>
         <span>/</span>
-        <span className="text-neutral-700">{isEditing ? "Edit" : "New"}</span>
+        <span className="text-neutral-700 dark:text-neutral-300">{isEditing ? "Edit" : "New"}</span>
       </div>
 
       <div className="mt-3 flex items-end justify-between">
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="text-2xl font-semibold tracking-tight bg-transparent outline-none focus:bg-neutral-100 px-1 -mx-1 rounded"
+          className="text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-50 bg-transparent outline-none focus:bg-neutral-100 dark:focus:bg-neutral-800 px-1 -mx-1 rounded transition-colors"
         />
         <div className="flex gap-2">
           {isEditing && (
             <button
               onClick={onArchive}
-              className="rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm hover:bg-neutral-50"
+              className="rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-[#1c1c1e] px-4 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
             >
               Archive
             </button>
@@ -131,7 +131,7 @@ export function TemplateBuilder({ initial }: { initial?: MockTemplate }) {
           <button
             onClick={onSave}
             disabled={saveState === "saving" || questions.length === 0}
-            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-400"
+            className="rounded-md bg-neutral-900 dark:bg-neutral-100 px-4 py-2 text-sm font-medium text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 disabled:cursor-not-allowed disabled:bg-neutral-400 dark:disabled:bg-neutral-700 dark:disabled:text-neutral-400 transition-colors"
           >
             {saveState === "saving" ? "Saving…" : "Save"}
           </button>
@@ -139,7 +139,7 @@ export function TemplateBuilder({ initial }: { initial?: MockTemplate }) {
       </div>
 
       {errorMsg && (
-        <div className="mt-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+        <div className="mt-3 rounded-md border border-rose-200 bg-rose-50 dark:border-rose-900/50 dark:bg-rose-950/20 px-3 py-2 text-sm text-rose-700 dark:text-rose-400">
           {errorMsg}
         </div>
       )}
@@ -147,47 +147,47 @@ export function TemplateBuilder({ initial }: { initial?: MockTemplate }) {
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           <Section title="Introduction">
-            <label className="block text-xs font-medium text-neutral-600">Intro message (read at start of call)</label>
+            <label className="block text-xs font-medium text-neutral-600 dark:text-neutral-400">Intro message (read at start of call)</label>
             <textarea
               value={intro}
               onChange={(e) => setIntro(e.target.value)}
               rows={2}
-              className="mt-1 w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none"
+              className="mt-1 w-full rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-[#1c1c1e] px-3 py-2 text-sm text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-600 focus:border-neutral-900 dark:focus:border-neutral-500 focus:outline-none transition-colors"
             />
 
-            <label className="mt-4 block text-xs font-medium text-neutral-600">SMS body</label>
+            <label className="mt-4 block text-xs font-medium text-neutral-600 dark:text-neutral-400">SMS body</label>
             <textarea
               value={smsBody}
               onChange={(e) => setSmsBody(e.target.value)}
               rows={2}
-              className="mt-1 w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none"
+              className="mt-1 w-full rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-[#1c1c1e] px-3 py-2 text-sm text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-600 focus:border-neutral-900 dark:focus:border-neutral-500 focus:outline-none transition-colors"
             />
-            <p className="mt-1 text-xs text-neutral-500">
-              Tokens: <code>{"{first_name}"}</code>, <code>{"{link}"}</code>
+            <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+              Tokens: <code className="text-neutral-700 dark:text-neutral-300">{"{first_name}"}</code>, <code className="text-neutral-700 dark:text-neutral-300">{"{link}"}</code>
             </p>
           </Section>
 
           <Section
             title="Questions"
             action={
-              <button onClick={addQuestion} className="text-sm font-medium text-neutral-900 hover:underline">
+              <button onClick={addQuestion} className="text-sm font-medium text-neutral-900 dark:text-neutral-100 hover:underline">
                 + Add question
               </button>
             }
           >
             {questions.length === 0 && (
-              <div className="rounded-md border border-dashed border-neutral-300 py-8 text-center text-sm text-neutral-500">
+              <div className="rounded-md border border-dashed border-neutral-300 dark:border-neutral-700 py-8 text-center text-sm text-neutral-500 dark:text-neutral-400">
                 No questions yet. Click "Add question" to start.
               </div>
             )}
             <ul className="space-y-3">
               {questions.map((q, i) => (
-                <li key={q.id} className="rounded-lg border border-neutral-200 bg-white p-4">
+                <li key={q.id} className="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#161618] p-4 transition-colors">
                   <div className="flex items-start gap-3">
-                    <div className="mt-2 flex w-6 flex-col items-center text-xs text-neutral-400">
-                      <span className="mb-1 font-semibold text-neutral-700">{i + 1}</span>
-                      <button onClick={() => move(q.id, -1)} className="hover:text-neutral-900" aria-label="Move up">↑</button>
-                      <button onClick={() => move(q.id, +1)} className="hover:text-neutral-900" aria-label="Move down">↓</button>
+                    <div className="mt-2 flex w-6 flex-col items-center text-xs text-neutral-400 dark:text-neutral-500">
+                      <span className="mb-1 font-semibold text-neutral-700 dark:text-neutral-300">{i + 1}</span>
+                      <button onClick={() => move(q.id, -1)} className="hover:text-neutral-900 dark:hover:text-neutral-100" aria-label="Move up">↑</button>
+                      <button onClick={() => move(q.id, +1)} className="hover:text-neutral-900 dark:hover:text-neutral-100" aria-label="Move down">↓</button>
                     </div>
                     <div className="flex-1">
                       <textarea
@@ -195,15 +195,15 @@ export function TemplateBuilder({ initial }: { initial?: MockTemplate }) {
                         onChange={(e) => updateQuestion(q.id, { prompt: e.target.value })}
                         placeholder="What's the main thing you hope to get out of our call?"
                         rows={2}
-                        className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none"
+                        className="w-full rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-[#1c1c1e] px-3 py-2 text-sm text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-600 focus:border-neutral-900 dark:focus:border-neutral-500 focus:outline-none transition-colors"
                       />
                       <input
                         value={q.hint ?? ""}
                         onChange={(e) => updateQuestion(q.id, { hint: e.target.value })}
                         placeholder="Hint (optional)"
-                        className="mt-2 w-full rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-600 focus:border-neutral-900 focus:outline-none"
+                        className="mt-2 w-full rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-[#1c1c1e] px-3 py-1.5 text-sm text-neutral-600 dark:text-neutral-400 placeholder-neutral-400 dark:placeholder-neutral-600 focus:border-neutral-900 dark:focus:border-neutral-500 focus:outline-none transition-colors"
                       />
-                      <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-neutral-600">
+                      <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-neutral-600 dark:text-neutral-400">
                         <label className="inline-flex items-center gap-1.5">
                           <input
                             type="checkbox"
@@ -228,14 +228,14 @@ export function TemplateBuilder({ initial }: { initial?: MockTemplate }) {
                             max={300}
                             value={q.max_seconds}
                             onChange={(e) => updateQuestion(q.id, { max_seconds: Number(e.target.value) })}
-                            className="w-16 rounded-md border border-neutral-300 px-2 py-0.5 text-right"
+                            className="w-16 rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-[#1c1c1e] px-2 py-0.5 text-right text-neutral-900 dark:text-neutral-100 focus:border-neutral-900 dark:focus:border-neutral-500 focus:outline-none transition-colors"
                           />
                         </label>
                       </div>
                     </div>
                     <button
                       onClick={() => removeQuestion(q.id)}
-                      className="text-xs text-neutral-400 hover:text-rose-600"
+                      className="text-xs text-neutral-400 dark:text-neutral-500 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
                       aria-label="Remove question"
                     >
                       ✕
@@ -254,8 +254,8 @@ export function TemplateBuilder({ initial }: { initial?: MockTemplate }) {
                   className={
                     "cursor-pointer rounded-lg border p-3 text-sm transition-colors " +
                     (outputType === o.value
-                      ? "border-neutral-900 bg-neutral-50 ring-1 ring-neutral-900"
-                      : "border-neutral-200 bg-white hover:border-neutral-300")
+                      ? "border-neutral-900 bg-neutral-50 ring-1 ring-neutral-900 dark:border-neutral-100 dark:bg-neutral-800 dark:ring-neutral-100"
+                      : "border-neutral-200 bg-white hover:border-neutral-300 dark:border-neutral-800 dark:bg-[#161618] dark:hover:border-neutral-700")
                   }
                 >
                   <input
@@ -265,23 +265,23 @@ export function TemplateBuilder({ initial }: { initial?: MockTemplate }) {
                     checked={outputType === o.value}
                     onChange={() => setOutputType(o.value)}
                   />
-                  <div className="font-medium">{o.label}</div>
-                  <div className="text-xs text-neutral-500">{o.sub}</div>
+                  <div className="font-medium text-neutral-900 dark:text-neutral-100">{o.label}</div>
+                  <div className="text-xs text-neutral-500 dark:text-neutral-400">{o.sub}</div>
                 </label>
               ))}
             </div>
 
-            <label className="mt-5 block text-xs font-medium text-neutral-600">Webhook URL (optional)</label>
+            <label className="mt-5 block text-xs font-medium text-neutral-600 dark:text-neutral-400">Webhook URL (optional)</label>
             <div className="mt-1 flex gap-2">
               <input
                 value={webhookUrl}
                 onChange={(e) => setWebhookUrl(e.target.value)}
                 placeholder="https://hooks.zapier.com/..."
-                className="flex-1 rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none"
+                className="flex-1 rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-[#1c1c1e] px-3 py-2 text-sm text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-600 focus:border-neutral-900 dark:focus:border-neutral-500 focus:outline-none transition-colors"
               />
               <button
                 type="button"
-                className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm hover:bg-neutral-50"
+                className="rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-[#1c1c1e] px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
                 onClick={() => alert("Webhook test wiring lands with the Twilio step.")}
               >
                 Send test
@@ -292,7 +292,7 @@ export function TemplateBuilder({ initial }: { initial?: MockTemplate }) {
 
         <aside className="space-y-6">
           <Section title="Preview">
-            <div className="rounded-xl bg-neutral-900 p-4 text-neutral-100 shadow-sm">
+            <div className="rounded-xl bg-neutral-900 dark:bg-[#1c1c1e] p-4 text-neutral-100 shadow-sm ring-1 ring-inset ring-white/5">
               <div className="text-[10px] uppercase tracking-wide text-neutral-400">SMS</div>
               <div className="mt-1 text-sm">
                 {smsBody
@@ -300,14 +300,14 @@ export function TemplateBuilder({ initial }: { initial?: MockTemplate }) {
                   .replace("{link}", "postaud.io/c/abc123")}
               </div>
             </div>
-            <div className="mt-4 rounded-lg border border-neutral-200 bg-white p-4 text-sm">
-              <div className="text-xs font-medium text-neutral-500">Call intro</div>
-              <p className="mt-1 italic text-neutral-700">"Hi Sarah — {intro || "…"}"</p>
-              <div className="mt-3 text-xs font-medium text-neutral-500">Then asks</div>
-              <ol className="mt-1 list-decimal space-y-1 pl-4 text-neutral-700">
-                {questions.length === 0 && <li className="text-neutral-400">No questions yet</li>}
+            <div className="mt-4 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#161618] p-4 text-sm transition-colors">
+              <div className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Call intro</div>
+              <p className="mt-1 italic text-neutral-700 dark:text-neutral-300">"Hi Sarah — {intro || "…"}"</p>
+              <div className="mt-3 text-xs font-medium text-neutral-500 dark:text-neutral-400">Then asks</div>
+              <ol className="mt-1 list-decimal space-y-1 pl-4 text-neutral-700 dark:text-neutral-300">
+                {questions.length === 0 && <li className="text-neutral-400 dark:text-neutral-500">No questions yet</li>}
                 {questions.map((q) => (
-                  <li key={q.id}>{q.prompt || <span className="text-neutral-400">(empty)</span>}</li>
+                  <li key={q.id}>{q.prompt || <span className="text-neutral-400 dark:text-neutral-500">(empty)</span>}</li>
                 ))}
               </ol>
             </div>
@@ -320,9 +320,9 @@ export function TemplateBuilder({ initial }: { initial?: MockTemplate }) {
 
 function Section({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-neutral-200 bg-white p-5">
+    <section className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#111] p-5 shadow-sm transition-colors">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-medium tracking-wide text-neutral-500 uppercase">{title}</h2>
+        <h2 className="text-sm font-medium tracking-wide text-neutral-500 dark:text-neutral-400 uppercase">{title}</h2>
         {action}
       </div>
       {children}
