@@ -18,6 +18,12 @@ const dev = process.env.NODE_ENV !== "production";
 const port = Number(process.env.PORT ?? 3000);
 const hostname = process.env.HOSTNAME ?? "localhost";
 
+for (const sig of ["SIGTERM", "SIGINT", "SIGHUP"] as const) {
+  process.on(sig, () => console.log(`[server] received ${sig}`));
+}
+process.on("uncaughtException", (err) => console.error("[server] uncaughtException", err));
+process.on("unhandledRejection", (reason) => console.error("[server] unhandledRejection", reason));
+
 const app = next({ dev, hostname, port });
 const handler = app.getRequestHandler();
 

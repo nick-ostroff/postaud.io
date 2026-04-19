@@ -57,7 +57,7 @@ Both methods populate the same `auth.users` row. Supabase `signInWithPassword`, 
 ### 2.4 Self-signup behavior
 
 - Open self-signup (anyone with an email can create an account).
-- On signup: a new `auth.users` row is created by Supabase. A new DB trigger (added in this migration) on `auth.users` INSERT provisions a corresponding `accounts` row on the free tier (3 interviews/month) and an `account_members` row linking the new user as `owner`.
+- On signup: a new `auth.users` row is created by Supabase. After email verification, the user is redirected to `/auth/callback`, which calls the existing `ensureViewerBootstrapped()` helper — this creates the `users` mirror row, an `organizations` row on the free tier, and a `memberships` row with `role = 'owner'`. Password signup piggybacks on the same callback path as magic link, so no new bootstrap logic is needed.
 - User cannot sign in until they click the verification link. Supabase enforces this.
 
 ---
@@ -96,11 +96,11 @@ Every mutating admin action writes an `audit_logs` row with:
 
 - `actor_email` — the admin's email
 - `action` — e.g. `credit_adjustment`, `account_suspended`, `account_unsuspended`
-- `target_account_id` — the account being affected
+- `target_organization_id` — the account being affected
 - `reason` — free-text input from the admin (required for credit changes)
 - `metadata` — JSON blob with before/after values
 
-Audit log rows written by platform admins are not tied to an `account_id`, only to `target_account_id`, because the admin is not a member of the target account.
+Audit log rows written by platform admins are not tied to an `account_id`, only to `target_organization_id`, because the admin is not a member of the target account.
 
 ---
 
@@ -130,11 +130,11 @@ Mounted at `/admin`. Hidden from customer-facing navigation. Admin layout render
 
 - Header: account name, owner email, plan, status, created.
 - Sections:
-  - Members (owner + any `account_members` rows)
+  - Members (owner + any `memberships` rows)
   - Recent interview requests (last 25, newest first)
   - Recent calls (last 25)
   - Credit balance + recent `credit_ledger` entries
-  - Audit log tail (last 25 rows with `target_account_id = this`)
+  - Audit log tail (last 25 rows with `target_organization_id = this`)
 - Action buttons: "Adjust credits" → `/credits`, "Suspend" / "Unsuspend" → `/status`.
 
 ### 4.4 Credit adjustment
@@ -156,48 +156,66 @@ Mounted at `/admin`. Hidden from customer-facing navigation. Admin layout render
 
 ## 5. Data model changes
 
-### 5.1 New enum + column on `accounts`
+### 5.1 New enum + column on `organizations`
 
 ```sql
-create type account_status as enum ('active', 'suspended');
+create type org_status as enum ('active', 'suspended');
 
 alter table accounts
-  add column status account_status not null default 'active';
+  add column status org_status not null default 'active';
 ```
 
 ### 5.2 RLS policy updates
 
-Any existing policy that permits INSERT on `interview_requests` gains:
+The existing `"org rw"` policy on `interview_requests` permits all operations where `organization_id = current_org_id()`. That policy is dropped and replaced with separate SELECT and INSERT/UPDATE/DELETE policies — the write policies additionally require the org to be active:
 
 ```sql
-and exists (
-  select 1 from accounts
-  where accounts.id = interview_requests.account_id
-    and accounts.status = 'active'
-)
+drop policy "org rw" on interview_requests;
+
+create policy "org read" on interview_requests
+  for select using (organization_id = current_org_id());
+
+create policy "org write" on interview_requests
+  for insert with check (
+    organization_id = current_org_id()
+    and exists (
+      select 1 from organizations
+      where id = interview_requests.organization_id
+        and status = 'active'
+    )
+  );
+
+create policy "org update" on interview_requests
+  for update using (organization_id = current_org_id())
+  with check (
+    organization_id = current_org_id()
+    and exists (
+      select 1 from organizations
+      where id = interview_requests.organization_id
+        and status = 'active'
+    )
+  );
+
+create policy "org delete" on interview_requests
+  for delete using (organization_id = current_org_id());
 ```
 
-READ policies are unchanged — suspended accounts can still see their own historical data.
+Read and delete paths are unchanged in effect — suspended orgs can still view and clean up their own data. Only create/update of interview_requests is blocked.
 
 ### 5.3 `audit_logs.actor_email`
 
-If not already present in the schema in `plan/03-schema.sql`, add:
+The existing `audit_logs` table (from `0001_init.sql`) has `actor_user_id uuid` but no email column. Add:
 
 ```sql
 alter table audit_logs
   add column actor_email text;
 ```
 
-This column is populated for platform-admin actions (where no `account_id` membership exists for the actor).
+This column is populated for platform-admin actions (where no membership links the admin to the target organization).
 
-### 5.4 Signup trigger
+### 5.4 Signup bootstrap
 
-New trigger on `auth.users` AFTER INSERT that:
-
-1. Creates an `accounts` row on the free tier.
-2. Creates an `account_members` row with `role = 'owner'` linking the new user to the new account.
-
-This replaces whatever manual account-provisioning assumption existed before (the plan predates actual signup flow).
+No DB trigger needed — the existing `ensureViewerBootstrapped()` helper (in `src/db/queries.ts`) is already called from `/auth/callback` after code exchange. It creates `users`, `organizations`, and `memberships` rows via the service-role client. Password signup flows through the same callback after email verification, so this works unchanged.
 
 ### 5.5 Migration
 

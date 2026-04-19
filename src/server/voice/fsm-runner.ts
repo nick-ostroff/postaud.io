@@ -38,12 +38,20 @@ export async function runInterview(args: {
   let closed = false;
 
   function sendText(text: string) {
-    if (closed || ws.readyState !== ws.OPEN) return;
-    ws.send(JSON.stringify({ type: "text", token: text, last: true }));
+    if (closed || ws.readyState !== ws.OPEN) {
+      console.log("[voice/relay] sendText skipped: closed=", closed, "readyState=", ws.readyState);
+      return;
+    }
+    const payload = JSON.stringify({ type: "text", token: text, last: true });
+    console.log("[voice/relay] → text", `"${text.slice(0, 80)}${text.length > 80 ? "…" : ""}"`, "bytes=", payload.length);
+    ws.send(payload, (err) => {
+      if (err) console.error("[voice/relay] ws.send error", err.message);
+    });
   }
 
   function sendEnd() {
     if (closed || ws.readyState !== ws.OPEN) return;
+    console.log("[voice/relay] → end");
     ws.send(JSON.stringify({ type: "end" }));
     closed = true;
     setTimeout(() => { try { ws.close(); } catch { /* noop */ } }, 500);
