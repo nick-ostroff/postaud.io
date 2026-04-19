@@ -14,21 +14,37 @@ export function SignUpForm() {
     setState("submitting");
     setErrorMsg(null);
 
-    const supabase = createClient();
-    const redirectTo = `${window.location.origin}/auth/callback?next=/auth/verify`;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? window.location.origin;
+    const redirectTo = `${appUrl}/auth/callback?next=/auth/verify`;
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: redirectTo },
-    });
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: redirectTo },
+      });
 
-    if (error) {
+      if (error) {
+        setState("error");
+        setErrorMsg(error.message);
+        return;
+      }
+
+      // Supabase returns an empty identities array when the email is already
+      // registered and confirmed (anti-enumeration). We surface this explicitly
+      // rather than sending the user to a "check your inbox" dead end.
+      if (data.user && data.user.identities && data.user.identities.length === 0) {
+        setState("error");
+        setErrorMsg("An account with this email already exists. Try signing in instead.");
+        return;
+      }
+
+      setState("sent");
+    } catch (err) {
       setState("error");
-      setErrorMsg(error.message);
-      return;
+      setErrorMsg(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     }
-    setState("sent");
   }
 
   if (state === "sent") {
