@@ -89,7 +89,8 @@ export async function POST(req: Request) {
         welcomeGreeting="${escapeXmlAttr(greeting)}"
         welcomeGreetingInterruptible="none"
         ttsProvider="Amazon"
-        voice="Ruth-Generative"
+        voice="Joanna-Neural"
+        language="en-US"
         dtmfDetection="true"
         interruptible="true"
       />
