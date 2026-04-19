@@ -22,6 +22,12 @@ const app = next({ dev, hostname, port });
 const handler = app.getRequestHandler();
 
 void app.prepare().then(() => {
+  // getUpgradeHandler exists on Next 14+ but must be called AFTER prepare().
+  const upgradeHandler =
+    typeof (app as unknown as { getUpgradeHandler?: () => unknown }).getUpgradeHandler === "function"
+      ? ((app as unknown as { getUpgradeHandler: () => (req: unknown, socket: unknown, head: unknown) => void }).getUpgradeHandler())
+      : null;
+
   const httpServer = createServer((req, res) => {
     const parsed = parse(req.url ?? "/", true);
     void handler(req, res, parsed);
@@ -38,8 +44,9 @@ void app.prepare().then(() => {
           try { ws.close(1011, "server error"); } catch { /* noop */ }
         });
       });
-    } else {
-      socket.destroy();
+    } else if (upgradeHandler) {
+      // Let Next handle its own WebSocket upgrades (HMR / Turbopack).
+      upgradeHandler(req, socket, head);
     }
   });
 
