@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { MockTemplate, MockQuestion, OutputType } from "@/lib/mocks";
 
@@ -13,12 +14,12 @@ const OUTPUT_OPTIONS: { value: OutputType; label: string; sub: string }[] = [
   { value: "webhook.json",     label: "Webhook JSON",     sub: "Full payload for your webhook" },
 ];
 
-function nextId(qs: MockQuestion[]) {
-  const n = qs.length + 1;
-  return `q${n}_${Math.random().toString(36).slice(2, 6)}`;
+function tempId() {
+  return `tmp_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 export function TemplateBuilder({ initial }: { initial?: MockTemplate }) {
+  const router = useRouter();
   const [name, setName] = useState(initial?.name ?? "Untitled template");
   const [intro, setIntro] = useState(initial?.intro_message ?? "");
   const [smsBody, setSmsBody] = useState(
@@ -27,11 +28,15 @@ export function TemplateBuilder({ initial }: { initial?: MockTemplate }) {
   const [outputType, setOutputType] = useState<OutputType>(initial?.output_type ?? "summary.concise");
   const [webhookUrl, setWebhookUrl] = useState(initial?.webhook_url ?? "");
   const [questions, setQuestions] = useState<MockQuestion[]>(initial?.questions ?? []);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const isEditing = Boolean(initial?.id);
 
   function addQuestion() {
     setQuestions((qs) => [
       ...qs,
-      { id: nextId(qs), position: qs.length, prompt: "", allow_followup: true, max_seconds: 90, required: true },
+      { id: tempId(), position: qs.length, prompt: "", allow_followup: true, max_seconds: 90, required: true },
     ]);
   }
   function removeQuestion(id: string) {
@@ -51,12 +56,61 @@ export function TemplateBuilder({ initial }: { initial?: MockTemplate }) {
     setQuestions((qs) => qs.map((q) => (q.id === id ? { ...q, ...patch } : q)));
   }
 
+  async function onSave() {
+    setSaveState("saving");
+    setErrorMsg(null);
+
+    const payload = {
+      name,
+      intro_message: intro || null,
+      sms_body: smsBody,
+      output_type: outputType,
+      webhook_url: webhookUrl || null,
+      questions: questions.map((q) => ({
+        prompt: q.prompt,
+        hint: q.hint ?? null,
+        allow_followup: q.allow_followup,
+        max_seconds: q.max_seconds,
+        required: q.required,
+      })),
+    };
+
+    const url = isEditing ? `/api/templates/${initial!.id}` : `/api/templates`;
+    const method = isEditing ? "PATCH" : "POST";
+
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      setSaveState("error");
+      setErrorMsg(j?.error?.message ?? `Save failed (HTTP ${res.status})`);
+      return;
+    }
+
+    router.push("/app/templates");
+    router.refresh();
+  }
+
+  async function onArchive() {
+    if (!isEditing) return;
+    if (!confirm("Archive this template?")) return;
+    const res = await fetch(`/api/templates/${initial!.id}`, { method: "DELETE" });
+    if (res.ok) {
+      router.push("/app/templates");
+      router.refresh();
+    }
+  }
+
   return (
     <div>
       <div className="flex items-center gap-2 text-sm text-neutral-500">
         <Link href="/app/templates" className="hover:underline">Templates</Link>
         <span>/</span>
-        <span className="text-neutral-700">Edit</span>
+        <span className="text-neutral-700">{isEditing ? "Edit" : "New"}</span>
       </div>
 
       <div className="mt-3 flex items-end justify-between">
@@ -66,20 +120,31 @@ export function TemplateBuilder({ initial }: { initial?: MockTemplate }) {
           className="text-2xl font-semibold tracking-tight bg-transparent outline-none focus:bg-neutral-100 px-1 -mx-1 rounded"
         />
         <div className="flex gap-2">
-          <button className="rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm hover:bg-neutral-50">
-            Archive
-          </button>
+          {isEditing && (
+            <button
+              onClick={onArchive}
+              className="rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm hover:bg-neutral-50"
+            >
+              Archive
+            </button>
+          )}
           <button
-            onClick={() => alert("Mock save — wiring lands when Supabase is connected.")}
-            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800"
+            onClick={onSave}
+            disabled={saveState === "saving" || questions.length === 0}
+            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-400"
           >
-            Save
+            {saveState === "saving" ? "Saving…" : "Save"}
           </button>
         </div>
       </div>
 
+      {errorMsg && (
+        <div className="mt-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          {errorMsg}
+        </div>
+      )}
+
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* left: editor */}
         <div className="lg:col-span-2 space-y-6">
           <Section title="Introduction">
             <label className="block text-xs font-medium text-neutral-600">Intro message (read at start of call)</label>
@@ -102,7 +167,14 @@ export function TemplateBuilder({ initial }: { initial?: MockTemplate }) {
             </p>
           </Section>
 
-          <Section title="Questions" action={<button onClick={addQuestion} className="text-sm font-medium text-neutral-900 hover:underline">+ Add question</button>}>
+          <Section
+            title="Questions"
+            action={
+              <button onClick={addQuestion} className="text-sm font-medium text-neutral-900 hover:underline">
+                + Add question
+              </button>
+            }
+          >
             {questions.length === 0 && (
               <div className="rounded-md border border-dashed border-neutral-300 py-8 text-center text-sm text-neutral-500">
                 No questions yet. Click "Add question" to start.
@@ -207,14 +279,17 @@ export function TemplateBuilder({ initial }: { initial?: MockTemplate }) {
                 placeholder="https://hooks.zapier.com/..."
                 className="flex-1 rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none"
               />
-              <button className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm hover:bg-neutral-50">
+              <button
+                type="button"
+                className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm hover:bg-neutral-50"
+                onClick={() => alert("Webhook test wiring lands with the Twilio step.")}
+              >
                 Send test
               </button>
             </div>
           </Section>
         </div>
 
-        {/* right: preview */}
         <aside className="space-y-6">
           <Section title="Preview">
             <div className="rounded-xl bg-neutral-900 p-4 text-neutral-100 shadow-sm">
