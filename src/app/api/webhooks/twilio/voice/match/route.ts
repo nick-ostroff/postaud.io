@@ -4,13 +4,9 @@ import { serviceClient } from "@/db/service";
 import { env } from "@/lib/env";
 
 // POST /api/webhooks/twilio/voice/match
-// Resolves the DTMF code → interview_request. Creates (or resumes) an
-// interview_sessions row. Responds with TwiML that greets the recipient
-// and starts the interview.
-//
-// V1 flow (pre-ConversationRelay): speak the intro + first question, record
-// answer for up to N seconds, then hang up. Later we swap Record for
-// ConversationRelay with the real FSM + LLM follow-ups.
+// Resolves the DTMF code → interview_request, creates (or resumes) an
+// interview_sessions row, and hands the call off to our ConversationRelay
+// WebSocket (see src/server/voice/fsm-runner.ts).
 export async function POST(req: Request) {
   const clone = req.clone();
   const form = await clone.formData();
@@ -41,14 +37,6 @@ export async function POST(req: Request) {
     return hangupWithMessage("This interview link has expired. Goodbye.");
   }
 
-  const { data: contact } = await svc
-    .from("contacts")
-    .select("first_name")
-    .eq("id", request.contact_id)
-    .maybeSingle();
-  const firstName = contact?.first_name ?? "there";
-
-  // Upsert session so we can attribute this call.
   const { data: session } = await svc
     .from("interview_sessions")
     .upsert(
@@ -63,47 +51,27 @@ export async function POST(req: Request) {
     .select("id")
     .single();
 
-  const base = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
   const sessionId = session?.id ?? "";
+  const publicBase = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  // HTTPS public base → wss:// relay URL. CloudFlare tunnel and Vercel both
+  // upgrade WS requests on the same hostname/port as HTTP.
+  const relayUrl = publicBase.replace(/^https?:\/\//, "wss://") + `/api/voice/relay?session=${sessionId}`;
 
-  const snapshot = request.template_snapshot as {
-    name: string;
-    intro_message?: string | null;
-    questions: { prompt: string; max_seconds?: number | null }[];
-  };
-  const firstQuestion = snapshot.questions?.[0];
-
-  if (!firstQuestion) {
-    return hangupWithMessage("This interview has no questions. Goodbye.");
-  }
-
-  const intro = snapshot.intro_message?.trim() || "Thanks for calling. I'll ask you a few quick questions.";
-  const maxSec = firstQuestion.max_seconds ?? 90;
-  const actionUrl = `${base}/api/webhooks/twilio/voice/answer-done?session=${sessionId}&amp;q=0`;
+  const voiceId = env().ELEVENLABS_VOICE_ID;
+  // ElevenLabs TTS: the API key is configured in Twilio Console (Voice → TTS
+  // Providers → ElevenLabs). Twilio looks it up by provider name.
+  const tts = voiceId
+    ? `ttsProvider="ElevenLabs" voice="${voiceId}"`
+    : `ttsProvider="Amazon" voice="Polly.Ruth-Generative"`;
 
   return twimlResponse(`
-    <Say voice="Polly.Ruth-Generative">Hi ${escapeXml(firstName)}. ${escapeXml(intro)} This call is being recorded so the sender can review your answers.</Say>
-    <Pause length="1"/>
-    <Say voice="Polly.Ruth-Generative">Here's the first question. ${escapeXml(firstQuestion.prompt)}</Say>
-    <Say voice="Polly.Ruth-Generative">Go ahead. Press star or pound when you're done.</Say>
-    <Record
-      action="${actionUrl}"
-      method="POST"
-      maxLength="${maxSec}"
-      playBeep="true"
-      finishOnKey="*#"
-      timeout="3"
-    />
-    <Say voice="Polly.Ruth-Generative">Thanks — I have your answer.</Say>
-    <Hangup/>
+    <Connect>
+      <ConversationRelay
+        url="${relayUrl}"
+        ${tts}
+        interruptByDtmf="true"
+        interruptible="true"
+      />
+    </Connect>
   `);
-}
-
-function escapeXml(s: string): string {
-  return s
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&apos;");
 }

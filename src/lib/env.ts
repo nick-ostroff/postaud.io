@@ -19,6 +19,11 @@ const schema = z.object({
   ANTHROPIC_API_KEY: z.string().optional(),
   AI_GATEWAY_URL: z.string().url().optional(),
 
+  // ElevenLabs voice ID for Twilio ConversationRelay TTS. When empty, we fall
+  // back to Polly.Ruth-Generative. The API key itself is configured in the
+  // Twilio Console (Voice → TTS Providers → ElevenLabs), not here.
+  ELEVENLABS_VOICE_ID: z.string().optional().default(""),
+
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   STRIPE_PRICE_STARTER: z.string().optional(),
