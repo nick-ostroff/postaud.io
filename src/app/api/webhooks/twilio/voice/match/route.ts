@@ -79,16 +79,17 @@ export async function POST(req: Request) {
   const publicBase = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
   const relayUrl = publicBase.replace(/^https?:\/\//, "wss://") + `/api/voice/relay?session=${sessionId}`;
 
-  // Restore the TwiML that last produced a `← setup` log. Minimum-TwiML
-  // variants got no setup at all, suggesting Twilio needs an explicit voice
-  // config to proceed past the upgrade handshake. Server also sends a probe
-  // text frame immediately on setup (see fsm-runner.ts) to keep the WS active.
+  // Diagnostic: last call got `← setup` followed by `write after end` —
+  // Twilio opened the WS, sent setup, then immediately closed. Highly
+  // suspicious that welcomeGreeting rendering failed on this account.
+  // Test by removing welcomeGreeting; the FSM will synthesize the greeting
+  // via server-driven text frames instead. If Twilio keeps the WS open
+  // and plays our text, welcomeGreeting was the culprit.
+  void greeting;
   return twimlResponse(`
     <Connect>
       <ConversationRelay
         url="${relayUrl}"
-        welcomeGreeting="${escapeXmlAttr(greeting)}"
-        welcomeGreetingInterruptible="none"
         ttsProvider="Amazon"
         voice="Joanna-Neural"
         language="en-US"
