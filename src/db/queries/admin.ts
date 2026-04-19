@@ -21,6 +21,12 @@ export async function listOrganizations(opts: {
   const limit = opts.limit ?? 50;
   const offset = opts.offset ?? 0;
 
+  // When searching, bypass pagination and fetch a wider window so the
+  // in-memory OR filter across name + email has a full candidate set.
+  const searching = Boolean(opts.search);
+  const fetchLimit = searching ? 500 : limit;
+  const fetchOffset = searching ? 0 : offset;
+
   // Pull orgs + owner email + this-month interview count in one round trip.
   // We fetch a bit wide and filter in memory on search — the scale here is
   // "platform admin looking at the customer list," not a hot path.
@@ -38,7 +44,7 @@ export async function listOrganizations(opts: {
     `)
     .eq("memberships.role", "owner")
     .order("created_at", { ascending: false })
-    .range(offset, offset + limit - 1);
+    .range(fetchOffset, fetchOffset + fetchLimit - 1);
 
   if (opts.search) {
     // Supabase doesn't easily OR across joined-table columns; apply name
@@ -177,6 +183,8 @@ export async function adjustOrgCredits(args: {
   reason: string;
   actorEmail: string;
 }): Promise<void> {
+  // Not transactional: audit log may drift from state if the insert fails.
+  // Acceptable at platform-admin scale; revisit if this grows beyond ~2 admins.
   const svc = serviceClient();
 
   const { data: org, error: fetchErr } = await svc
@@ -212,6 +220,8 @@ export async function setOrgStatus(args: {
   status: "active" | "suspended";
   actorEmail: string;
 }): Promise<void> {
+  // Not transactional: audit log may drift from state if the insert fails.
+  // Acceptable at platform-admin scale; revisit if this grows beyond ~2 admins.
   const svc = serviceClient();
 
   const { data: org, error: fetchErr } = await svc
