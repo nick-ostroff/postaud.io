@@ -35,6 +35,9 @@ const schema = z.object({
 
   WEBHOOK_SIGNING_SECRET: z.string().optional(),
   JOB_RUNNER_SECRET: z.string().optional(),
+
+  // Platform admin — comma-separated list of emails granted super-admin access.
+  PLATFORM_ADMIN_EMAILS: z.string().optional().default(""),
 });
 
 type Env = z.infer<typeof schema>;
@@ -56,5 +59,12 @@ export function voicePoolNumbers(): string[] {
   return env()
     .TWILIO_VOICE_POOL_NUMBERS.split(",")
     .map((n) => n.trim())
+    .filter(Boolean);
+}
+
+export function platformAdminEmails(): string[] {
+  return env()
+    .PLATFORM_ADMIN_EMAILS.split(",")
+    .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
 }
