@@ -14,7 +14,7 @@ export function ResetForm() {
     setErrorMsg(null);
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? window.location.origin;
-    const redirectTo = `${appUrl}/auth/update-password`;
+    const redirectTo = `${appUrl}/auth/callback?next=/auth/update-password`;
 
     try {
       const supabase = createClient();
