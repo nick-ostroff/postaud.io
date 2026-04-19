@@ -79,12 +79,16 @@ export async function POST(req: Request) {
   const publicBase = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
   const relayUrl = publicBase.replace(/^https?:\/\//, "wss://") + `/api/voice/relay?session=${sessionId}`;
 
+  // ConversationRelay voice names are DIFFERENT from <Say> voice names: no
+  // "Polly." prefix. Using an invalid ttsProvider/voice combo makes Twilio
+  // close the WS without playing audio. ElevenLabs requires the API key to be
+  // configured in the Twilio Console (Voice → TTS Providers → ElevenLabs) —
+  // if that's missing, ElevenLabs fails the same way, so we keep Amazon as the
+  // safe default until ElevenLabs is verified end-to-end.
   const voiceId = env().ELEVENLABS_VOICE_ID;
-  // ElevenLabs TTS: the API key is configured in Twilio Console (Voice → TTS
-  // Providers → ElevenLabs). Twilio looks it up by provider name.
   const tts = voiceId
     ? `ttsProvider="ElevenLabs" voice="${voiceId}"`
-    : `ttsProvider="Amazon" voice="Polly.Ruth-Generative"`;
+    : `ttsProvider="Amazon" voice="Ruth-Generative"`;
 
   // welcomeGreeting plays via Twilio's TTS immediately after the WS opens,
   // filling the silence while our FSM loads questions from the DB. Without it,
