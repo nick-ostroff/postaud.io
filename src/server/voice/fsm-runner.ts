@@ -72,8 +72,12 @@ export async function runInterview(args: {
   }
 
   function askCurrent() {
+    console.log("[voice/relay] askCurrent index=", questionIndex, "total=", questions.length);
     const q = questions[questionIndex];
-    if (!q) return;
+    if (!q) {
+      console.log("[voice/relay] askCurrent: no question at index", questionIndex);
+      return;
+    }
     const preface = questionIndex === 0 ? "Here's the first question." : "Next question.";
     sendText(`${preface} ${q.prompt}`);
   }
@@ -107,9 +111,19 @@ export async function runInterview(args: {
         case "setup": {
           // TwiML's welcomeGreeting plays the intro via Twilio; we just need to
           // send the first question once the DB load completes.
+          console.log("[voice/relay] setup handler: entering, awaiting dataReady");
           await dataReady;
-          if (closed || ws.readyState !== ws.OPEN) return;
+          console.log("[voice/relay] setup handler: dataReady resolved, closed=", closed, "readyState=", ws.readyState, "questions=", questions.length);
+          if (closed) {
+            console.log("[voice/relay] setup handler: aborting — closed flag set");
+            return;
+          }
+          if (ws.readyState !== ws.OPEN) {
+            console.log("[voice/relay] setup handler: aborting — ws not OPEN (readyState=", ws.readyState, ")");
+            return;
+          }
           if (questions.length === 0) {
+            console.log("[voice/relay] setup handler: zero questions, finishing");
             return finishInterview();
           }
           questionIndex = 0;
