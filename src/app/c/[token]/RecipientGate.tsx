@@ -15,7 +15,8 @@ type Props = {
 
 export function RecipientGate({ request }: Props) {
   const [consent, setConsent] = useState(false);
-  const telUri = `tel:${request.pooledNumber},,,${request.dialCode}`;
+  // Two commas → ~2s pause on iOS after connect, then auto-DTMF the code.
+  const telUri = `tel:${request.pooledNumber},,${request.dialCode}`;
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-10">

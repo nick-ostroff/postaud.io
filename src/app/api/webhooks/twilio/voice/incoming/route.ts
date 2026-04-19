@@ -17,11 +17,10 @@ export async function POST(req: Request) {
   const matchUrl = `${base}/api/webhooks/twilio/voice/match`;
 
   return twimlResponse(`
-    <Pause length="1"/>
-    <Gather numDigits="6" timeout="5" action="${matchUrl}" method="POST"/>
-    <Say voice="Polly.Joanna-Neural">Welcome. I didn't catch your code. Please enter the six digit code from your text message.</Say>
-    <Gather input="dtmf" numDigits="6" timeout="8" action="${matchUrl}" method="POST"/>
-    <Say>I'm sorry, I couldn't match you to an interview. Please tap the link in your text again. Goodbye.</Say>
+    <Gather numDigits="6" timeout="12" action="${matchUrl}" method="POST"/>
+    <Say voice="Polly.Joanna-Neural">Welcome. Please enter the six digit code from your text message.</Say>
+    <Gather numDigits="6" timeout="10" action="${matchUrl}" method="POST"/>
+    <Say>I couldn't match you to an interview. Please tap the link in your text again. Goodbye.</Say>
     <Hangup/>
   `);
 }
