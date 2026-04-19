@@ -31,36 +31,38 @@ export function SignInForm({ next }: { next?: string }) {
 
   if (state === "sent") {
     return (
-      <div className="mt-6 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-5 text-sm">
-        <p className="font-medium text-emerald-800">Check your inbox</p>
-        <p className="mt-1 text-emerald-700">
-          We sent a sign-in link to <strong>{email}</strong>. Click it to continue.
+      <div className="mt-6 rounded-2xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-900/20 p-6 text-center shadow-sm">
+        <p className="text-xl font-medium text-emerald-800 dark:text-emerald-400 mb-2">Check your inbox</p>
+        <p className="text-[15px] font-medium text-emerald-700 dark:text-emerald-500">
+          We sent a secure link to <strong>{email}</strong>.
         </p>
       </div>
     );
   }
 
   return (
-    <form onSubmit={onSubmit} className="mt-6 space-y-3">
-      <label className="block text-xs font-medium text-neutral-600">Email</label>
-      <input
-        type="email"
-        required
-        autoFocus
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="you@company.com"
-        className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none"
-      />
+    <form onSubmit={onSubmit} className="space-y-5">
+      <div>
+        <label className="block text-[15px] font-medium text-neutral-700 dark:text-neutral-300 mb-2">Email Address</label>
+        <input
+          type="email"
+          required
+          autoFocus
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@company.com"
+          className="w-full rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-[#1c1c1e] px-4 py-3.5 text-[15px] font-medium text-neutral-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-neutral-400 dark:placeholder:text-neutral-600 shadow-sm"
+        />
+      </div>
       <button
         type="submit"
         disabled={state === "sending" || !email}
-        className="mt-2 flex w-full items-center justify-center rounded-md bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-400"
+        className="mt-6 flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-3.5 text-[15px] font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 transition-colors shadow-sm"
       >
-        {state === "sending" ? "Sending…" : "Email me a sign-in link"}
+        {state === "sending" ? "Sending link…" : "Continue with Email"}
       </button>
       {errorMsg && (
-        <div className="mt-2 text-xs text-rose-700">{errorMsg}</div>
+        <div className="mt-2 text-[15px] font-medium text-rose-700 dark:text-rose-400 text-center">{errorMsg}</div>
       )}
     </form>
   );

@@ -11,7 +11,23 @@ import { runInterview } from "./fsm-runner";
 export async function handleRelayConnection(ws: WebSocket, req: IncomingMessage): Promise<void> {
   const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
   const sessionId = url.searchParams.get("session") ?? "";
-  console.log("[voice/relay] handleRelayConnection session=", sessionId);
+  console.log("[voice/relay] handleRelayConnection session=", sessionId, "subproto=", req.headers["sec-websocket-protocol"], "ua=", req.headers["user-agent"]);
+
+  // Wire close + error + raw-data logs FIRST so we see anything Twilio sends.
+  ws.on("close", (code, reason) => {
+    console.log("[voice/relay] ws close", code, reason.toString() || "(no reason)");
+  });
+  ws.on("error", (err) => {
+    console.log("[voice/relay] ws error", err.message);
+  });
+  ws.on("message", (data, isBinary) => {
+    if (isBinary) {
+      console.log("[voice/relay] binary message", (data as Buffer).length, "bytes");
+    } else {
+      console.log("[voice/relay] raw text:", data.toString().slice(0, 400));
+    }
+  });
+
   if (!sessionId) {
     ws.close(1008, "missing session id");
     return;

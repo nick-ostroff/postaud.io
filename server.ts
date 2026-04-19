@@ -33,7 +33,9 @@ void app.prepare().then(() => {
     void handler(req, res, parsed);
   });
 
-  const wss = new WebSocketServer({ noServer: true });
+  // Disable permessage-deflate — some WS clients (incl. Twilio's Jetty) have
+  // had flaky compat with it, and ConversationRelay's messages are tiny JSON.
+  const wss = new WebSocketServer({ noServer: true, perMessageDeflate: false });
 
   httpServer.on("upgrade", (req, socket, head) => {
     const { pathname } = parse(req.url ?? "/", true);
