@@ -69,7 +69,7 @@ export async function POST(req: Request) {
       <ConversationRelay
         url="${relayUrl}"
         ${tts}
-        interruptByDtmf="true"
+        dtmfDetection="true"
         interruptible="true"
       />
     </Connect>
