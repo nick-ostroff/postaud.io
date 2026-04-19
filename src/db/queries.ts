@@ -1,19 +1,74 @@
 import { createClient } from "@/db/server";
+import { serviceClient } from "@/db/service";
+
+/**
+ * Idempotently creates the `public.users` row, a default organization, and an
+ * owner membership for a just-authenticated user. Uses the service-role client
+ * so RLS doesn't block the inserts (the `authenticated` role has no INSERT
+ * policy on those tables — only the service role should write them).
+ */
+export async function ensureViewerBootstrapped(args: {
+  id: string;
+  email: string;
+  displayName: string | null;
+}) {
+  const svc = serviceClient();
+
+  await svc.from("users").upsert(
+    { id: args.id, email: args.email, display_name: args.displayName },
+    { onConflict: "id" },
+  );
+
+  const { data: existing } = await svc
+    .from("memberships")
+    .select("organization_id")
+    .eq("user_id", args.id)
+    .maybeSingle();
+  if (existing) return;
+
+  const orgName = args.email?.split("@")[0] || "Workspace";
+  const { data: org, error: orgErr } = await svc
+    .from("organizations")
+    .insert({ name: orgName })
+    .select("id")
+    .single();
+  if (orgErr || !org) throw new Error(orgErr?.message ?? "Could not create organization");
+
+  const { error: mErr } = await svc
+    .from("memberships")
+    .insert({ user_id: args.id, organization_id: org.id, role: "owner" });
+  if (mErr) throw new Error(mErr.message);
+}
 
 /**
  * Server-side helper: returns the current user's auth record + their workspace.
- * Throws if not signed in — middleware should have redirected already.
+ * Self-heals: if somehow the user has no membership (e.g. older session from
+ * before bootstrap existed), runs ensureViewerBootstrapped on the fly.
  */
 export async function getViewer() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
-  const { data: membership } = await supabase
+  let { data: membership } = await supabase
     .from("memberships")
     .select("organization_id, role")
     .eq("user_id", user.id)
     .maybeSingle();
+
+  if (!membership) {
+    await ensureViewerBootstrapped({
+      id: user.id,
+      email: user.email ?? "",
+      displayName: (user.user_metadata?.full_name as string | undefined) ?? null,
+    });
+    const retry = await supabase
+      .from("memberships")
+      .select("organization_id, role")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    membership = retry.data;
+  }
 
   if (!membership) {
     return { user, supabase, organization: null, role: null };
