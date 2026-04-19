@@ -10,7 +10,8 @@ const schema = z.object({
 
   TWILIO_ACCOUNT_SID: z.string().min(1),
   TWILIO_AUTH_TOKEN: z.string().min(1),
-  TWILIO_MESSAGING_SERVICE_SID: z.string().min(1),
+  // Optional — if empty, we fall back to the first number in TWILIO_VOICE_POOL_NUMBERS.
+  TWILIO_MESSAGING_SERVICE_SID: z.string().optional().default(""),
   TWILIO_VOICE_POOL_NUMBERS: z.string().min(1),
   TWILIO_WEBHOOK_SECRET: z.string().optional(),
 

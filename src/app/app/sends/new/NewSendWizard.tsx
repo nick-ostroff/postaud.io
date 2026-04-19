@@ -200,8 +200,7 @@ export function NewSendWizard({
               </p>
             )}
             <p className="mt-3 text-xs text-neutral-500">
-              Note: Twilio SMS dispatch ships next — for now we create the request row,
-              decrement your credit, and you can view the generated token / dial code on
+              Twilio sends the SMS immediately. You can view the token and dial code on
               the send detail page.
             </p>
           </Section>
