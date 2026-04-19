@@ -4,6 +4,7 @@ import { getViewer } from "@/db/queries";
 import { StatusBadge } from "@/components/ui/Badge";
 import { renderSms } from "@/lib/sms";
 import type { SendStatus } from "@/lib/mocks";
+import { ResendButton } from "./ResendButton";
 
 function fmtDate(iso: string | null | undefined) {
   if (!iso) return "—";
@@ -74,9 +75,11 @@ export default async function SendDetailPage({
           <div className="text-[10px] uppercase tracking-wide text-neutral-400">SMS to {contact?.phone_e164}</div>
           <div className="mt-1 text-sm">{smsPreview}</div>
         </div>
-        <p className="mt-3 text-xs text-neutral-500">
-          Note: SMS dispatch via Twilio ships next. For now this is a preview of what will go out.
-        </p>
+        {["sent", "reminded"].includes(request.status) && (
+          <div className="mt-3">
+            <ResendButton requestId={request.id} />
+          </div>
+        )}
       </Section>
 
       <Section title="Questions in this interview">

@@ -3,6 +3,9 @@ import { z } from "zod";
 import { getViewer } from "@/db/queries";
 import { generateToken } from "@/lib/token";
 import { generateDialCode } from "@/lib/dial-code";
+import { renderSms } from "@/lib/sms";
+import { sendInviteSMS } from "@/lib/twilio-messaging";
+import { env } from "@/lib/env";
 
 const SendInput = z.object({
   template_id: z.string().uuid(),
@@ -10,13 +13,13 @@ const SendInput = z.object({
 });
 
 /**
- * Creates one interview_request:
+ * Creates one interview_request and dispatches the invite SMS:
  *   - snapshots the template + its questions
  *   - assigns a fresh token and 6-digit dial_code (retry up to 5x on collision)
+ *   - sends the SMS via Twilio (rolls back the row + credit on Twilio failure
+ *     so the user doesn't silently lose a credit)
  *   - decrements credits
  *   - sets status=sent and sent_at=now()
- *
- * Does NOT yet send an SMS — that wires up when Twilio lands.
  */
 export async function POST(req: Request) {
   const { supabase, organization, user } = await getViewer();
@@ -109,6 +112,25 @@ export async function POST(req: Request) {
 
   if (!inserted) {
     return NextResponse.json({ error: { code: "insert_failed", message: lastError ?? "unknown" } }, { status: 500 });
+  }
+
+  // Dispatch SMS. On failure, roll back the row so the user doesn't lose a credit.
+  const body = renderSms(tpl.sms_body, contact.first_name ?? "there", token);
+  const statusCallbackUrl = `${env().NEXT_PUBLIC_APP_URL.replace(/\/$/, "")}/api/webhooks/twilio/messaging/status`;
+
+  try {
+    await sendInviteSMS({
+      toE164: contact.phone_e164,
+      body,
+      statusCallbackUrl,
+    });
+  } catch (err) {
+    await supabase.from("interview_requests").delete().eq("id", inserted.id);
+    const message = err instanceof Error ? err.message : "SMS dispatch failed";
+    return NextResponse.json(
+      { error: { code: "sms_failed", message } },
+      { status: 502 },
+    );
   }
 
   // Decrement credits (best effort — hard-enforce via a DB trigger later).
