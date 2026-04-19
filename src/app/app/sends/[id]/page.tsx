@@ -42,6 +42,13 @@ export default async function SendDetailPage({
     .eq("id", request.contact_id)
     .maybeSingle();
 
+  const { data: sessions } = await supabase
+    .from("interview_sessions")
+    .select("id, status, caller_phone, started_at, ended_at, duration_sec, recording_sid, recording_path")
+    .eq("request_id", request.id)
+    .order("started_at", { ascending: false });
+  const latestSession = sessions?.[0] ?? null;
+
   const snapshot = request.template_snapshot as Snapshot;
   const firstName = contact?.first_name ?? "there";
   const recipientName = contact ? [contact.first_name, contact.last_name].filter(Boolean).join(" ") : "Recipient";
@@ -94,13 +101,49 @@ export default async function SendDetailPage({
       </Section>
 
       <Section title="Call result">
-        <p className="text-sm text-neutral-500">
-          No call yet. When the recipient dials, a session will appear here with recording, transcript,
-          extracted answers, summary, and rendered output.
-        </p>
+        {!latestSession ? (
+          <p className="text-sm text-neutral-500">
+            No call yet. When the recipient dials +18883158135, a session will appear here.
+          </p>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+              <KV label="Session status" value={latestSession.status} />
+              <KV label="Caller"         value={latestSession.caller_phone ?? "—"} />
+              <KV label="Duration"       value={fmtDuration(latestSession.duration_sec)} />
+              <KV label="Ended"          value={fmtDate(latestSession.ended_at)} />
+            </div>
+            {latestSession.recording_path ? (
+              <div>
+                <div className="text-xs font-medium uppercase tracking-wide text-neutral-500">Recording</div>
+                <audio
+                  controls
+                  src={latestSession.recording_path}
+                  className="mt-2 w-full"
+                  preload="none"
+                />
+                <p className="mt-1 text-xs text-neutral-500">
+                  Served directly from Twilio for now. A later iteration will stream via our own
+                  signed URLs from Supabase Storage.
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-neutral-500">
+                Recording not ready yet — Twilio is still processing.
+              </p>
+            )}
+          </div>
+        )}
       </Section>
     </div>
   );
+}
+
+function fmtDuration(sec: number | null | undefined) {
+  if (!sec) return "—";
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 function KV({ label, value }: { label: string; value: string }) {
