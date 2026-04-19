@@ -79,16 +79,19 @@ export async function POST(req: Request) {
   const publicBase = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
   const relayUrl = publicBase.replace(/^https?:\/\//, "wss://") + `/api/voice/relay?session=${sessionId}`;
 
-  // DIAGNOSTIC: stripped TwiML to the minimum — no welcomeGreeting, no voice
-  // attributes. Lets Twilio pick its defaults and isolates whether the issue
-  // is our attribute config vs. something else. Server sends a text frame
-  // immediately on setup (see fsm-runner.ts) to produce audible output
-  // without relying on welcomeGreeting.
-  void greeting; // retained above for the non-minimal path; silence lint
+  // Restore the TwiML that last produced a `← setup` log. Minimum-TwiML
+  // variants got no setup at all, suggesting Twilio needs an explicit voice
+  // config to proceed past the upgrade handshake. Server also sends a probe
+  // text frame immediately on setup (see fsm-runner.ts) to keep the WS active.
   return twimlResponse(`
     <Connect>
       <ConversationRelay
         url="${relayUrl}"
+        welcomeGreeting="${escapeXmlAttr(greeting)}"
+        welcomeGreetingInterruptible="none"
+        ttsProvider="Amazon"
+        voice="Joanna-Neural"
+        language="en-US"
         dtmfDetection="true"
         interruptible="true"
       />
