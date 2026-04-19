@@ -109,7 +109,7 @@ export default async function SendDetailPage({
       <Section title="The SMS we sent">
         <div className="rounded-xl bg-neutral-900 p-4 text-neutral-100">
           <div className="text-[10px] uppercase tracking-wide text-neutral-400">SMS to {contact?.phone_e164}</div>
-          <div className="mt-1 text-sm">{smsPreview}</div>
+          <div className="mt-1 text-sm">{linkify(smsPreview)}</div>
         </div>
         {["sent", "reminded"].includes(request.status) && (
           <div className="mt-3">
@@ -194,6 +194,25 @@ export default async function SendDetailPage({
         </Section>
       ) : null}
     </div>
+  );
+}
+
+function linkify(text: string): React.ReactNode {
+  const parts = text.split(/(https?:\/\/[^\s]+)/g);
+  return parts.map((part, i) =>
+    /^https?:\/\//.test(part) ? (
+      <a
+        key={i}
+        href={part}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline decoration-neutral-400 underline-offset-2 hover:text-white"
+      >
+        {part}
+      </a>
+    ) : (
+      part
+    ),
   );
 }
 
