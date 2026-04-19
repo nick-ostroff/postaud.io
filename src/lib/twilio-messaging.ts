@@ -23,7 +23,11 @@ export async function sendInviteSMS(opts: {
     from?: string;
   } = { to: opts.toE164, body: opts.body };
 
-  if (opts.statusCallbackUrl) base.statusCallback = opts.statusCallbackUrl;
+  // Twilio rejects non-public URLs (localhost, private IPs) for StatusCallback.
+  // Skip it silently in dev; in prod we'll hand it a real https URL.
+  if (opts.statusCallbackUrl && isPubliclyReachable(opts.statusCallbackUrl)) {
+    base.statusCallback = opts.statusCallbackUrl;
+  }
 
   if (e.TWILIO_MESSAGING_SERVICE_SID && e.TWILIO_MESSAGING_SERVICE_SID !== "") {
     base.messagingServiceSid = e.TWILIO_MESSAGING_SERVICE_SID;
@@ -40,4 +44,24 @@ export async function sendInviteSMS(opts: {
 
   const msg = await client.messages.create(base);
   return { sid: msg.sid };
+}
+
+function isPubliclyReachable(url: string): boolean {
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "https:" && u.protocol !== "http:") return false;
+    const host = u.hostname;
+    if (host === "localhost") return false;
+    if (host.endsWith(".local")) return false;
+    if (host.startsWith("127.") || host.startsWith("10.") || host.startsWith("192.168.")) return false;
+    if (host === "0.0.0.0") return false;
+    // 172.16.0.0 – 172.31.255.255
+    if (host.startsWith("172.")) {
+      const second = Number(host.split(".")[1]);
+      if (second >= 16 && second <= 31) return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
 }
