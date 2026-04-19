@@ -1,31 +1,32 @@
 import type { IncomingMessage } from "node:http";
-import type { WebSocket } from "ws";
+import type { RawData, WebSocket } from "ws";
 import { serviceClient } from "@/db/service";
 import { runInterview } from "./fsm-runner";
 
-/**
- * Handler invoked by server.ts when Twilio ConversationRelay opens a
- * WebSocket to /api/voice/relay?session=<uuid>. Loads the session +
- * snapshot from the DB and hands control to the interview FSM.
- */
+// Twilio sends `setup` within ~10ms of WS open, but our DB loads below take
+// ~100-300ms. Node's EventEmitter doesn't buffer, so attaching the FSM handler
+// after the awaits would drop `setup` entirely — call connects, silence, hangup.
+// Buffer messages here and replay them once the FSM is wired up.
 export async function handleRelayConnection(ws: WebSocket, req: IncomingMessage): Promise<void> {
   const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
   const sessionId = url.searchParams.get("session") ?? "";
   console.log("[voice/relay] handleRelayConnection session=", sessionId, "subproto=", req.headers["sec-websocket-protocol"], "ua=", req.headers["user-agent"]);
 
-  // Wire close + error + raw-data logs FIRST so we see anything Twilio sends.
-  ws.on("close", (code, reason) => {
-    console.log("[voice/relay] ws close", code, reason.toString() || "(no reason)");
-  });
-  ws.on("error", (err) => {
-    console.log("[voice/relay] ws error", err.message);
-  });
-  ws.on("message", (data, isBinary) => {
+  const pending: { data: RawData; isBinary: boolean }[] = [];
+  const bufferHandler = (data: RawData, isBinary: boolean) => {
     if (isBinary) {
       console.log("[voice/relay] binary message", (data as Buffer).length, "bytes");
     } else {
       console.log("[voice/relay] raw text:", data.toString().slice(0, 400));
     }
+    pending.push({ data, isBinary });
+  };
+  ws.on("message", bufferHandler);
+  ws.on("close", (code, reason) => {
+    console.log("[voice/relay] ws close", code, reason.toString() || "(no reason)");
+  });
+  ws.on("error", (err) => {
+    console.log("[voice/relay] ws error", err.message);
   });
 
   if (!sessionId) {
@@ -67,6 +68,8 @@ export async function handleRelayConnection(ws: WebSocket, req: IncomingMessage)
     .eq("id", request.contact_id)
     .maybeSingle();
 
+  ws.off("message", bufferHandler);
+
   await runInterview({
     ws,
     sessionId,
@@ -74,4 +77,9 @@ export async function handleRelayConnection(ws: WebSocket, req: IncomingMessage)
     intro: snapshot.intro_message?.trim() ?? "",
     questions: snapshot.questions ?? [],
   });
+
+  for (const m of pending) {
+    console.log("[voice/relay] replaying buffered message, isBinary=", m.isBinary);
+    ws.emit("message", m.data, m.isBinary);
+  }
 }
