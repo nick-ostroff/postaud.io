@@ -38,7 +38,9 @@ void app.prepare().then(() => {
   httpServer.on("upgrade", (req, socket, head) => {
     const { pathname } = parse(req.url ?? "/", true);
     if (pathname === "/api/voice/relay") {
+      console.log("[voice/relay] upgrade from", req.socket.remoteAddress, "url:", req.url);
       wss.handleUpgrade(req, socket, head, (ws) => {
+        console.log("[voice/relay] upgraded, handing to handler");
         handleRelayConnection(ws, req).catch((err) => {
           console.error("[voice/relay] handler error", err);
           try { ws.close(1011, "server error"); } catch { /* noop */ }

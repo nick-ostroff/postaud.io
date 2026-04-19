@@ -11,6 +11,7 @@ import { runInterview } from "./fsm-runner";
 export async function handleRelayConnection(ws: WebSocket, req: IncomingMessage): Promise<void> {
   const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
   const sessionId = url.searchParams.get("session") ?? "";
+  console.log("[voice/relay] handleRelayConnection session=", sessionId);
   if (!sessionId) {
     ws.close(1008, "missing session id");
     return;

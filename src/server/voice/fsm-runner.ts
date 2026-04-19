@@ -84,11 +84,14 @@ export async function runInterview(args: {
 
   ws.on("message", (raw) => {
     let msg: IncomingMsg;
+    const text = raw.toString();
     try {
-      msg = JSON.parse(raw.toString()) as IncomingMsg;
+      msg = JSON.parse(text) as IncomingMsg;
     } catch {
+      console.log("[voice/relay] non-JSON message:", text.slice(0, 200));
       return;
     }
+    console.log("[voice/relay] ←", msg.type, msg.type === "prompt" ? `"${(msg as { voicePrompt: string }).voicePrompt?.slice(0, 80)}" last=${(msg as { last?: boolean }).last}` : "");
 
     void (async () => {
       switch (msg.type) {
