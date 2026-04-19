@@ -24,15 +24,27 @@ export async function proxy(request: NextRequest) {
     },
   );
 
-  // Refresh the token cookie so server components see the latest user.
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Gate dashboard routes.
+  // Gate dashboard routes — unauth users get bounced to sign-in.
   if (request.nextUrl.pathname.startsWith("/app") && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/sign-in";
     url.searchParams.set("next", request.nextUrl.pathname);
     return NextResponse.redirect(url);
+  }
+
+  // Gate /admin — non-admins get 404, never 403. We return 404 rather than
+  // redirecting so the panel's existence is not disclosed.
+  if (request.nextUrl.pathname.startsWith("/admin")) {
+    const adminEmails = (process.env.PLATFORM_ADMIN_EMAILS ?? "")
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+    const email = user?.email?.toLowerCase() ?? "";
+    if (!email || !adminEmails.includes(email)) {
+      return new NextResponse("Not found", { status: 404 });
+    }
   }
 
   return response;
