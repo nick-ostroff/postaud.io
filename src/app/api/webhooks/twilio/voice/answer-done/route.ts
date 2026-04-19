@@ -72,7 +72,7 @@ export async function POST(req: Request) {
   }
 
   const base = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
-  const actionUrl = `${base}/api/webhooks/twilio/voice/answer-done?session=${sessionId}&q=${nextIndex}`;
+  const actionUrl = `${base}/api/webhooks/twilio/voice/answer-done?session=${sessionId}&amp;q=${nextIndex}`;
   const maxSec = nextQuestion.max_seconds ?? 90;
 
   return twimlResponse(`

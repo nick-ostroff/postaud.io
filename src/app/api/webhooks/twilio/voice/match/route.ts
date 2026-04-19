@@ -79,7 +79,7 @@ export async function POST(req: Request) {
 
   const intro = snapshot.intro_message?.trim() || "Thanks for calling. I'll ask you a few quick questions.";
   const maxSec = firstQuestion.max_seconds ?? 90;
-  const actionUrl = `${base}/api/webhooks/twilio/voice/answer-done?session=${sessionId}&q=0`;
+  const actionUrl = `${base}/api/webhooks/twilio/voice/answer-done?session=${sessionId}&amp;q=0`;
 
   return twimlResponse(`
     <Say voice="Polly.Joanna-Neural">Hi ${escapeXml(firstName)}. ${escapeXml(intro)} This call is being recorded so the sender can review your answers.</Say>
