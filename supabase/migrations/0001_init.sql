@@ -6,7 +6,8 @@
 -- Extensions
 -- =========================================================
 create extension if not exists "pgcrypto";
-create extension if not exists "pg_cron";
+-- pg_cron: enable via Supabase dashboard before uncommenting
+-- create extension if not exists "pg_cron";
 
 -- =========================================================
 -- Enums

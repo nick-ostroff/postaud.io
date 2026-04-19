@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { mockOrg } from "@/lib/mocks";
 
 const navItems = [
   { href: "/app",                  label: "Dashboard" },
@@ -13,15 +12,24 @@ const navItems = [
   { href: "/app/settings/billing", label: "Billing" },
 ];
 
-export function Sidebar() {
+type Props = {
+  orgName: string;
+  email: string;
+  creditsRemaining: number;
+  creditsTotal: number;
+};
+
+export function Sidebar({ orgName, email, creditsRemaining, creditsTotal }: Props) {
   const pathname = usePathname();
+  const pct = creditsTotal > 0 ? (creditsRemaining / creditsTotal) * 100 : 0;
+
   return (
     <aside className="flex w-60 shrink-0 flex-col border-r border-neutral-200 bg-white">
       <div className="px-5 pb-4 pt-5">
         <Link href="/app" className="text-lg font-semibold tracking-tight">
           PostAud<span className="text-neutral-400">.io</span>
         </Link>
-        <div className="mt-1 text-xs text-neutral-500">{mockOrg.name}</div>
+        <div className="mt-1 text-xs text-neutral-500">{orgName}</div>
       </div>
 
       <nav className="flex flex-col gap-0.5 px-2 text-sm">
@@ -51,17 +59,21 @@ export function Sidebar() {
         <div className="flex items-center justify-between">
           <span className="text-neutral-500">Credits</span>
           <span className="font-medium">
-            {mockOrg.credits_remaining}
-            <span className="text-neutral-400"> / {mockOrg.credits_total}</span>
+            {creditsRemaining}
+            <span className="text-neutral-400"> / {creditsTotal}</span>
           </span>
         </div>
         <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-100">
-          <div
-            className="h-full bg-neutral-900"
-            style={{
-              width: `${(mockOrg.credits_remaining / mockOrg.credits_total) * 100}%`,
-            }}
-          />
+          <div className="h-full bg-neutral-900" style={{ width: `${pct}%` }} />
+        </div>
+
+        <div className="mt-5 border-t border-neutral-200 pt-4">
+          <div className="truncate text-neutral-700">{email}</div>
+          <form action="/auth/sign-out" method="POST">
+            <button className="mt-2 text-neutral-500 hover:text-neutral-900">
+              Sign out →
+            </button>
+          </form>
         </div>
       </div>
     </aside>
