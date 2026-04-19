@@ -6,8 +6,9 @@ import { platformAdminEmails } from "@/lib/env";
  * PLATFORM_ADMIN_EMAILS. The env list is the single source of truth for
  * super-admin status — there is no DB column.
  *
- * Safe to call from middleware, server components, route handlers, and
- * server actions.
+ * Safe to call from server components, route handlers, and server actions.
+ * Middleware uses its own request-cookie adapter and checks the env list
+ * directly (see src/proxy.ts) — do not import this helper there.
  */
 export async function isPlatformAdmin(): Promise<boolean> {
   const supabase = await createClient();
