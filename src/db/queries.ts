@@ -19,12 +19,14 @@ export async function ensureViewerBootstrapped(args: {
     { onConflict: "id" },
   );
 
+  // Use limit(1) instead of maybeSingle(): maybeSingle errors when there are
+  // multiple rows, which caused duplicate orgs to snowball on each page load.
   const { data: existing } = await svc
     .from("memberships")
     .select("organization_id")
     .eq("user_id", args.id)
-    .maybeSingle();
-  if (existing) return;
+    .limit(1);
+  if (existing && existing.length > 0) return;
 
   const orgName = args.email?.split("@")[0] || "Workspace";
   const { data: org, error: orgErr } = await svc
@@ -50,11 +52,14 @@ export async function getViewer() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
-  let { data: membership } = await supabase
+  // limit(1) rather than maybeSingle() — multi-row state must not throw here
+  // or we end up calling bootstrap repeatedly and creating duplicate orgs.
+  const { data: memberships } = await supabase
     .from("memberships")
     .select("organization_id, role")
     .eq("user_id", user.id)
-    .maybeSingle();
+    .limit(1);
+  let membership = memberships?.[0] ?? null;
 
   if (!membership) {
     await ensureViewerBootstrapped({
@@ -62,12 +67,12 @@ export async function getViewer() {
       email: user.email ?? "",
       displayName: (user.user_metadata?.full_name as string | undefined) ?? null,
     });
-    const retry = await supabase
+    const { data: retry } = await supabase
       .from("memberships")
       .select("organization_id, role")
       .eq("user_id", user.id)
-      .maybeSingle();
-    membership = retry.data;
+      .limit(1);
+    membership = retry?.[0] ?? null;
   }
 
   if (!membership) {
