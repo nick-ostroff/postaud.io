@@ -12,6 +12,17 @@ type Contact = {
   created_at?: string;
 };
 
+// Best-effort E.164 normalization for US numbers. Leaves anything already
+// E.164-shaped or non-US alone; server-side Zod validation is the final gate.
+function normalizeE164(input: string): string {
+  const trimmed = input.trim();
+  if (trimmed.startsWith("+")) return trimmed.replace(/\s|-|\(|\)/g, "");
+  const digits = trimmed.replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  return trimmed;
+}
+
 export function ContactsTable({ initial }: { initial: Contact[] }) {
   const router = useRouter();
   const [adding, setAdding] = useState(false);
@@ -36,20 +47,23 @@ export function ContactsTable({ initial }: { initial: Contact[] }) {
   async function onAdd() {
     setSaveState("saving");
     setErrorMsg(null);
+    const normalizedPhone = normalizeE164(phone);
     const res = await fetch("/api/contacts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         first_name: firstName || null,
         last_name: lastName || null,
-        phone_e164: phone.trim(),
+        phone_e164: normalizedPhone,
         email: email || null,
       }),
     });
     setSaveState("idle");
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
-      setErrorMsg(j?.error?.message ?? `Failed (HTTP ${res.status})`);
+      const fieldErrors = j?.error?.details?.fieldErrors as Record<string, string[]> | undefined;
+      const firstFieldError = fieldErrors ? Object.values(fieldErrors).flat()[0] : undefined;
+      setErrorMsg(j?.error?.message ?? firstFieldError ?? `Failed (HTTP ${res.status})`);
       return;
     }
     const { contact } = await res.json();

@@ -7,6 +7,15 @@ import Link from "next/link";
 type Template = { id: string; name: string; sms_body: string; output_type: string };
 type Contact = { id: string; first_name: string | null; last_name: string | null; phone_e164: string; email: string | null };
 
+function normalizeE164(input: string): string {
+  const trimmed = input.trim();
+  if (trimmed.startsWith("+")) return trimmed.replace(/\s|-|\(|\)/g, "");
+  const digits = trimmed.replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  return trimmed;
+}
+
 export function NewSendWizard({
   templates, initialContacts, creditsRemaining,
 }: {
@@ -52,13 +61,15 @@ export function NewSendWizard({
       body: JSON.stringify({
         first_name: newFirst || null,
         last_name: newLast || null,
-        phone_e164: newPhone.trim(),
+        phone_e164: normalizeE164(newPhone),
         email: null,
       }),
     });
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
-      setContactErr(j?.error?.message ?? `Failed (HTTP ${res.status})`);
+      const fieldErrors = j?.error?.details?.fieldErrors as Record<string, string[]> | undefined;
+      const firstFieldError = fieldErrors ? Object.values(fieldErrors).flat()[0] : undefined;
+      setContactErr(j?.error?.message ?? firstFieldError ?? `Failed (HTTP ${res.status})`);
       return;
     }
     const { contact } = await res.json();
