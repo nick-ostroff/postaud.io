@@ -109,9 +109,14 @@ export async function runInterview(args: {
     void (async () => {
       switch (msg.type) {
         case "setup": {
-          // TwiML's welcomeGreeting plays the intro via Twilio; we just need to
-          // send the first question once the DB load completes.
-          console.log("[voice/relay] setup handler: entering, awaiting dataReady");
+          // DIAGNOSTIC: send text IMMEDIATELY, before any await, so Twilio
+          // has traffic to render and the WS stays active. If this plays, our
+          // server-driven text path works and the earlier silence was caused
+          // by welcomeGreeting/voice config. Then do the real flow.
+          console.log("[voice/relay] setup handler: entering, sending probe text");
+          sendText("Connected. One moment while I pull up your interview.");
+
+          console.log("[voice/relay] setup handler: awaiting dataReady");
           await dataReady;
           console.log("[voice/relay] setup handler: dataReady resolved, closed=", closed, "readyState=", ws.readyState, "questions=", questions.length);
           if (closed) {

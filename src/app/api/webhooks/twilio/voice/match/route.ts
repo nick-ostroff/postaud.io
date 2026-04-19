@@ -79,18 +79,16 @@ export async function POST(req: Request) {
   const publicBase = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
   const relayUrl = publicBase.replace(/^https?:\/\//, "wss://") + `/api/voice/relay?session=${sessionId}`;
 
-  // welcomeGreeting plays via Twilio's TTS immediately after the WS opens,
-  // filling the silence while our FSM loads questions from the DB. Without it,
-  // Twilio closes the WS if we don't send a text frame within a short window.
+  // DIAGNOSTIC: stripped TwiML to the minimum — no welcomeGreeting, no voice
+  // attributes. Lets Twilio pick its defaults and isolates whether the issue
+  // is our attribute config vs. something else. Server sends a text frame
+  // immediately on setup (see fsm-runner.ts) to produce audible output
+  // without relying on welcomeGreeting.
+  void greeting; // retained above for the non-minimal path; silence lint
   return twimlResponse(`
     <Connect>
       <ConversationRelay
         url="${relayUrl}"
-        welcomeGreeting="${escapeXmlAttr(greeting)}"
-        welcomeGreetingInterruptible="none"
-        ttsProvider="Amazon"
-        voice="Joanna-Neural"
-        language="en-US"
         dtmfDetection="true"
         interruptible="true"
       />
