@@ -18,7 +18,7 @@ export async function POST(req: Request) {
 
   return twimlResponse(`
     <Gather numDigits="6" timeout="12" action="${matchUrl}" method="POST"/>
-    <Say voice="Polly.Joanna-Neural">Welcome. Please enter the six digit code from your text message.</Say>
+    <Say voice="Polly.Ruth-Generative">Welcome. Please enter the six digit code from your text message.</Say>
     <Gather numDigits="6" timeout="10" action="${matchUrl}" method="POST"/>
     <Say>I couldn't match you to an interview. Please tap the link in your text again. Goodbye.</Say>
     <Hangup/>

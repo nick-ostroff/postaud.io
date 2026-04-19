@@ -1,16 +1,15 @@
 import { verifyTwilioSignature } from "@/lib/twilio";
-import { twimlResponse, hangupWithMessage } from "@/server/telephony/twiml";
+import { twimlResponse, hangupWithMessage, VOICE } from "@/server/telephony/twiml";
 import { serviceClient } from "@/db/service";
 import { env } from "@/lib/env";
 
 /**
  * POST /api/webhooks/twilio/voice/answer-done?session=<id>&q=<idx>
  *
- * Fires when the <Record> for question <idx> ends (user pressed *, #, or went
- * silent past the timeout). We:
- *   1. persist the recording URL + sid onto the interview_session (per-question)
- *   2. advance the cursor — if there's another question, read it and Record;
- *      otherwise thank the recipient and hang up.
+ * Fires when the <Record> for question <idx> ends. Persists the recording
+ * into call_events, advances to the next question, and when the final
+ * answer lands, fires the AI pipeline off in the background before the
+ * call ends.
  */
 export async function POST(req: Request) {
   const clone = req.clone();
@@ -27,7 +26,6 @@ export async function POST(req: Request) {
 
   const svc = serviceClient();
 
-  // Fetch the session's template_snapshot so we know the questions in order.
   const { data: session } = await svc
     .from("interview_sessions")
     .select("id, request_id")
@@ -47,7 +45,6 @@ export async function POST(req: Request) {
   const questions = snapshot?.questions ?? [];
   const currentQuestion = questions[q];
 
-  // Persist this answer's recording into call_events so we can retrieve later.
   if (currentQuestion && recordingSid) {
     await svc.from("call_events").insert({
       session_id: sessionId,
@@ -65,8 +62,17 @@ export async function POST(req: Request) {
   const nextQuestion = questions[nextIndex];
 
   if (!nextQuestion) {
+    // Fire-and-forget: kick off the transcription + summary + render pipeline.
+    // Don't await — Twilio is waiting on this TwiML to finish the call.
+    const base = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+    fetch(`${base}/api/jobs/process-session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: sessionId }),
+    }).catch((err) => console.error("[voice/answer-done] kickoff failed", err));
+
     return twimlResponse(`
-      <Say voice="Polly.Joanna-Neural">That's everything. Thanks for taking the time. Goodbye.</Say>
+      <Say voice="${VOICE}">That's everything. Thanks for taking the time. Your responses will be processed in the next minute. Goodbye.</Say>
       <Hangup/>
     `);
   }
@@ -76,8 +82,8 @@ export async function POST(req: Request) {
   const maxSec = nextQuestion.max_seconds ?? 90;
 
   return twimlResponse(`
-    <Say voice="Polly.Joanna-Neural">Next question. ${escapeXml(nextQuestion.prompt)}</Say>
-    <Say voice="Polly.Joanna-Neural">Go ahead. Press star or pound when you're done.</Say>
+    <Say voice="${VOICE}">Next question. ${escapeXml(nextQuestion.prompt)}</Say>
+    <Say voice="${VOICE}">Go ahead. Press star or pound when you're done.</Say>
     <Record
       action="${actionUrl}"
       method="POST"
@@ -86,7 +92,7 @@ export async function POST(req: Request) {
       finishOnKey="*#"
       timeout="3"
     />
-    <Say voice="Polly.Joanna-Neural">Thanks — I have your answer.</Say>
+    <Say voice="${VOICE}">Thanks — I have your answer.</Say>
     <Hangup/>
   `);
 }

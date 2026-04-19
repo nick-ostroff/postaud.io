@@ -82,10 +82,10 @@ export async function POST(req: Request) {
   const actionUrl = `${base}/api/webhooks/twilio/voice/answer-done?session=${sessionId}&amp;q=0`;
 
   return twimlResponse(`
-    <Say voice="Polly.Joanna-Neural">Hi ${escapeXml(firstName)}. ${escapeXml(intro)} This call is being recorded so the sender can review your answers.</Say>
+    <Say voice="Polly.Ruth-Generative">Hi ${escapeXml(firstName)}. ${escapeXml(intro)} This call is being recorded so the sender can review your answers.</Say>
     <Pause length="1"/>
-    <Say voice="Polly.Joanna-Neural">Here's the first question. ${escapeXml(firstQuestion.prompt)}</Say>
-    <Say voice="Polly.Joanna-Neural">Go ahead. Press star or pound when you're done.</Say>
+    <Say voice="Polly.Ruth-Generative">Here's the first question. ${escapeXml(firstQuestion.prompt)}</Say>
+    <Say voice="Polly.Ruth-Generative">Go ahead. Press star or pound when you're done.</Say>
     <Record
       action="${actionUrl}"
       method="POST"
@@ -94,7 +94,7 @@ export async function POST(req: Request) {
       finishOnKey="*#"
       timeout="3"
     />
-    <Say voice="Polly.Joanna-Neural">Thanks — I have your answer.</Say>
+    <Say voice="Polly.Ruth-Generative">Thanks — I have your answer.</Say>
     <Hangup/>
   `);
 }

@@ -5,6 +5,7 @@ import { StatusBadge } from "@/components/ui/Badge";
 import { renderSms } from "@/lib/sms";
 import type { SendStatus } from "@/lib/mocks";
 import { ResendButton } from "./ResendButton";
+import { ReprocessButton } from "./ReprocessButton";
 
 function fmtDate(iso: string | null | undefined) {
   if (!iso) return "—";
@@ -54,6 +55,34 @@ export default async function SendDetailPage({
   const recipientName = contact ? [contact.first_name, contact.last_name].filter(Boolean).join(" ") : "Recipient";
   const smsPreview = renderSms(snapshot.sms_body, firstName, request.token);
 
+  // Pipeline artifacts (only when we have a session)
+  const [answersRes, summaryRes, outputRes] = latestSession
+    ? await Promise.all([
+        supabase
+          .from("extracted_answers")
+          .select("question_id, question_prompt, answer_text, confidence")
+          .eq("session_id", latestSession.id),
+        supabase
+          .from("summaries")
+          .select("short, long, bullets, created_at")
+          .eq("session_id", latestSession.id)
+          .maybeSingle(),
+        supabase
+          .from("output_jobs")
+          .select("output_type, status, rendered_text, error, updated_at")
+          .eq("session_id", latestSession.id)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ])
+    : [null, null, null];
+
+  const answersByQ = new Map<string, { answer_text: string | null; confidence: number | null }>(
+    (answersRes?.data ?? []).map((a) => [a.question_id, { answer_text: a.answer_text, confidence: a.confidence }]),
+  );
+  const summary = summaryRes?.data ?? null;
+  const output = outputRes?.data ?? null;
+
   return (
     <div>
       <div className="flex items-center gap-2 text-sm text-neutral-500">
@@ -89,17 +118,6 @@ export default async function SendDetailPage({
         )}
       </Section>
 
-      <Section title="Questions in this interview">
-        <ol className="list-decimal space-y-2 pl-4 text-sm">
-          {snapshot.questions.map((q) => (
-            <li key={q.id}>
-              {q.prompt}
-              {q.hint && <span className="ml-2 text-xs text-neutral-500">({q.hint})</span>}
-            </li>
-          ))}
-        </ol>
-      </Section>
-
       <Section title="Call result">
         {!latestSession ? (
           <p className="text-sm text-neutral-500">
@@ -113,28 +131,68 @@ export default async function SendDetailPage({
               <KV label="Duration"       value={fmtDuration(latestSession.duration_sec)} />
               <KV label="Ended"          value={fmtDate(latestSession.ended_at)} />
             </div>
-            {latestSession.recording_path ? (
-              <div>
-                <div className="text-xs font-medium uppercase tracking-wide text-neutral-500">Recording</div>
-                <audio
-                  controls
-                  src={latestSession.recording_path}
-                  className="mt-2 w-full"
-                  preload="none"
-                />
-                <p className="mt-1 text-xs text-neutral-500">
-                  Served directly from Twilio for now. A later iteration will stream via our own
-                  signed URLs from Supabase Storage.
-                </p>
-              </div>
-            ) : (
-              <p className="text-sm text-neutral-500">
-                Recording not ready yet — Twilio is still processing.
-              </p>
-            )}
+            <ReprocessButton sessionId={latestSession.id} />
           </div>
         )}
       </Section>
+
+      {summary && (summary.short || summary.long || (summary.bullets as string[] | null)?.length) ? (
+        <Section title="Summary">
+          {summary.short && <p className="text-sm">{summary.short}</p>}
+          {summary.long && <p className="mt-3 text-sm text-neutral-700">{summary.long}</p>}
+          {Array.isArray(summary.bullets) && summary.bullets.length > 0 && (
+            <ul className="mt-3 space-y-1 text-sm text-neutral-700">
+              {(summary.bullets as string[]).map((b, i) => (
+                <li key={i} className="flex gap-2">
+                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-neutral-400" />
+                  <span>{b}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
+      ) : null}
+
+      {latestSession && (
+        <Section title="Q&A">
+          <ol className="space-y-5">
+            {snapshot.questions.map((q, i) => {
+              const a = answersByQ.get(q.id);
+              return (
+                <li key={q.id}>
+                  <div className="text-sm font-medium">{i + 1}. {q.prompt}</div>
+                  {a?.answer_text ? (
+                    <p className="mt-1 text-sm text-neutral-700">{a.answer_text}</p>
+                  ) : (
+                    <p className="mt-1 text-sm italic text-neutral-400">— awaiting processing —</p>
+                  )}
+                  {a?.confidence != null && (
+                    <div className="mt-1 text-xs text-neutral-500">
+                      confidence {Math.round(Number(a.confidence) * 100)}%
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        </Section>
+      )}
+
+      {output?.rendered_text ? (
+        <Section title={`Output — ${output.output_type}`}>
+          <pre className="max-h-[36rem] overflow-auto whitespace-pre-wrap rounded-lg bg-neutral-950 p-4 text-sm text-neutral-100">
+{output.rendered_text}
+          </pre>
+        </Section>
+      ) : latestSession ? (
+        <Section title="Output">
+          <p className="text-sm text-neutral-500">
+            {output?.error
+              ? `Output generation failed: ${output.error}`
+              : "Output will be generated here once processing completes."}
+          </p>
+        </Section>
+      ) : null}
     </div>
   );
 }
