@@ -86,9 +86,9 @@ Layer 3 — Supabase service-role client:
 
 ### 3.3 The `is_platform_admin` helper
 
-- `src/lib/auth/is-platform-admin.ts` exports a single async function.
-- Reads the current session via server-side Supabase client, extracts email, parses `PLATFORM_ADMIN_EMAILS` (trim + lowercase each entry), returns boolean.
-- This is the ONLY place the env var is read.
+- `src/lib/auth/is-platform-admin.ts` exports two async helpers: `isPlatformAdmin(): Promise<boolean>` and `platformAdminEmail(): Promise<string | null>` (the latter returns the lowercased email for audit logging).
+- Reads the current session via server-side Supabase client, extracts email, compares against the parsed list from `platformAdminEmails()` in `src/lib/env.ts`.
+- This is the canonical place the env var is consumed. One exception: `src/proxy.ts` (middleware) parses `process.env.PLATFORM_ADMIN_EMAILS` inline because middleware can't carry the Zod runtime; an inline comment in `proxy.ts` flags the duplication so the two are kept in sync.
 
 ### 3.4 Audit logging
 
@@ -114,9 +114,8 @@ Mounted at `/admin`. Hidden from customer-facing navigation. Admin layout render
 |---|---|
 | `/admin` | Redirects to `/admin/accounts` |
 | `/admin/accounts` | Accounts list — search, sort, paginate |
-| `/admin/accounts/[id]` | Account detail — members, interviews, calls, audit log tail, action buttons |
+| `/admin/accounts/[id]` | Account detail — members, interviews, audit log tail, suspend/unsuspend button (inline form), "Adjust credits" link |
 | `/admin/accounts/[id]/credits` | Credit adjustment form |
-| `/admin/accounts/[id]/status` | Suspend / unsuspend toggle |
 
 ### 4.2 Accounts list
 
@@ -133,22 +132,25 @@ Mounted at `/admin`. Hidden from customer-facing navigation. Admin layout render
   - Members (owner + any `memberships` rows)
   - Recent interview requests (last 25, newest first)
   - Recent calls (last 25)
-  - Credit balance + recent `credit_ledger` entries
-  - Audit log tail (last 25 rows with `target_organization_id = this`)
-- Action buttons: "Adjust credits" → `/credits`, "Suspend" / "Unsuspend" → `/status`.
+  - Credit balance (current `credits_remaining` on `organizations`)
+  - Audit log tail (last 25 rows where `organization_id = this` OR `target_id = this`)
+- Action buttons: "Adjust credits" → navigates to `/credits`; "Suspend" / "Unsuspend" → inline server-action form on the detail page itself (no separate route).
 
 ### 4.4 Credit adjustment
 
-- Form fields: delta (signed integer), reason (required, free text).
+- Form fields: delta (signed integer — `Number.isInteger` enforced server-side), reason (required, trimmed, `length >= 3`).
 - On submit (server action):
-  1. Re-check `is_platform_admin`.
-  2. Insert `credit_ledger` row with `source = 'admin_adjustment'`, `memo = reason`, `delta = <input>`.
-  3. Insert `audit_logs` row.
-  4. Redirect back to account detail with flash message.
+  1. Re-check `platformAdminEmail()`.
+  2. Fetch current `credits_remaining`.
+  3. Update `organizations.credits_remaining = before + delta`.
+  4. Insert `audit_logs` row with `action = 'credit_adjustment'`, `actor_email`, `meta = { delta, reason, before, after }`.
+  5. `revalidatePath` + `redirect` back to account detail.
+
+Note: there is no `credit_ledger` table — the `audit_logs.meta` JSON is the ledger for MVP. Add a dedicated ledger if credit accounting needs richer queries.
 
 ### 4.5 Status toggle
 
-- Single button that flips `accounts.status` between `active` and `suspended`.
+- Single button on the account-detail page (inline server-action form) that flips `organizations.status` between `active` and `suspended`.
 - Server action re-checks admin, updates the row, writes audit log.
 - Suspended accounts: can still sign in and view their own data, but RLS policies block creation of new `interview_requests` (see §5).
 
@@ -161,7 +163,7 @@ Mounted at `/admin`. Hidden from customer-facing navigation. Admin layout render
 ```sql
 create type org_status as enum ('active', 'suspended');
 
-alter table accounts
+alter table organizations
   add column status org_status not null default 'active';
 ```
 
@@ -280,7 +282,7 @@ src/
 - Unit: `is-platform-admin.ts` — parses env list correctly (trim, lowercase, empty values, missing var).
 - Integration: middleware returns 404 for non-admin email on `/admin/*`.
 - Integration: server action rejects non-admin session.
-- Integration: credit adjustment writes both `credit_ledger` and `audit_logs` rows.
+- Integration: credit adjustment updates `organizations.credits_remaining` and writes an `audit_logs` row capturing `{ delta, reason, before, after }` in meta.
 - Integration: suspending an account blocks new `interview_requests` inserts via RLS.
 - Integration: signup flow — unverified user cannot sign in; after verification they can.
 - Manual smoke: sign up → verify email → sign in with password → forgot password → reset.
