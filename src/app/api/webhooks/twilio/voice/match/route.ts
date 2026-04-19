@@ -65,7 +65,6 @@ export async function POST(req: Request) {
 
   const base = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
   const sessionId = session?.id ?? "";
-  const recordingCallback = `${base}/api/webhooks/twilio/voice/recording?session=${sessionId}`;
 
   const snapshot = request.template_snapshot as {
     name: string;
@@ -80,22 +79,22 @@ export async function POST(req: Request) {
 
   const intro = snapshot.intro_message?.trim() || "Thanks for calling. I'll ask you a few quick questions.";
   const maxSec = firstQuestion.max_seconds ?? 90;
+  const actionUrl = `${base}/api/webhooks/twilio/voice/answer-done?session=${sessionId}&q=0`;
 
-  // Minimal record-based flow. We'll iterate into ConversationRelay next.
   return twimlResponse(`
     <Say voice="Polly.Joanna-Neural">Hi ${escapeXml(firstName)}. ${escapeXml(intro)} This call is being recorded so the sender can review your answers.</Say>
     <Pause length="1"/>
     <Say voice="Polly.Joanna-Neural">Here's the first question. ${escapeXml(firstQuestion.prompt)}</Say>
-    <Say voice="Polly.Joanna-Neural">Go ahead whenever you're ready. Press any key when you're done, or just stop talking for a couple seconds.</Say>
+    <Say voice="Polly.Joanna-Neural">Go ahead. Press star or pound when you're done.</Say>
     <Record
+      action="${actionUrl}"
+      method="POST"
       maxLength="${maxSec}"
       playBeep="true"
       finishOnKey="*#"
       timeout="3"
-      recordingStatusCallback="${recordingCallback}"
-      recordingStatusCallbackMethod="POST"
     />
-    <Say voice="Polly.Joanna-Neural">Thanks — I have your answer. That's all for now. Goodbye.</Say>
+    <Say voice="Polly.Joanna-Neural">Thanks — I have your answer.</Say>
     <Hangup/>
   `);
 }
