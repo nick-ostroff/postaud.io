@@ -1,5 +1,3 @@
-import { mockOrg } from "@/lib/mocks";
-
 export default function SettingsPage() {
   return (
     <div>
@@ -10,7 +8,7 @@ export default function SettingsPage() {
         <h2 className="text-sm font-medium tracking-wide text-neutral-500 dark:text-neutral-400 uppercase">Workspace</h2>
         <label className="mt-3 block text-xs font-medium text-neutral-600 dark:text-neutral-400">Name</label>
         <input
-          defaultValue={mockOrg.name}
+          placeholder="Workspace name"
           className="mt-1 w-full max-w-md rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-[#1c1c1e] px-3 py-2 text-sm text-neutral-900 dark:text-neutral-100 focus:border-neutral-900 dark:focus:border-neutral-500 focus:outline-none transition-colors"
         />
       </section>

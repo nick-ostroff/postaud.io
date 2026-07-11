@@ -3,13 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+// Temporary: trimmed to Home only during the phone-era teardown. The
+// remaining nav (templates/contacts/sends/settings/billing) comes back
+// as part of the V1 rebuild.
 const navItems = [
-  { href: "/app",                  label: "Dashboard" },
-  { href: "/app/templates",        label: "Templates" },
-  { href: "/app/contacts",         label: "Contacts" },
-  { href: "/app/sends",            label: "Sends" },
-  { href: "/app/settings",         label: "Settings" },
-  { href: "/app/settings/billing", label: "Billing" },
+  { href: "/app", label: "Dashboard" },
 ];
 
 type Props = {

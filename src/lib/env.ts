@@ -8,28 +8,13 @@ const schema = z.object({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
 
-  TWILIO_ACCOUNT_SID: z.string().min(1),
-  TWILIO_AUTH_TOKEN: z.string().min(1),
-  // Optional — if empty, we fall back to the first number in TWILIO_VOICE_POOL_NUMBERS.
-  TWILIO_MESSAGING_SERVICE_SID: z.string().optional().default(""),
-  TWILIO_VOICE_POOL_NUMBERS: z.string().min(1),
-  TWILIO_WEBHOOK_SECRET: z.string().optional(),
-
   OPENAI_API_KEY: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
-  AI_GATEWAY_URL: z.string().url().optional(),
-
-  STRIPE_SECRET_KEY: z.string().optional(),
-  STRIPE_WEBHOOK_SECRET: z.string().optional(),
-  STRIPE_PRICE_STARTER: z.string().optional(),
-  STRIPE_PRICE_GROWTH: z.string().optional(),
-  STRIPE_PRICE_SCALE: z.string().optional(),
 
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().email().default("hello@postaud.io"),
 
-  WEBHOOK_SIGNING_SECRET: z.string().optional(),
-  JOB_RUNNER_SECRET: z.string().optional(),
+  CRON_SECRET: z.string().optional(),
 
   // Platform admin — comma-separated list of emails granted super-admin access.
   PLATFORM_ADMIN_EMAILS: z.string().optional().default(""),
@@ -48,13 +33,6 @@ export function env(): Env {
   }
   cached = parsed.data;
   return cached;
-}
-
-export function voicePoolNumbers(): string[] {
-  return env()
-    .TWILIO_VOICE_POOL_NUMBERS.split(",")
-    .map((n) => n.trim())
-    .filter(Boolean);
 }
 
 export function platformAdminEmails(): string[] {

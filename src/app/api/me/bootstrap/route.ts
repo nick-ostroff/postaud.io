@@ -1,7 +1,9 @@
-import { notImplemented } from "../../_stub";
+import { NextResponse } from "next/server";
+import { getViewer } from "@/db/queries";
 
-// POST /api/me/bootstrap — idempotent. Creates users + default org + membership.
-// See plan/04-api-routes.md §1.
+// POST /api/me/bootstrap — idempotent. Ensures users + default org +
+// membership exist for the current session (see getViewer's self-heal path).
 export async function POST() {
-  return notImplemented("bootstrap user + org + membership");
+  const { organization, role } = await getViewer();
+  return NextResponse.json({ ok: true, organization, role });
 }
