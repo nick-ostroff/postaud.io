@@ -217,7 +217,15 @@ export function Wizard({
         const res = await fetch("/api/series/question-plan", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title, goal, subjectName, mustCover, tone }),
+          body: JSON.stringify({
+            title,
+            subjectName,
+            subjectRelationship: subjectChoice === "self" ? undefined : subjectRelationship.trim() || undefined,
+            goal,
+            openingPrompt: openingPrompt.trim() || undefined,
+            mustCover,
+            tone,
+          }),
         });
         if (!res.ok) throw new Error(`question-plan ${res.status}`);
         const body = await res.json();
