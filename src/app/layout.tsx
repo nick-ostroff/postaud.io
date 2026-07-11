@@ -5,14 +5,14 @@ import "./globals.css";
 const newsreader = Newsreader({
   subsets: ["latin"],
   style: ["normal", "italic"],
-  variable: "--font-serif",
+  variable: "--font-newsreader",
   display: "swap",
 });
 
 const instrumentSans = Instrument_Sans({
   subsets: ["latin"],
   style: ["normal", "italic"],
-  variable: "--font-sans",
+  variable: "--font-instrument-sans",
   display: "swap",
 });
 

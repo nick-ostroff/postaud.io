@@ -23,11 +23,12 @@ function NavItem({ href, label, icon }: { href: string; label: string; icon: str
   return (
     <Link
       href={href}
+      aria-current={active ? "page" : undefined}
       className={
-        "flex items-center gap-2.5 rounded-sm px-2.5 py-2 text-[13.5px] font-medium " +
+        "flex items-center gap-2.5 rounded-sm px-2.5 py-2 text-[13.5px] " +
         (active
           ? "bg-green-tint text-green-deep font-semibold"
-          : "text-ink-soft hover:bg-[rgba(33,30,26,0.05)] hover:no-underline")
+          : "text-ink-soft font-medium hover:bg-[rgba(33,30,26,0.05)] hover:no-underline")
       }
     >
       <span aria-hidden>{icon}</span> {label}
@@ -37,7 +38,7 @@ function NavItem({ href, label, icon }: { href: string; label: string; icon: str
 
 export function Sidebar({ name, role }: Props) {
   return (
-    <aside className="flex w-[232px] shrink-0 flex-col gap-1 border-r border-line bg-paper-2 p-3.5">
+    <aside className="flex w-[232px] shrink-0 flex-col gap-1 border-r border-line bg-paper-2 py-[22px] px-3.5">
       <div className="serif px-2.5 pb-[18px] text-[19px]">
         post<b className="font-semibold text-green-deep">aud</b>.io
       </div>
