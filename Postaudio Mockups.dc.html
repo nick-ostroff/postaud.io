@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>postaud.io — Core Loop mockups</title>
+<link rel="stylesheet" href="postaudio-mockups.css">
+<style>
+  /* ---------- screen-specific layout (composes with the shared system) ---------- */
+
+  /* dark live-session desktop shell */
+  .frame-desktop .dark-session { min-height: 720px; display: flex; flex-direction: column; }
+  .s-top {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 30px 0; font-size: 12.5px;
+  }
+  .s-top .s-series { font-weight: 600; letter-spacing: 0.02em; }
+  .s-top .s-series .faint-sep { color: var(--dark-muted); font-weight: 400; }
+  .s-top .s-right { display: flex; align-items: center; gap: 16px; color: var(--dark-muted); }
+  .t-prog { display: inline-flex; align-items: center; gap: 5px; }
+  .t-prog i { width: 24px; height: 2.5px; border-radius: 2px; background: var(--dark-line); }
+  .t-prog i.on { background: var(--mint); }
+  .elapsed { font-variant-numeric: tabular-nums; color: rgba(247,245,240,0.8); font-weight: 600; }
+
+  .s-stage {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 30px; padding: 30px 40px; text-align: center;
+  }
+  .q-kicker {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--mint);
+  }
+  .q-big { font-family: var(--serif); font-size: 28px; line-height: 1.4; max-width: 660px; letter-spacing: -0.01em; }
+  .live-line {
+    font-family: var(--serif); font-style: italic; font-size: 15.5px; line-height: 1.6;
+    color: rgba(247,245,240,0.45); max-width: 560px;
+  }
+  .s-controls { display: flex; gap: 44px; justify-content: center; padding: 0 0 42px; }
+
+  /* direction B — conversation */
+  .conv-wrap { flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; }
+  .conv-wrap::before {
+    content: ""; position: absolute; inset: 0 0 auto 0; height: 90px; z-index: 1; pointer-events: none;
+    background: linear-gradient(180deg, var(--dark), transparent);
+  }
+  .conv { max-width: 720px; width: 100%; margin: 0 auto; padding: 30px 32px 8px; }
+  .dark-session .turn .who { color: rgba(247,245,240,0.38); }
+  .dark-session .turn .txt { color: rgba(247,245,240,0.92); font-size: 14.5px; line-height: 1.6; }
+  .dark-session .turn.is-subject .txt { color: rgba(247,245,240,0.75); }
+  .dark-session .turn.is-live .txt { color: rgba(247,245,240,0.45); }
+  .live-mark { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--mint); font-family: var(--sans); font-style: normal; margin-left: 8px; }
+  .s-footer {
+    display: flex; align-items: center; gap: 22px;
+    padding: 14px 30px; border-top: 1px solid var(--dark-line);
+    background: rgba(0,0,0,0.16);
+  }
+  .orb.sm { width: 50px; height: 50px; margin: 0; flex-shrink: 0; box-shadow: 0 0 26px oklch(0.72 0.08 165 / 0.4); }
+  .orb.sm::after { inset: -7px; }
+  .listening { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 600; color: var(--mint); }
+  .listening .dot-i { background: var(--mint); }
+  .s-footer .spacer-f { flex: 1; }
+  .s-footer .s-controls { padding: 0; gap: 26px; }
+  .s-footer .session-btn { flex-direction: row; gap: 9px; font-size: 12px; }
+  .s-footer .session-btn .sb-ic { width: 40px; height: 40px; font-size: 15px; }
+
+  /* direction C — focus split */
+  .split { flex: 1; display: flex; min-height: 0; }
+  .split-l { flex: 1.1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; padding: 34px 44px; text-align: center; }
+  .split-l .q-big { font-size: 24px; max-width: 480px; }
+  .split-l .s-controls { padding: 10px 0 0; gap: 36px; }
+  .split-r {
+    width: 41%; flex-shrink: 0; border-left: 1px solid var(--dark-line);
+    background: rgba(0,0,0,0.18); padding: 26px 30px; display: flex; flex-direction: column; gap: 6px;
+  }
+  .r-label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(247,245,240,0.38); padding-bottom: 8px; }
+  .r-label.mt { margin-top: 24px; }
+  .split-r .mini-turn { font-size: 13px; line-height: 1.55; color: rgba(247,245,240,0.55); padding: 5px 0; }
+  .split-r .mini-turn b { color: rgba(247,245,240,0.75); font-weight: 600; font-size: 11px; letter-spacing: 0.1em; margin-right: 6px; }
+  .split-r .mini-turn.spoken-live { font-family: var(--serif); font-style: italic; font-size: 14px; color: rgba(247,245,240,0.6); }
+  .live-fact { display: flex; gap: 10px; align-items: flex-start; padding: 11px 0; border-bottom: 1px solid var(--dark-line); }
+  .live-fact:last-child { border-bottom: none; }
+  .live-fact .lf-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--mint); margin-top: 7px; flex-shrink: 0; }
+  .live-fact .lf-txt { font-family: var(--serif); font-size: 13.5px; line-height: 1.5; color: rgba(247,245,240,0.85); }
+  .live-fact .lf-tick { margin-left: auto; padding-left: 10px; font-size: 10.5px; font-weight: 700; color: var(--mint); white-space: nowrap; padding-top: 3px; }
+  .live-fact.saving { opacity: 0.5; }
+  .live-fact.saving .lf-tick { color: rgba(247,245,240,0.5); }
+
+  /* light screens */
+  .two-col { display: grid; grid-template-columns: 1fr 316px; gap: 22px; align-items: start; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip .add { color: var(--green-deep); font-weight: 700; margin-left: 2px; }
+  .sec-h { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); margin-bottom: 10px; }
+  .sum-short { font-family: var(--serif); font-size: 18px; line-height: 1.5; }
+  .sum-long { margin: 14px 0 0; padding: 0; list-style: none; }
+  .sum-long li { position: relative; padding: 5px 0 5px 20px; color: var(--ink-soft); font-size: 13.5px; line-height: 1.55; }
+  .sum-long li::before { content: ""; position: absolute; left: 2px; top: 13px; width: 7px; height: 7px; border-radius: 50%; background: var(--green-tint); border: 1.5px solid var(--green); }
+  .hero-stat { font-family: var(--serif); font-size: 34px; line-height: 1.2; letter-spacing: -0.01em; }
+  .hero-stat b { color: var(--green-deep); font-weight: 600; }
+  .kb-mini { display: flex; gap: 26px; margin-top: 10px; color: var(--muted); font-size: 13px; }
+  .kb-mini b { color: var(--ink); font-weight: 600; }
+  .cov-name { width: 210px; font-size: 13.5px; font-weight: 500; flex-shrink: 0; }
+  .ck-row { display: flex; gap: 11px; align-items: flex-start; padding: 9px 0; }
+  .ck { width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid var(--line-strong); background: var(--card); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; margin-top: 1px; color: transparent; }
+  .ck.on { background: var(--green); border-color: var(--green); color: #fff; }
+  .ck-row .ck-t { font-size: 13.5px; font-weight: 500; }
+  .ck-row .ck-d { font-size: 12px; color: var(--faint); }
+  .md-prev {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px; line-height: 1.75; color: var(--ink-soft);
+    background: var(--paper-2); border: 1px solid var(--line); border-radius: var(--r-sm);
+    padding: 18px 20px; white-space: pre-wrap; overflow-x: auto;
+  }
+  .md-prev .md-dim { color: var(--faint); }
+  .md-fade { height: 46px; margin-top: -46px; position: relative; background: linear-gradient(180deg, transparent, var(--paper-2)); border-radius: 0 0 var(--r-sm) var(--r-sm); }
+</style>
+</head>
+<body>
+
+<header class="doc-header">
+  <div class="wordmark">post<b>aud</b>.io</div>
+  <h1>Core loop — interview, results, knowledge, export</h1>
+  <p>The desktop heart of the product: a live session with Anna (three directions of the same screen), what a session leaves behind, the growing knowledge base, and taking it all with you.</p>
+  <nav class="doc-toc">
+    <a href="#1a">1a · Interview — A “Stage”</a>
+    <a href="#1b">1b · Interview — B “Conversation”</a>
+    <a href="#1c">1c · Interview — C “Focus split”</a>
+    <a href="#1e">1e · Session results</a>
+    <a href="#1f">1f · Knowledge dashboard</a>
+    <a href="#1g">1g · Export</a>
+  </nav>
+</header>
+
+<!-- ============================================================ 1a -->
+<section class="mock-section" id="1a">
+  <div class="mock-label">
+    <span class="tag">1a</span>
+    <h2>Interview — direction A, “Stage”</h2>
+    <span class="note">A / B / C are three directions of the same screen — pick one. Full-screen and dark during a session; the app chrome disappears. Mid-interview in Dad’s Story: Anna on the bakery years.</span>
+  </div>
+  <div class="frame-desktop">
+    <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">app.postaud.io/series/dads-story/live</span></div>
+    <div class="viewport">
+      <div class="dark-session">
+        <div class="s-top">
+          <span class="s-series">Dad’s Story <span class="faint-sep">· with Anna</span></span>
+          <span class="s-right">
+            <span class="t-prog"><i class="on"></i><i class="on"></i><i></i><i></i></span>
+            <span>topic 2 of 4 — the bakery years</span>
+            <span class="elapsed">12:41</span>
+          </span>
+        </div>
+        <div class="s-stage">
+          <div class="orb"></div>
+          <div>
+            <div class="q-kicker">Anna asked</div>
+            <p class="q-big mt-1">“You said the ovens were your uncle Cor’s pride. What did a good morning in that bakery smell like?”</p>
+          </div>
+          <p class="live-line">…warm rye, first. Always the rye. Then the sugar when the koeken went in — you could smell it out on the Meent straat when the wind was right…</p>
+        </div>
+        <div class="s-controls">
+          <span class="session-btn"><span class="sb-ic">⏸</span>Pause</span>
+          <span class="session-btn"><span class="sb-ic">→</span>Skip question</span>
+          <span class="session-btn primary"><span class="sb-ic">✓</span>I’m done for today</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 1b -->
+<section class="mock-section" id="1b">
+  <div class="mock-label">
+    <span class="tag">1b</span>
+    <h2>Interview — direction B, “Conversation”</h2>
+    <span class="note">Alternative direction of the same screen: the transcript builds live down the page, the orb keeps to a footer bar. Scrolled mid-exchange; Anna has just asked a smart follow-up and moved on.</span>
+  </div>
+  <div class="frame-desktop">
+    <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">app.postaud.io/series/dads-story/live</span></div>
+    <div class="viewport">
+      <div class="dark-session">
+        <div class="s-top">
+          <span class="s-series">Dad’s Story <span class="faint-sep">· with Anna</span></span>
+          <span class="s-right">
+            <span class="t-prog"><i class="on"></i><i class="on"></i><i></i><i></i></span>
+            <span>topic 2 of 4</span>
+            <span class="elapsed">12:41</span>
+          </span>
+        </div>
+        <div class="conv-wrap">
+          <div class="conv">
+            <div class="turn">
+              <span class="who">Anna</span>
+              <p class="txt">Let’s stay in the bakery a while. You were fourteen when you started under your uncle Cor. What kind of boss was he?</p>
+            </div>
+            <div class="turn is-subject">
+              <span class="who">Henk</span>
+              <p class="txt">Strict. Not unkind — strict. If a loaf came out wrong he’d tap the bench twice with his knuckle. He never shouted, not once in eleven years. The tap was worse.</p>
+            </div>
+            <div class="turn">
+              <span class="who">Anna</span>
+              <p class="txt">Worse how? What did those two taps mean to you, standing there at fourteen?</p>
+            </div>
+            <div class="turn is-subject">
+              <span class="who">Henk</span>
+              <p class="txt">That he had expected better of you. Shouting is for strangers. The tap meant you were family, and you knew it.</p>
+            </div>
+            <div class="turn">
+              <span class="who">Anna</span>
+              <p class="txt">You said the ovens were your uncle Cor’s pride. What did a good morning in that bakery smell like?</p>
+            </div>
+            <div class="turn is-subject is-live">
+              <span class="who">Henk</span>
+              <p class="txt">Warm rye, first. Always the rye. Then the sugar when the koeken went in…<span class="live-mark">LIVE</span></p>
+            </div>
+          </div>
+        </div>
+        <div class="s-footer">
+          <div class="orb sm"></div>
+          <span class="listening"><span class="dot-i"></span>listening…</span>
+          <span class="spacer-f"></span>
+          <div class="s-controls">
+            <span class="session-btn"><span class="sb-ic">⏸</span>Pause</span>
+            <span class="session-btn"><span class="sb-ic">→</span>Skip question</span>
+            <span class="session-btn primary"><span class="sb-ic">✓</span>I’m done for today</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 1c -->
+<section class="mock-section" id="1c">
+  <div class="mock-label">
+    <span class="tag">1c</span>
+    <h2>Interview — direction C, “Focus split”</h2>
+    <span class="note">Alternative direction of the same screen: question and orb keep the left half calm, while the right column quietly shows the transcript and the memories being caught in real time.</span>
+  </div>
+  <div class="frame-desktop">
+    <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">app.postaud.io/series/dads-story/live</span></div>
+    <div class="viewport">
+      <div class="dark-session">
+        <div class="s-top">
+          <span class="s-series">Dad’s Story <span class="faint-sep">· with Anna</span></span>
+          <span class="s-right">
+            <span class="t-prog"><i class="on"></i><i class="on"></i><i></i><i></i></span>
+            <span>topic 2 of 4</span>
+            <span class="elapsed">12:41</span>
+          </span>
+        </div>
+        <div class="split">
+          <div class="split-l">
+            <div class="q-kicker">The bakery years</div>
+            <p class="q-big">“You said the ovens were your uncle Cor’s pride. What did a good morning in that bakery smell like?”</p>
+            <div class="orb"></div>
+            <span class="listening"><span class="dot-i"></span>Anna is listening</span>
+            <div class="s-controls">
+              <span class="session-btn"><span class="sb-ic">⏸</span>Pause</span>
+              <span class="session-btn"><span class="sb-ic">→</span>Skip question</span>
+              <span class="session-btn primary"><span class="sb-ic">✓</span>I’m done for today</span>
+            </div>
+          </div>
+          <div class="split-r">
+            <div class="r-label">Live transcript</div>
+            <p class="mini-turn"><b>ANNA</b>…what did a good morning in that bakery smell like?</p>
+            <p class="mini-turn spoken-live">Warm rye, first. Always the rye. Then the sugar when the koeken went in — you could smell it out on the street…&nbsp;▏</p>
+            <div class="r-label mt">Caught this session</div>
+            <div class="live-fact">
+              <span class="lf-dot"></span>
+              <span class="lf-txt">Apprenticed under his uncle Cor at fourteen; hated the 4 a.m. starts, loved the smell.</span>
+              <span class="lf-tick">✓ saved</span>
+            </div>
+            <div class="live-fact">
+              <span class="lf-dot"></span>
+              <span class="lf-txt">Cor tapped the bench twice when a loaf came out wrong — he never shouted.</span>
+              <span class="lf-tick">✓ saved</span>
+            </div>
+            <div class="live-fact saving">
+              <span class="lf-dot"></span>
+              <span class="lf-txt">A good morning smelled of warm rye first, then sugar when the koeken went in.</span>
+              <span class="lf-tick">saving…</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 1e -->
+<section class="mock-section" id="1e">
+  <div class="mock-label">
+    <span class="tag">1e</span>
+    <h2>Post-interview results</h2>
+    <span class="note">What a session leaves behind: warm summary, new memories, the transcript, and topics that feed the queue.</span>
+  </div>
+  <div class="frame-desktop">
+    <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">app.postaud.io/series/dads-story/sessions/9</span></div>
+    <div class="viewport">
+      <div class="shell">
+        <aside class="side">
+          <div class="wordmark">post<b>aud</b>.io</div>
+          <div class="nav-label">Workspace</div>
+          <a class="nav-item" href="Postaudio%20Admin.dc.html#2a"><span>⌂</span> Home</a>
+          <a class="nav-item active" href="Postaudio%20Admin.dc.html#2b"><span>▤</span> Series</a>
+          <a class="nav-item" href="Postaudio%20Admin.dc.html#3a"><span>☺</span> Members</a>
+          <div class="nav-label">You</div>
+          <a class="nav-item" href="#"><span>⚙</span> Settings</a>
+          <div class="spacer"></div>
+          <div class="user-chip">
+            <span class="avatar">SD</span>
+            <div><div style="font-size:13px;font-weight:600">Sam de Vries</div><div class="small faint">Admin</div></div>
+          </div>
+        </aside>
+        <div class="main">
+          <div class="crumbs"><a href="Postaudio%20Admin.dc.html#2a">Series</a> / <a href="Postaudio%20Admin.dc.html#2b">Dad’s Story</a> / Session 9</div>
+          <div class="page-head">
+            <div>
+              <h1>Session 9</h1>
+              <p class="sub">Yesterday · 22 min · audio saved</p>
+            </div>
+            <div class="row">
+              <a class="btn btn-ghost" href="Postaudio%20Admin.dc.html#2b">← Back to Dad’s Story</a>
+              <a class="btn" href="#1e">▶ Play the audio</a>
+            </div>
+          </div>
+
+          <div class="two-col">
+            <div>
+              <div class="card card-pad mb-2">
+                <div class="sec-h">What we heard</div>
+                <p class="sum-short">Henk talked about the objects his father left behind — the shop clock, the watch, and why he keeps both stopped.</p>
+                <ul class="sum-long">
+                  <li>The shop clock hung above the door to the back of the bakery and was wound every Saturday after closing — same key, same ritual, for forty years.</li>
+                  <li>His father’s Sunday watch went unworn for decades; Henk still winds it every week because letting it stop feels wrong.</li>
+                  <li>When his father died, the bakery ledgers went to Willem — the clock and the watch came to Henk.</li>
+                </ul>
+              </div>
+
+              <div class="card card-pad mb-2">
+                <div class="row" style="justify-content:space-between">
+                  <div class="sec-h" style="margin-bottom:0">5 new memories</div>
+                  <span class="badge"><span class="dot"></span>saved to Dad’s Story</span>
+                </div>
+                <div class="mt-1">
+                  <div class="fact">
+                    <span class="f-dot"></span>
+                    <div><div class="f-txt">His father wound the shop clock every Saturday; Henk still winds a watch he can’t wear.</div>
+                    <div class="f-meta">Brothers &amp; sisters · ▶ 11:03</div></div>
+                  </div>
+                  <div class="fact">
+                    <span class="f-dot"></span>
+                    <div><div class="f-txt">The bakery ledgers went to his brother Willem; Henk took the clock and the watch.</div>
+                    <div class="f-meta">Brothers &amp; sisters · ▶ 05:12</div></div>
+                  </div>
+                  <div class="fact">
+                    <span class="f-dot"></span>
+                    <div><div class="f-txt">The shop clock came to Henk when the Rotterdam shop was sold; it hasn’t been restarted since.</div>
+                    <div class="f-meta">The bakery years · ▶ 08:47</div></div>
+                  </div>
+                  <div class="fact">
+                    <span class="f-dot"></span>
+                    <div><div class="f-txt">His father bought the watch in 1962, with the first good Christmas takings.</div>
+                    <div class="f-meta">The bakery years · ▶ 12:30</div></div>
+                  </div>
+                  <div class="fact">
+                    <span class="f-dot"></span>
+                    <div><div class="f-txt">Henk keeps the watch in Jan’s writing desk and winds it on Sundays — the day his father wore it.</div>
+                    <div class="f-meta">Brothers &amp; sisters · ▶ 14:05</div></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card card-pad">
+                <div class="sec-h">Transcript</div>
+                <div class="mt-1">
+                  <div class="turn">
+                    <span class="who">Anna</span>
+                    <p class="txt">You mentioned the shop clock earlier. Tell me about it — where did it hang?</p>
+                  </div>
+                  <div class="turn is-subject">
+                    <span class="who">Henk</span>
+                    <p class="txt">Above the door to the back, so you saw it every time you carried the trays through. My father wound it every Saturday after closing. Same ritual, same little key on the same nail.</p>
+                  </div>
+                  <div class="turn">
+                    <span class="who">Anna</span>
+                    <p class="txt">And the watch — is that the same story?</p>
+                  </div>
+                  <div class="turn is-subject">
+                    <span class="who">Henk</span>
+                    <p class="txt">The watch he wore only on Sundays. It came to me with the clock. I can’t wear it — my wrist is too wide — but I wind it anyway. You don’t let another man’s time run out.</p>
+                  </div>
+                </div>
+                <a class="btn btn-ghost" href="#1e">Show all 38 turns ↓</a>
+              </div>
+            </div>
+
+            <div>
+              <div class="card card-pad mb-2">
+                <h3>Suggested next topics</h3>
+                <p class="small muted mb-1">From this session — add them and Anna will bring them up next time.</p>
+                <div class="chips mt-1 mb-2">
+                  <span class="chip">The first winter in Canada <span class="add">+</span></span>
+                  <span class="chip">Why the bakery almost failed in 1994 <span class="add">+</span></span>
+                  <span class="chip">His father’s watch <span class="add">+</span></span>
+                </div>
+                <a class="btn btn-primary" href="Postaudio%20Admin.dc.html#2b" style="width:100%;justify-content:center">Add to topic queue</a>
+              </div>
+              <div class="card card-pad">
+                <div class="sec-h">Next time</div>
+                <p class="spoken">“Next time, Anna would love to hear about the first winter in Canada.”</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 1f -->
+<section class="mock-section" id="1f">
+  <div class="mock-label">
+    <span class="tag">1f</span>
+    <h2>Knowledge dashboard — “What we know so far”</h2>
+    <span class="note">The compounding asset: coverage of known vs. still blank, the people, the timeline. This series is fresh — no staleness here.</span>
+  </div>
+  <div class="frame-desktop">
+    <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">app.postaud.io/series/dads-story/knowledge</span></div>
+    <div class="viewport">
+      <div class="shell">
+        <aside class="side">
+          <div class="wordmark">post<b>aud</b>.io</div>
+          <div class="nav-label">Workspace</div>
+          <a class="nav-item" href="Postaudio%20Admin.dc.html#2a"><span>⌂</span> Home</a>
+          <a class="nav-item active" href="Postaudio%20Admin.dc.html#2b"><span>▤</span> Series</a>
+          <a class="nav-item" href="Postaudio%20Admin.dc.html#3a"><span>☺</span> Members</a>
+          <div class="nav-label">You</div>
+          <a class="nav-item" href="#"><span>⚙</span> Settings</a>
+          <div class="spacer"></div>
+          <div class="user-chip">
+            <span class="avatar">SD</span>
+            <div><div style="font-size:13px;font-weight:600">Sam de Vries</div><div class="small faint">Admin</div></div>
+          </div>
+        </aside>
+        <div class="main">
+          <div class="crumbs"><a href="Postaudio%20Admin.dc.html#2a">Series</a> / <a href="Postaudio%20Admin.dc.html#2b">Dad’s Story</a> / Knowledge</div>
+          <div class="page-head">
+            <div>
+              <h1>What we know so far</h1>
+              <p class="sub">Dad’s Story · Henk de Vries · 9 sessions</p>
+            </div>
+            <div class="row">
+              <span class="badge"><span class="dot"></span>fresh — last session yesterday</span>
+              <a class="btn" href="#1g">Export ↧</a>
+            </div>
+          </div>
+
+          <div class="card card-pad mb-2">
+            <p class="hero-stat"><b>64 memories</b> saved for the family.</p>
+            <div class="kb-mini">
+              <span><b>6</b> topics</span>
+              <span><b>6</b> people · <b>4</b> places</span>
+              <span><b>8</b> timeline moments, 1949 → 2014</span>
+            </div>
+          </div>
+
+          <div class="two-col">
+            <div>
+              <div class="card card-pad mb-2">
+                <h3>Coverage</h3>
+                <p class="small muted mb-2">How much of each topic Anna has explored so far.</p>
+                <div class="cov-row mb-1"><span class="cov-name">Meeting Jan</span><span class="cov"><i style="width:90%"></i></span><span class="pct">90%</span></div>
+                <div class="cov-row mb-1"><span class="cov-name">Childhood in Rotterdam</span><span class="cov"><i style="width:78%"></i></span><span class="pct">78%</span></div>
+                <div class="cov-row mb-1"><span class="cov-name">The bakery years</span><span class="cov"><i style="width:45%"></i></span><span class="pct">45%</span></div>
+                <div class="cov-row mb-1"><span class="cov-name">Brothers &amp; sisters</span><span class="cov"><i style="width:35%"></i></span><span class="pct">35%</span></div>
+                <div class="cov-row mb-1"><span class="cov-name">The move to Canada, 1988</span><span class="cov low"><i style="width:12%"></i></span><span class="pct">12%</span></div>
+                <div class="cov-row"><span class="cov-name">Health &amp; habits</span><span class="cov low"><i style="width:0%"></i></span><span class="pct">0%</span></div>
+                <div class="row mt-2" style="gap:8px">
+                  <span class="badge badge-amber">still blank</span>
+                  <span class="small muted">Anna hasn’t touched health &amp; habits yet — nudge it up the queue for the next session.</span>
+                </div>
+              </div>
+
+              <div class="card card-pad mb-2">
+                <h3>People</h3>
+                <p class="small muted mb-1">Everyone who keeps coming up in Henk’s stories.</p>
+                <div class="chips mt-1 mb-2">
+                  <span class="chip"><span class="avatar warm" style="width:20px;height:20px;font-size:9px">J</span>Jan <span class="k">wife</span></span>
+                  <span class="chip"><span class="avatar plain" style="width:20px;height:20px;font-size:9px">C</span>Cor <span class="k">uncle</span></span>
+                  <span class="chip"><span class="avatar plain" style="width:20px;height:20px;font-size:9px">M</span>Marta <span class="k">mother-in-law</span></span>
+                  <span class="chip"><span class="avatar plain" style="width:20px;height:20px;font-size:9px">W</span>Willem <span class="k">brother</span></span>
+                  <span class="chip"><span class="avatar plain" style="width:20px;height:20px;font-size:9px">R</span>Ruth <span class="k">daughter</span></span>
+                  <span class="chip"><span class="avatar" style="width:20px;height:20px;font-size:9px">S</span>Sam <span class="k">son</span></span>
+                </div>
+                <div class="sec-h" style="margin-top:16px">Places</div>
+                <div class="chips">
+                  <span class="chip">Rotterdam</span>
+                  <span class="chip">Hoek van Holland</span>
+                  <span class="chip">Meent straat</span>
+                  <span class="chip">Guelph, Ontario</span>
+                </div>
+              </div>
+
+              <div class="card card-pad">
+                <h3 class="mb-2">Timeline</h3>
+                <div class="tl">
+                  <div class="tl-item"><div class="tl-year">1949</div><div class="tl-txt">Born in Rotterdam</div></div>
+                  <div class="tl-item"><div class="tl-year">1963</div><div class="tl-txt">Apprenticed under his uncle Cor, age fourteen</div></div>
+                  <div class="tl-item"><div class="tl-year">1975</div><div class="tl-txt">Met Jan on the Hoek van Holland ferry</div></div>
+                  <div class="tl-item"><div class="tl-year">1977</div><div class="tl-txt">Married Jan</div></div>
+                  <div class="tl-item"><div class="tl-year">1981</div><div class="tl-txt">Took over the bakery on Meent straat</div></div>
+                  <div class="tl-item"><div class="tl-year">1988</div><div class="tl-txt">Sold the Rotterdam bakery and moved the family to Canada</div></div>
+                  <div class="tl-item"><div class="tl-year">1990</div><div class="tl-txt">Opened the Guelph bakery</div></div>
+                  <div class="tl-item"><div class="tl-year">2014</div><div class="tl-txt">Retired</div></div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="card card-pad mb-2">
+                <h3>Where to go next</h3>
+                <p class="small muted mb-1">Suggested from the last few sessions.</p>
+                <div class="chips mt-1 mb-2">
+                  <span class="chip">The first winter in Canada <span class="add">+</span></span>
+                  <span class="chip">Why the bakery almost failed in 1994 <span class="add">+</span></span>
+                  <span class="chip">His father’s watch <span class="add">+</span></span>
+                </div>
+                <a class="btn" href="Postaudio%20Admin.dc.html#2b" style="width:100%;justify-content:center">Open the topic queue</a>
+              </div>
+              <div class="card card-pad">
+                <div class="row mb-1" style="gap:8px">
+                  <span class="badge badge-amber">1 needs review</span>
+                </div>
+                <div class="fact" style="border-bottom:none;padding-bottom:4px">
+                  <span class="f-dot" style="background:var(--amber)"></span>
+                  <div><div class="f-txt">The bakery’s rye recipe came from Jan’s mother, not the de Vries side.</div>
+                  <div class="f-meta">The bakery years · Session 8, 06:21 · Henk asked to fix a detail</div></div>
+                </div>
+                <a class="small" href="#1f">Review it →</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 1g -->
+<section class="mock-section" id="1g">
+  <div class="mock-label">
+    <span class="tag">1g</span>
+    <h2>Export — “Take it with you”</h2>
+    <span class="note">The knowledge base leaves as a file the family owns. Markdown or plain text, with source lines back to the audio.</span>
+  </div>
+  <div class="frame-desktop">
+    <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">app.postaud.io/series/dads-story/export</span></div>
+    <div class="viewport">
+      <div class="shell">
+        <aside class="side">
+          <div class="wordmark">post<b>aud</b>.io</div>
+          <div class="nav-label">Workspace</div>
+          <a class="nav-item" href="Postaudio%20Admin.dc.html#2a"><span>⌂</span> Home</a>
+          <a class="nav-item active" href="Postaudio%20Admin.dc.html#2b"><span>▤</span> Series</a>
+          <a class="nav-item" href="Postaudio%20Admin.dc.html#3a"><span>☺</span> Members</a>
+          <div class="nav-label">You</div>
+          <a class="nav-item" href="#"><span>⚙</span> Settings</a>
+          <div class="spacer"></div>
+          <div class="user-chip">
+            <span class="avatar">SD</span>
+            <div><div style="font-size:13px;font-weight:600">Sam de Vries</div><div class="small faint">Admin</div></div>
+          </div>
+        </aside>
+        <div class="main">
+          <div class="crumbs"><a href="Postaudio%20Admin.dc.html#2a">Series</a> / <a href="Postaudio%20Admin.dc.html#2b">Dad’s Story</a> / Export</div>
+          <div class="page-head">
+            <div>
+              <h1>Take it with you</h1>
+              <p class="sub">Everything Anna has learned about Henk, as a file the family owns.</p>
+            </div>
+          </div>
+
+          <div class="grid-2" style="align-items:start">
+            <div>
+              <div class="card card-pad mb-2">
+                <h3 class="mb-2">Format</h3>
+                <label class="radio-card on mb-1">
+                  <span class="ck on">✓</span>
+                  <span><span class="rc-t">Markdown (.md)</span><br><span class="rc-d">Headings, bullets and source lines — reads well anywhere, forever.</span></span>
+                </label>
+                <label class="radio-card">
+                  <span class="ck"></span>
+                  <span><span class="rc-t">Plain text (.txt)</span><br><span class="rc-d">Just the words, no formatting.</span></span>
+                </label>
+              </div>
+
+              <div class="card card-pad mb-2">
+                <h3>What to include</h3>
+                <div class="mt-1">
+                  <div class="ck-row"><span class="ck on">✓</span><span><span class="ck-t">Summary</span><br><span class="ck-d">The short version of Henk’s story so far.</span></span></div>
+                  <div class="ck-row"><span class="ck on">✓</span><span><span class="ck-t">Memories by topic</span><br><span class="ck-d">All 64, each with its session and audio timestamp.</span></span></div>
+                  <div class="ck-row"><span class="ck on">✓</span><span><span class="ck-t">People &amp; places</span><br><span class="ck-d">Jan, Cor, Willem… and everywhere the stories happened.</span></span></div>
+                  <div class="ck-row"><span class="ck on">✓</span><span><span class="ck-t">Timeline</span><br><span class="ck-d">Eight moments, 1949 to 2014.</span></span></div>
+                  <div class="ck-row"><span class="ck"></span><span><span class="ck-t">Full transcripts</span><br><span class="ck-d">Every word of all 9 sessions — makes a long file.</span></span></div>
+                </div>
+              </div>
+
+              <a class="btn btn-primary btn-big" href="#1g">↧ Download .md</a>
+              <p class="small faint mt-1">Audio never leaves postaud.io unless you export it explicitly.</p>
+            </div>
+
+            <div class="card card-pad">
+              <div class="sec-h">Preview — dads-story.md</div>
+              <div class="md-prev"># Dad&#8217;s Story
+
+<span class="md-dim">Henk de Vries &#183; 64 memories &#183; 9 sessions
+Exported from postaud.io &#183; 11 July 2026</span>
+
+## Meeting Jan
+
+- Met Jan, spring 1975, on the Hoek van Holland ferry.
+  <span class="md-dim">&#8212; Session 3, 04:12</span>
+
+## Childhood in Rotterdam
+
+- Grew up above the bakery on Meent straat, Rotterdam &#8212; third of five children.
+  <span class="md-dim">&#8212; Session 1, 01:38</span>
+
+## The bakery years
+
+- Apprenticed under his uncle Cor at fourteen; hated the 4 a.m. starts, loved the smell.
+  <span class="md-dim">&#8212; Session 2, 07:55</span>
+
+## The move to Canada
+
+- Sold the Rotterdam bakery and moved the family to Canada in October 1988.
+  <span class="md-dim">&#8212; Session 6, 02:47</span></div>
+              <div class="md-fade"></div>
+              <p class="small faint mt-1">Showing the top of the file · about 14 pages in full</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="doc-footer">postaud.io — V1 mockups · warm paper system · Newsreader + Instrument Sans</footer>
+
+</body>
+</html>
