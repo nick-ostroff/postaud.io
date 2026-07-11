@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>postaud.io — Super Admin mockups</title>
+<link rel="stylesheet" href="postaudio-mockups.css">
+<style>
+  /* ---- screen-specific layout (operator console) ---- */
+  .op-main { padding: 30px 36px 48px; }
+
+  .filter-bar { display: flex; align-items: center; gap: 10px; margin: 22px 0 16px; flex-wrap: wrap; }
+  .filter-bar .pills { display: inline-flex; gap: 6px; }
+  .filter-bar .pill {
+    font-size: 12.5px; font-weight: 600; padding: 6px 15px; border-radius: var(--r-pill);
+    border: 1px solid var(--line-strong); background: var(--card); color: var(--muted); cursor: pointer;
+  }
+  .filter-bar .pill.on { background: var(--green-tint); border-color: var(--green); color: var(--green-deep); }
+  .filter-bar .search { margin-left: auto; width: 280px; }
+  .filter-bar .search .input { padding: 8px 14px; font-size: 13px; }
+
+  .acct-cell { display: flex; align-items: center; gap: 11px; }
+  .acct-cell .a-name { font-weight: 600; }
+  .acct-cell .a-owner { font-size: 12px; color: var(--muted); }
+  .net-note { font-size: 12px; color: var(--muted); line-height: 1.4; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* account detail */
+  .acct-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 24px; flex-wrap: wrap; }
+  .acct-head .meta-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .acct-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  .acct-actions .row { gap: 8px; }
+  .btn-impersonate { border-color: var(--green); color: var(--green-deep); background: var(--card); }
+  .btn-impersonate:hover { border-color: var(--green-deep); }
+  .audit-note { font-size: 11.5px; color: var(--faint); display: flex; align-items: center; gap: 5px; }
+
+  .detail-grid { display: grid; grid-template-columns: 1.1fr 1.4fr; gap: 18px; align-items: start; }
+  .detail-col { display: flex; flex-direction: column; gap: 18px; }
+
+  .kv { display: flex; justify-content: space-between; align-items: baseline; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+  .kv:last-child { border-bottom: none; }
+  .kv .k { color: var(--muted); }
+  .kv .v { font-weight: 600; }
+
+  .mini-series { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+  .mini-series:last-child { border-bottom: none; }
+  .mini-series .ms-t { font-family: var(--serif); font-size: 15px; }
+  .mini-series .ms-m { font-size: 11.5px; color: var(--faint); margin-top: 1px; }
+  .mini-series .ms-n { font-size: 12px; color: var(--muted); white-space: nowrap; text-align: right; }
+
+  .net-person { display: flex; align-items: center; gap: 11px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .net-person:last-child { border-bottom: none; }
+  .net-person .np-name { font-weight: 600; font-size: 13.5px; }
+  .net-person .np-sub { font-size: 12px; color: var(--muted); }
+  .net-person .np-right { margin-left: auto; }
+
+  .act-item { display: flex; gap: 11px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .act-item:last-child { border-bottom: none; }
+  .act-item .a-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-top: 6px; flex-shrink: 0; }
+  .act-item .a-when { color: var(--faint); font-size: 11.5px; margin-top: 2px; }
+
+  .locked-card {
+    border: 1.5px dashed var(--line-strong); border-radius: var(--r-card);
+    background: var(--paper-2); padding: 30px 26px; text-align: center;
+  }
+  .locked-card .lock-glyph {
+    width: 44px; height: 44px; border-radius: 50%; margin: 0 auto 12px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(33,30,26,0.07); color: var(--muted); font-size: 19px;
+  }
+  .locked-card .lk-t { font-family: var(--serif); font-size: 17px; color: var(--ink-soft); }
+  .locked-card .lk-d { font-size: 12.5px; color: var(--muted); margin-top: 5px; max-width: 340px; margin-left: auto; margin-right: auto; }
+
+  .subject-noacct {
+    display: flex; align-items: center; gap: 11px; padding: 12px 14px; margin-top: 12px;
+    background: var(--amber-tint); border-radius: var(--r-sm);
+  }
+  .subject-noacct .sn-t { font-weight: 600; font-size: 13px; }
+  .subject-noacct .sn-d { font-size: 11.5px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header class="doc-header">
+  <div class="wordmark">post<b>aud</b>.io</div>
+  <h1>Super Admin — operator console</h1>
+  <p>The platform operator's back office at <strong>ops.postaud.io</strong> — dark operator header, warm paper body. The operator sees <strong>metadata only</strong>: transcripts and knowledge bases stay hidden unless an audited impersonation session is started.</p>
+  <nav class="doc-toc">
+    <a href="#1a">1a · All users</a>
+    <a href="#1b">1b · Account detail — de Vries Family</a>
+    <a href="#1c">1c · Series registry</a>
+  </nav>
+</header>
+
+<!-- ============================================================
+     1a — ALL USERS
+     ============================================================ -->
+<section class="mock-section" id="1a">
+  <div class="mock-label">
+    <span class="tag">1a</span>
+    <h2>All users</h2>
+    <span class="note">growth stats, account network summaries, status — metadata only</span>
+  </div>
+
+  <div class="frame-desktop">
+    <div class="browser-bar">
+      <div class="dots"><i></i><i></i><i></i></div>
+      <div class="url">ops.postaud.io/users</div>
+    </div>
+    <div class="viewport">
+
+      <div class="op-head">
+        <div class="wordmark">post<b>aud</b>.io</div>
+        <span class="op-tag">Operator</span>
+        <nav>
+          <a class="active" href="#1a">Users</a>
+          <a href="#1c">Series</a>
+          <a href="#">Activity</a>
+        </nav>
+      </div>
+
+      <div class="op-main">
+        <div class="page-head">
+          <div>
+            <h1>Users &amp; accounts</h1>
+            <div class="sub">Everyone on the platform, and who they've brought with them.</div>
+          </div>
+          <span class="badge badge-muted">Metadata only — content requires audited impersonation</span>
+        </div>
+
+        <div class="stats mb-3">
+          <div class="card stat"><div class="s-n">412</div><div class="s-l">users</div></div>
+          <div class="card stat"><div class="s-n">138</div><div class="s-l">active series</div></div>
+          <div class="card stat"><div class="s-n">214</div><div class="s-l">interviews this week</div></div>
+          <div class="card stat"><div class="s-n">18,402</div><div class="s-l">facts extracted, all time</div></div>
+        </div>
+
+        <div class="filter-bar">
+          <div class="pills">
+            <span class="pill on">All</span>
+            <span class="pill">Active</span>
+            <span class="pill">Dormant</span>
+            <span class="pill">Invited</span>
+          </div>
+          <div class="search"><input class="input" type="text" placeholder="Search accounts, owners, emails…"></div>
+        </div>
+
+        <div class="card">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Account / owner</th>
+                <th>Plan</th>
+                <th>Status</th>
+                <th>Series</th>
+                <th>Members</th>
+                <th>Network</th>
+                <th>Last activity</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div class="acct-cell">
+                    <span class="avatar">DV</span>
+                    <div>
+                      <div class="a-name"><a href="#1b">de Vries Family</a></div>
+                      <div class="a-owner">Sam de Vries · sam@devries.family</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="chip">Family</span></td>
+                <td><span class="badge"><span class="dot"></span>Active</span></td>
+                <td class="num">4</td>
+                <td class="num">5</td>
+                <td><div class="net-note">invited 4 · 1 subject w/o account</div></td>
+                <td class="muted">Yesterday</td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="acct-cell">
+                    <span class="avatar">MC</span>
+                    <div>
+                      <div class="a-name">Meadowlark Coaching</div>
+                      <div class="a-owner">Priya Nair · priya@meadowlark.coach</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="chip">Pro</span></td>
+                <td><span class="badge"><span class="dot"></span>Active</span></td>
+                <td class="num">11</td>
+                <td class="num">3</td>
+                <td><div class="net-note">invited 2 · 6 subjects w/o account</div></td>
+                <td class="muted">2 hours ago</td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="acct-cell">
+                    <span class="avatar">HP</span>
+                    <div>
+                      <div class="a-name">Harbor &amp; Pine Studio</div>
+                      <div class="a-owner">Tom Okafor · tom@harborandpine.co</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="chip">Pro</span></td>
+                <td><span class="badge"><span class="dot"></span>Active</span></td>
+                <td class="num">7</td>
+                <td class="num">4</td>
+                <td><div class="net-note">invited 3 · 2 subjects w/o account</div></td>
+                <td class="muted">This morning</td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="acct-cell">
+                    <span class="avatar">BO</span>
+                    <div>
+                      <div class="a-name">Beacon Oral History Project</div>
+                      <div class="a-owner">Dr. Lena Marsh · lmarsh@beaconoralhistory.org</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="chip">Team</span></td>
+                <td><span class="badge"><span class="dot"></span>Active</span></td>
+                <td class="num">23</td>
+                <td class="num">9</td>
+                <td><div class="net-note">invited 8 · 14 subjects w/o account</div></td>
+                <td class="muted">26 minutes ago</td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="acct-cell">
+                    <span class="avatar warm">KS</span>
+                    <div>
+                      <div class="a-name">Kessler &amp; Sons Plumbing</div>
+                      <div class="a-owner">Marty Kessler · marty@kesslerandsons.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="chip">Family</span></td>
+                <td><span class="badge badge-amber"><span class="dot"></span>Dormant — 6 wks</span></td>
+                <td class="num">1</td>
+                <td class="num">2</td>
+                <td><div class="net-note">invited 1 · no subjects w/o account</div></td>
+                <td class="muted">6 weeks ago</td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="acct-cell">
+                    <span class="avatar plain">AC</span>
+                    <div>
+                      <div class="a-name">Ada Chen</div>
+                      <div class="a-owner">Personal · ada.chen@fastmail.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="chip">Free</span></td>
+                <td><span class="badge badge-muted"><span class="dot"></span>Invited — never signed in</span></td>
+                <td class="num">0</td>
+                <td class="num">1</td>
+                <td><div class="net-note">—</div></td>
+                <td class="muted">Never</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="small faint mt-2">Showing 6 of 412 accounts · sorted by last activity</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     1b — ACCOUNT DETAIL: DE VRIES FAMILY
+     ============================================================ -->
+<section class="mock-section" id="1b">
+  <div class="mock-label">
+    <span class="tag">1b</span>
+    <h2>Account detail — de Vries Family</h2>
+    <span class="note">plan &amp; usage, series metadata, network, activity — content stays locked</span>
+  </div>
+
+  <div class="frame-desktop">
+    <div class="browser-bar">
+      <div class="dots"><i></i><i></i><i></i></div>
+      <div class="url">ops.postaud.io/users/de-vries-family</div>
+    </div>
+    <div class="viewport">
+
+      <div class="op-head">
+        <div class="wordmark">post<b>aud</b>.io</div>
+        <span class="op-tag">Operator</span>
+        <nav>
+          <a class="active" href="#1a">Users</a>
+          <a href="#1c">Series</a>
+          <a href="#">Activity</a>
+        </nav>
+      </div>
+
+      <div class="op-main">
+        <div class="crumbs"><a href="#1a">Users</a> / de Vries Family</div>
+
+        <div class="acct-head">
+          <div>
+            <div class="row">
+              <span class="avatar lg">DV</span>
+              <h1 class="serif" style="font-size:28px;">de Vries Family</h1>
+            </div>
+            <div class="meta-row">
+              <span class="chip"><span class="k">Owner</span> Sam de Vries</span>
+              <span class="chip"><span class="k">Plan</span> Family</span>
+              <span class="chip"><span class="k">Member since</span> March 2026</span>
+              <span class="badge"><span class="dot"></span>Active</span>
+            </div>
+          </div>
+          <div class="acct-actions">
+            <div class="row">
+              <span class="btn btn-impersonate">⚿ Impersonate (audited)</span>
+              <span class="btn">✉ Email owner</span>
+              <span class="btn btn-quiet-danger">Suspend</span>
+            </div>
+            <span class="audit-note"><span class="dot-i"></span> every impersonation is logged &amp; visible to the account owner</span>
+          </div>
+        </div>
+
+        <div class="detail-grid">
+
+          <div class="detail-col">
+            <div class="card card-pad">
+              <h3>Plan &amp; usage</h3>
+              <div class="mt-1">
+                <div class="kv"><span class="k">Plan</span><span class="v">Family · $12/mo</span></div>
+                <div class="kv"><span class="k">Audio storage</span><span class="v">3.2 GB audio</span></div>
+                <div class="kv"><span class="k">Interviews this month</span><span class="v">7</span></div>
+                <div class="kv"><span class="k">Facts on file</span><span class="v">144</span></div>
+                <div class="kv"><span class="k">Series</span><span class="v">4</span></div>
+                <div class="kv"><span class="k">Seats used</span><span class="v">5 of 6</span></div>
+              </div>
+            </div>
+
+            <div class="card card-pad">
+              <h3>Network</h3>
+              <div class="small muted mb-1">Who Sam has brought onto the platform.</div>
+              <div class="net-person">
+                <span class="avatar warm">JD</span>
+                <div>
+                  <div class="np-name">Jan de Vries</div>
+                  <div class="np-sub">Interviewer · jan.devries@xs4all.nl</div>
+                </div>
+                <span class="np-right badge"><span class="dot"></span>Active</span>
+              </div>
+              <div class="net-person">
+                <span class="avatar">HD</span>
+                <div>
+                  <div class="np-name">Henk de Vries</div>
+                  <div class="np-sub">Interviewee · subject of "Dad's Story"</div>
+                </div>
+                <span class="np-right badge"><span class="dot"></span>Active</span>
+              </div>
+              <div class="net-person">
+                <span class="avatar">EP</span>
+                <div>
+                  <div class="np-name">Ellen Park</div>
+                  <div class="np-sub">Interviewer · ellen.park@gmail.com</div>
+                </div>
+                <span class="np-right badge"><span class="dot"></span>Active</span>
+              </div>
+              <div class="net-person">
+                <span class="avatar plain">RD</span>
+                <div>
+                  <div class="np-name">Ruth de Vries</div>
+                  <div class="np-sub">Viewer · ruth@devries.family</div>
+                </div>
+                <span class="np-right badge badge-muted">Invited — not accepted</span>
+              </div>
+              <div class="subject-noacct">
+                <span class="avatar warm">MV</span>
+                <div>
+                  <div class="sn-t">Subjects without an account: Marta Visser</div>
+                  <div class="sn-d">Interviewed via hand-the-mic on Sam's phone · no login exists</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-col">
+            <div class="card card-pad">
+              <h3>Series</h3>
+              <div class="small muted mb-1">Metadata only — titles, counts, and dates.</div>
+              <div class="mini-series">
+                <div>
+                  <div class="ms-t">Dad's Story</div>
+                  <div class="ms-m">Subject: Henk de Vries (member) · owned by Sam</div>
+                </div>
+                <div class="ms-n">9 sessions · 64 facts<br><span class="faint">last session yesterday</span></div>
+              </div>
+              <div class="mini-series">
+                <div>
+                  <div class="ms-t">Mam, in her own words</div>
+                  <div class="ms-m">Subject: Jan de Vries (self-interview)</div>
+                </div>
+                <div class="ms-n">6 sessions · 41 facts<br><span class="faint">last session 4 days ago</span></div>
+              </div>
+              <div class="mini-series">
+                <div>
+                  <div class="ms-t">Oma Marta</div>
+                  <div class="ms-m">Subject: Marta Visser (no account) · <span class="badge badge-amber" style="font-size:10.5px;">going stale — 3 wks</span></div>
+                </div>
+                <div class="ms-n">4 sessions · 27 facts<br><span class="faint">last session 3 weeks ago</span></div>
+              </div>
+              <div class="mini-series">
+                <div>
+                  <div class="ms-t">Bakkerij de Vries — 60 years</div>
+                  <div class="ms-m">Subject: the family bakery (organization)</div>
+                </div>
+                <div class="ms-n">2 sessions · 12 facts<br><span class="faint">created last week</span></div>
+              </div>
+            </div>
+
+            <div class="locked-card">
+              <div class="lock-glyph">⚿</div>
+              <div class="lk-t">Transcripts and knowledge are hidden.</div>
+              <div class="lk-d">Start an audited impersonation session to view. Every impersonation is logged and visible to the account owner.</div>
+            </div>
+
+            <div class="card card-pad">
+              <h3>Recent activity</h3>
+              <div class="mt-1">
+                <div class="act-item">
+                  <span class="a-dot"></span>
+                  <div>
+                    <div>Session completed on <strong>Dad's Story</strong> — 22 min, 5 facts extracted</div>
+                    <div class="a-when">Yesterday, 4:12 PM</div>
+                  </div>
+                </div>
+                <div class="act-item">
+                  <span class="a-dot"></span>
+                  <div>
+                    <div>Member invited — <strong>Ruth de Vries</strong> as Viewer (not yet accepted)</div>
+                    <div class="a-when">3 days ago</div>
+                  </div>
+                </div>
+                <div class="act-item">
+                  <span class="a-dot"></span>
+                  <div>
+                    <div>Export downloaded — <strong>Dad's Story</strong>, Markdown</div>
+                    <div class="a-when">5 days ago</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     1c — SERIES REGISTRY
+     ============================================================ -->
+<section class="mock-section" id="1c">
+  <div class="mock-label">
+    <span class="tag">1c</span>
+    <h2>Series registry</h2>
+    <span class="note">every series across every account — cross-account metadata view</span>
+  </div>
+
+  <div class="frame-desktop">
+    <div class="browser-bar">
+      <div class="dots"><i></i><i></i><i></i></div>
+      <div class="url">ops.postaud.io/series</div>
+    </div>
+    <div class="viewport">
+
+      <div class="op-head">
+        <div class="wordmark">post<b>aud</b>.io</div>
+        <span class="op-tag">Operator</span>
+        <nav>
+          <a href="#1a">Users</a>
+          <a class="active" href="#1c">Series</a>
+          <a href="#">Activity</a>
+        </nav>
+      </div>
+
+      <div class="op-main">
+        <div class="page-head">
+          <div>
+            <h1>Series registry</h1>
+            <div class="sub">138 active series across all accounts. Titles and counts only — no content.</div>
+          </div>
+          <span class="badge badge-muted">Metadata only</span>
+        </div>
+
+        <div class="filter-bar">
+          <div class="pills">
+            <span class="pill on">All</span>
+            <span class="pill">Person</span>
+            <span class="pill">Self</span>
+            <span class="pill">Organization</span>
+            <span class="pill">No-account</span>
+          </div>
+          <div class="search"><input class="input" type="text" placeholder="Search series or accounts…"></div>
+        </div>
+
+        <div class="card">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Account</th>
+                <th>Series</th>
+                <th>Subject type</th>
+                <th>Sessions</th>
+                <th>Facts</th>
+                <th>Members w/ access</th>
+                <th>Last activity</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><a href="#1b">de Vries Family</a></td>
+                <td class="serif" style="font-size:15px;">Dad's Story</td>
+                <td><span class="chip">Person</span></td>
+                <td class="num">9</td>
+                <td class="num">64</td>
+                <td class="num">3</td>
+                <td class="muted">Yesterday</td>
+              </tr>
+              <tr>
+                <td><a href="#1b">de Vries Family</a></td>
+                <td class="serif" style="font-size:15px;">Mam, in her own words</td>
+                <td><span class="chip">Self</span></td>
+                <td class="num">6</td>
+                <td class="num">41</td>
+                <td class="num">2</td>
+                <td class="muted">4 days ago</td>
+              </tr>
+              <tr>
+                <td><a href="#1b">de Vries Family</a></td>
+                <td class="serif" style="font-size:15px;">Oma Marta</td>
+                <td><span class="chip">No-account</span></td>
+                <td class="num">4</td>
+                <td class="num">27</td>
+                <td class="num">1</td>
+                <td><span class="badge badge-amber"><span class="dot"></span>Stale — 3 wks</span></td>
+              </tr>
+              <tr>
+                <td><a href="#1b">de Vries Family</a></td>
+                <td class="serif" style="font-size:15px;">Bakkerij de Vries — 60 years</td>
+                <td><span class="chip">Organization</span></td>
+                <td class="num">2</td>
+                <td class="num">12</td>
+                <td class="num">2</td>
+                <td class="muted">Last week</td>
+              </tr>
+              <tr>
+                <td>Beacon Oral History Project</td>
+                <td class="serif" style="font-size:15px;">Dockworkers of New Bedford — Oral Histories</td>
+                <td><span class="chip">No-account</span></td>
+                <td class="num">31</td>
+                <td class="num">218</td>
+                <td class="num">6</td>
+                <td class="muted">Today</td>
+              </tr>
+              <tr>
+                <td>Beacon Oral History Project</td>
+                <td class="serif" style="font-size:15px;">Rosa Delgado — mill street childhood</td>
+                <td><span class="chip">Person</span></td>
+                <td class="num">12</td>
+                <td class="num">96</td>
+                <td class="num">4</td>
+                <td class="muted">3 days ago</td>
+              </tr>
+              <tr>
+                <td>Meadowlark Coaching</td>
+                <td class="serif" style="font-size:15px;">Founder story — Priya</td>
+                <td><span class="chip">Self</span></td>
+                <td class="num">8</td>
+                <td class="num">57</td>
+                <td class="num">2</td>
+                <td class="muted">2 days ago</td>
+              </tr>
+              <tr>
+                <td>Meadowlark Coaching</td>
+                <td class="serif" style="font-size:15px;">Client: Fernwood Bakery — the origin story</td>
+                <td><span class="chip">Organization</span></td>
+                <td class="num">5</td>
+                <td class="num">33</td>
+                <td class="num">3</td>
+                <td class="muted">5 days ago</td>
+              </tr>
+              <tr>
+                <td>Harbor &amp; Pine Studio</td>
+                <td class="serif" style="font-size:15px;">Client: The Marsh House renovation</td>
+                <td><span class="chip">Organization</span></td>
+                <td class="num">6</td>
+                <td class="num">44</td>
+                <td class="num">3</td>
+                <td class="muted">Yesterday</td>
+              </tr>
+              <tr>
+                <td>Kessler &amp; Sons Plumbing</td>
+                <td class="serif" style="font-size:15px;">How Pop built the business</td>
+                <td><span class="chip">Person</span></td>
+                <td class="num">3</td>
+                <td class="num">19</td>
+                <td class="num">2</td>
+                <td><span class="badge badge-amber"><span class="dot"></span>Stale — 6 wks</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="small faint mt-2">Showing 10 of 138 active series · sorted by last activity</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<footer class="doc-footer">postaud.io — V1 mockups · warm paper system · Newsreader + Instrument Sans</footer>
+
+</body>
+</html>
