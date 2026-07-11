@@ -89,5 +89,12 @@ export async function draftQuestionPlan(input: QuestionPlanInput): Promise<strin
   if (!Array.isArray(questions)) {
     throw new Error("Anna's question plan response did not include a question list.");
   }
-  return questions.filter((q): q is string => typeof q === "string" && q.trim().length > 0);
+  const cleaned = questions.filter((q): q is string => typeof q === "string" && q.trim().length > 0);
+  // Bounds guard: <3 means the model gave us a junk plan — throw so the
+  // route 500s and the Wizard degrades to its manual-add list, rather than
+  // silently rendering a suspiciously short plan. >7 just gets trimmed.
+  if (cleaned.length < 3) {
+    throw new Error("question plan came back too short");
+  }
+  return cleaned.slice(0, 7);
 }
