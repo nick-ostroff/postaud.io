@@ -172,6 +172,202 @@ export async function getInterview(sb: SupabaseClient<Database>, id: string): Pr
   return data;
 }
 
+export type SeriesSummary = {
+  memoriesCount: number;
+  sessionsCount: number;
+  sessionsThisMonth: number;
+  lastSessionAt: string | null;
+  meanCoverage: number;
+};
+
+const emptySummary = (): SeriesSummary => ({
+  memoriesCount: 0,
+  sessionsCount: 0,
+  sessionsThisMonth: 0,
+  lastSessionAt: null,
+  meanCoverage: 0,
+});
+
+/**
+ * Per-series roll-ups for the home + series-list card grids and the detail
+ * page head: memories saved, sessions run (+ how many this month), when the
+ * last one happened, and mean coverage across the queued (non-suggested)
+ * topics. Fetched in three flat queries and aggregated in JS rather than a
+ * SQL view/RPC — per-workspace volume is small enough that this is simpler
+ * to reason about than a migration.
+ */
+export async function getSeriesSummaries(
+  sb: SupabaseClient<Database>,
+  seriesIds: string[],
+): Promise<Record<string, SeriesSummary>> {
+  const summaries: Record<string, SeriesSummary> = {};
+  for (const id of seriesIds) summaries[id] = emptySummary();
+  if (seriesIds.length === 0) return summaries;
+
+  const [topicsRes, factsRes, interviewsRes] = await Promise.all([
+    sb.from("topics").select("series_id, coverage_score").eq("suggested", false).in("series_id", seriesIds),
+    // "Memories" = facts that haven't been replaced by a newer correction —
+    // needs_review/retell_queued facts still count (they're still saved
+    // knowledge, just flagged); only superseded ones are excluded.
+    sb.from("facts").select("series_id").neq("status", "superseded").in("series_id", seriesIds),
+    sb
+      .from("interviews")
+      .select("series_id, started_at")
+      .in("status", ["completed", "processed"])
+      .in("series_id", seriesIds),
+  ]);
+  if (topicsRes.error) throw new Error(topicsRes.error.message);
+  if (factsRes.error) throw new Error(factsRes.error.message);
+  if (interviewsRes.error) throw new Error(interviewsRes.error.message);
+
+  const coverageSums = new Map<string, { sum: number; count: number }>();
+  for (const t of topicsRes.data ?? []) {
+    const bucket = coverageSums.get(t.series_id) ?? { sum: 0, count: 0 };
+    bucket.sum += t.coverage_score;
+    bucket.count += 1;
+    coverageSums.set(t.series_id, bucket);
+  }
+  for (const [id, bucket] of coverageSums) {
+    if (summaries[id]) summaries[id].meanCoverage = bucket.count > 0 ? bucket.sum / bucket.count : 0;
+  }
+
+  for (const f of factsRes.data ?? []) {
+    if (summaries[f.series_id]) summaries[f.series_id].memoriesCount += 1;
+  }
+
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  for (const i of interviewsRes.data ?? []) {
+    const s = summaries[i.series_id];
+    if (!s) continue;
+    s.sessionsCount += 1;
+    if (new Date(i.started_at) >= monthStart) s.sessionsThisMonth += 1;
+    if (!s.lastSessionAt || new Date(i.started_at) > new Date(s.lastSessionAt)) {
+      s.lastSessionAt = i.started_at;
+    }
+  }
+
+  return summaries;
+}
+
+export type SessionRow = {
+  id: string;
+  sessionNumber: number;
+  startedAt: string;
+  endedAt: string | null;
+  durationSec: number | null;
+  memoriesAdded: number;
+  summaryShort: string | null;
+};
+
+/**
+ * Completed/processed sessions for a series' detail page — oldest→newest
+ * numbered ("Session 1, 2, ...") but returned newest-first for display, each
+ * joined to its short summary (once Task 14's pipeline writes one) and a
+ * count of the facts it produced (excluding superseded ones).
+ */
+export async function listInterviewsForSeries(
+  sb: SupabaseClient<Database>,
+  seriesId: string,
+): Promise<SessionRow[]> {
+  const { data: interviews, error: interviewsErr } = await sb
+    .from("interviews")
+    .select("id, started_at, ended_at, duration_sec")
+    .eq("series_id", seriesId)
+    .in("status", ["completed", "processed"])
+    .order("started_at", { ascending: true });
+  if (interviewsErr) throw new Error(interviewsErr.message);
+  if (!interviews || interviews.length === 0) return [];
+
+  const ids = interviews.map((i) => i.id);
+  const [summariesRes, factsRes] = await Promise.all([
+    sb.from("interview_summaries").select("interview_id, short").in("interview_id", ids),
+    sb.from("facts").select("source_interview_id").in("source_interview_id", ids).neq("status", "superseded"),
+  ]);
+  if (summariesRes.error) throw new Error(summariesRes.error.message);
+  if (factsRes.error) throw new Error(factsRes.error.message);
+
+  const summaryByInterview = new Map((summariesRes.data ?? []).map((s) => [s.interview_id, s.short] as const));
+  const factCounts = new Map<string, number>();
+  for (const f of factsRes.data ?? []) {
+    if (!f.source_interview_id) continue;
+    factCounts.set(f.source_interview_id, (factCounts.get(f.source_interview_id) ?? 0) + 1);
+  }
+
+  return interviews
+    .map((i, idx) => ({
+      id: i.id,
+      sessionNumber: idx + 1,
+      startedAt: i.started_at,
+      endedAt: i.ended_at,
+      durationSec: i.duration_sec,
+      memoriesAdded: factCounts.get(i.id) ?? 0,
+      summaryShort: summaryByInterview.get(i.id) ?? null,
+    }))
+    .reverse();
+}
+
+export type SeriesAccessBadge = "owner" | "can_interview" | "can_view";
+export type SeriesAccessRow = {
+  userId: string;
+  name: string;
+  email: string;
+  badge: SeriesAccessBadge;
+};
+
+type AccessJoinRow = {
+  user_id: string;
+  can_view: boolean;
+  can_interview: boolean;
+  users: { email: string; display_name: string | null } | null;
+};
+
+/**
+ * "Who's involved" preview for the series detail hub. Org admins implicitly
+ * have full access to every series (RLS's `is_org_admin()`), shown as
+ * "owner"; everyone else's access comes from an explicit `series_access`
+ * row. Task 8's access page manages the underlying rows — this just reads
+ * them for display, deduping anyone already shown as an owner.
+ */
+export async function getSeriesAccessSummary(
+  sb: SupabaseClient<Database>,
+  seriesId: string,
+): Promise<SeriesAccessRow[]> {
+  const [members, accessRes] = await Promise.all([
+    listMembers(sb),
+    sb
+      .from("series_access")
+      .select("user_id, can_view, can_interview, users ( email, display_name )")
+      .eq("series_id", seriesId),
+  ]);
+  if (accessRes.error) throw new Error(accessRes.error.message);
+
+  const rows: SeriesAccessRow[] = [];
+  const seen = new Set<string>();
+
+  for (const m of members) {
+    if (m.role !== "admin") continue;
+    const name = m.users?.display_name || m.users?.email || "Unknown";
+    rows.push({ userId: m.user_id, name, email: m.users?.email ?? "", badge: "owner" });
+    seen.add(m.user_id);
+  }
+
+  for (const a of (accessRes.data ?? []) as unknown as AccessJoinRow[]) {
+    if (seen.has(a.user_id)) continue;
+    if (!a.can_view && !a.can_interview) continue;
+    const name = a.users?.display_name || a.users?.email || "Unknown";
+    rows.push({
+      userId: a.user_id,
+      name,
+      email: a.users?.email ?? "",
+      badge: a.can_interview ? "can_interview" : "can_view",
+    });
+    seen.add(a.user_id);
+  }
+
+  return rows;
+}
+
 export type MemberRow = Membership & { users: { email: string; display_name: string | null } | null };
 
 /**
