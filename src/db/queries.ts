@@ -38,9 +38,17 @@ export async function ensureViewerBootstrapped(args: {
     .single();
   if (orgErr || !org) throw new Error(orgErr?.message ?? "Could not create organization");
 
+  // accepted_at is set immediately: this is an organic signup creating their
+  // own workspace, not an invited member who still needs the /welcome accept
+  // flow (see inviteMember, which explicitly leaves accepted_at null).
   const { error: mErr } = await svc
     .from("memberships")
-    .insert({ user_id: args.id, organization_id: org.id, role: "admin" });
+    .insert({
+      user_id: args.id,
+      organization_id: org.id,
+      role: "admin",
+      accepted_at: new Date().toISOString(),
+    });
   if (mErr) throw new Error(mErr.message);
 }
 
@@ -167,12 +175,11 @@ export async function getInterview(sb: SupabaseClient<Database>, id: string): Pr
 export type MemberRow = Membership & { users: { email: string; display_name: string | null } | null };
 
 /**
- * Members of the current workspace. NOTE: the memberships SELECT policy
- * (0003_fix_memberships_rls_recursion.sql) only allows `user_id = auth.uid()`
- * — it was never widened to let org admins see other members' rows. Until
- * that policy is extended (e.g. via `is_org_admin()`), calling this with a
- * request-scoped client returns only the caller's own membership. Pass the
- * service client from an admin-gated route if you need the full roster now.
+ * Members of the current workspace, joined with their `users` row. Safe to
+ * call with a request-scoped (RLS-bound) client — 0006_members_rls.sql added
+ * "org members read" / "org users read" SELECT policies scoped to
+ * `organization_id = current_org_id()`, so any org member sees the full
+ * roster, not just their own row.
  */
 export async function listMembers(sb: SupabaseClient<Database>): Promise<MemberRow[]> {
   const { data, error } = await sb

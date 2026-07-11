@@ -30,6 +30,7 @@ export async function GET(request: Request) {
   }
 
   const { data: { user } } = await supabase.auth.getUser();
+  let destination = next;
   if (user) {
     try {
       await ensureViewerBootstrapped({
@@ -41,7 +42,19 @@ export async function GET(request: Request) {
       console.error("[auth/callback] bootstrap failed", err);
       return NextResponse.redirect(`${origin}/sign-in?error=bootstrap_failed`);
     }
+
+    // Invited members (accepted_at still null) must go through /welcome —
+    // set a password, see their role + accessible series, accept — before
+    // landing anywhere else in the app, regardless of the `next` param.
+    const { data: memberships } = await supabase
+      .from("memberships")
+      .select("accepted_at")
+      .eq("user_id", user.id)
+      .limit(1);
+    if (memberships?.[0] && !memberships[0].accepted_at) {
+      destination = "/welcome";
+    }
   }
 
-  return NextResponse.redirect(`${origin}${next}`);
+  return NextResponse.redirect(`${origin}${destination}`);
 }
