@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>postaud.io — Mobile mockups</title>
+<link rel="stylesheet" href="postaudio-mockups.css">
+<style>
+  /* ---- file-specific layout: pairs of phones side by side ---- */
+  .duo { max-width: 1360px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; align-items: start; }
+  .duo > .mock-section { max-width: none; margin: 0; }
+  @media (max-width: 1020px) { .duo { grid-template-columns: 1fr; } }
+
+  /* ---- phone body scaffolding ---- */
+  .p-body { padding: 14px 26px 6px; min-height: 660px; display: flex; flex-direction: column; }
+  .p-body.center { align-items: center; text-align: center; }
+
+  /* bottom tab bar (owner app) */
+  .tabbar { display: flex; border-top: 1px solid var(--line); background: var(--card); padding: 9px 14px 2px; }
+  .tabbar a { flex: 1; text-align: center; font-size: 10.5px; font-weight: 600; color: var(--faint); }
+  .tabbar a .ic { display: block; font-size: 19px; line-height: 1.25; font-weight: 400; }
+  .tabbar a.on { color: var(--green-deep); }
+  .tabbar a:hover { text-decoration: none; }
+
+  /* 1a — compact series cards */
+  .s-card { padding: 14px 16px; margin-bottom: 12px; }
+  .s-card .s-t { font-family: var(--serif); font-size: 16.5px; line-height: 1.3; }
+  .s-card .s-meta { font-size: 12px; color: var(--muted); margin: 2px 0 10px; }
+
+  /* 1b — handoff */
+  .owner-strip { display: flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 600; color: var(--muted); background: var(--paper-2); border: 1px solid var(--line); border-radius: var(--r-pill); padding: 5px 14px; width: fit-content; margin: 4px auto 0; }
+  .handoff-list { list-style: none; text-align: left; margin: 26px 0 8px; }
+  .handoff-list li { display: flex; gap: 14px; align-items: flex-start; font-size: 17px; line-height: 1.45; color: var(--ink-soft); padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .handoff-list li:last-child { border-bottom: none; }
+  .handoff-list li .hd { width: 9px; height: 9px; border-radius: 50%; background: var(--green); flex-shrink: 0; margin-top: 8px; }
+
+  /* 1c — the one big button */
+  .talk-btn { width: 216px; height: 216px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; margin: 0 auto; background: var(--green); color: #fff; font-size: 21px; font-weight: 600; letter-spacing: -0.01em; cursor: pointer; box-shadow: 0 0 0 12px var(--green-tint), 0 14px 34px oklch(0.52 0.06 165 / 0.35); }
+  .talk-btn:hover { text-decoration: none; background: var(--green-deep); }
+  .talk-btn .sub { font-size: 12px; font-weight: 500; opacity: 0.85; }
+  .talk-btn .glyph { font-size: 26px; line-height: 1; margin-bottom: 4px; }
+
+  /* 1d — dark live session */
+  .rec-pill { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--dark-muted); border: 1px solid var(--dark-line); border-radius: var(--r-pill); padding: 4px 13px; }
+  .rec-pill .rd { width: 7px; height: 7px; border-radius: 50%; background: var(--mint); }
+  .fade-txt { font-family: var(--serif); font-style: italic; font-size: 16.5px; line-height: 1.65; color: rgba(247,245,240,0.6); -webkit-mask-image: linear-gradient(180deg, #000 25%, transparent 97%); mask-image: linear-gradient(180deg, #000 25%, transparent 97%); }
+  .session-controls { display: flex; justify-content: center; gap: 30px; }
+
+  /* 1e / 1f / 1g — recap & review */
+  .teaser { background: linear-gradient(0deg, var(--green-tint), var(--green-tint)), var(--card); border: 1px solid var(--line); border-radius: var(--r-card); padding: 15px 17px; }
+  .pills { display: flex; gap: 7px; flex-wrap: wrap; }
+  .chip.pill-on { background: var(--green-tint); border-color: var(--green); color: var(--green-deep); font-weight: 600; }
+  .mem { display: flex; gap: 10px; align-items: flex-start; padding: 14px 2px; border-bottom: 1px solid var(--line); color: inherit; }
+  .mem:hover { text-decoration: none; background: rgba(33,30,26,0.02); }
+  .mem .m-txt { font-family: var(--serif); font-style: italic; font-size: 15px; line-height: 1.5; flex: 1; }
+  .mem .m-meta { font-size: 11.5px; color: var(--faint); margin-top: 5px; font-family: var(--sans); font-style: normal; }
+  .mem .arr { color: var(--faint); padding-top: 3px; font-size: 13px; }
+  .btn-block { width: 100%; justify-content: center; text-align: center; }
+  .btn-stack { display: flex; flex-direction: column; gap: 11px; }
+  .player { display: flex; align-items: center; gap: 12px; padding: 13px 15px; }
+  .player .play { width: 40px; height: 40px; border-radius: 50%; background: var(--green); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; padding-left: 3px; }
+  .player .track { flex: 1; height: 4px; border-radius: 2px; background: var(--paper-2); position: relative; }
+  .player .track i { position: absolute; left: 0; top: 0; bottom: 0; width: 60%; background: var(--green); border-radius: 2px; }
+  .player .track i::after { content: ""; position: absolute; right: -5px; top: -4px; width: 12px; height: 12px; border-radius: 50%; background: var(--green-deep); }
+  .player .time { font-size: 11.5px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<header class="doc-header">
+  <div class="wordmark">post<b>aud</b>.io</div>
+  <h1>Mobile — both roles</h1>
+  <p>The phone experience for owners and interviewees. The interviewee screens are the soul of the product: one primary action per screen, warm, effortless for a 74-year-old.</p>
+  <nav class="doc-toc">
+    <a href="#1a">1a · Owner home</a>
+    <a href="#1b">1b · Hand the mic</a>
+    <a href="#1c">1c · Interviewee home</a>
+    <a href="#1d">1d · Live session</a>
+    <a href="#1e">1e · Recap</a>
+    <a href="#1f">1f · Review list</a>
+    <a href="#1g">1g · Review detail</a>
+  </nav>
+</header>
+
+<!-- ============================ 1a + 1b ============================ -->
+<div class="duo">
+
+<section class="mock-section" id="1a">
+  <div class="mock-label">
+    <span class="tag">1a</span>
+    <h2>Owner home</h2>
+    <span class="note">Sam's phone — every series at a glance, one nudge</span>
+  </div>
+  <div class="frame-phone">
+    <div class="statusbar"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+    <div class="p-body">
+      <h1 style="font-size:26px;">Good morning, Sam</h1>
+      <p class="muted small" style="margin:2px 0 18px;">144 memories saved for the family, across four series.</p>
+
+      <div class="card s-card">
+        <div class="s-t">Dad&rsquo;s Story</div>
+        <div class="s-meta">Henk de Vries · 64 memories · last session yesterday</div>
+        <div class="cov-row"><div class="cov"><i style="width:58%"></i></div><span class="pct">58%</span></div>
+      </div>
+
+      <div class="card s-card">
+        <div class="s-t">Mam, in her own words</div>
+        <div class="s-meta">Jan de Vries · 41 memories · last session 4 days ago</div>
+        <div class="cov-row"><div class="cov"><i style="width:44%"></i></div><span class="pct">44%</span></div>
+      </div>
+
+      <div class="card s-card" style="border-color: var(--amber); outline: 1px solid var(--amber-tint);">
+        <div class="row" style="justify-content:space-between; gap:8px;">
+          <div class="s-t">Oma Marta</div>
+          <span class="badge badge-amber"><span class="dot"></span>going stale</span>
+        </div>
+        <div class="s-meta">Marta Visser · 27 memories · last session 3 weeks ago</div>
+        <div class="cov-row"><div class="cov low"><i style="width:31%"></i></div><span class="pct">31%</span></div>
+        <a class="btn btn-primary btn-block" style="margin-top:13px;" href="#1b">Sit down with Oma</a>
+      </div>
+
+      <div class="card s-card">
+        <div class="s-t">Bakkerij de Vries — 60 years</div>
+        <div class="s-meta">The family bakery · 12 memories · created last week</div>
+        <div class="cov-row"><div class="cov low"><i style="width:15%"></i></div><span class="pct">15%</span></div>
+      </div>
+    </div>
+    <nav class="tabbar">
+      <a class="on" href="#1a"><span class="ic">⌂</span>Home</a>
+      <a href="#1a"><span class="ic">▤</span>Series</a>
+      <a href="#"><span class="ic">☺</span>You</a>
+    </nav>
+    <div class="homebar"></div>
+  </div>
+</section>
+
+<section class="mock-section" id="1b">
+  <div class="mock-label">
+    <span class="tag">1b</span>
+    <h2>Hand the mic</h2>
+    <span class="note">The handoff moment — Marta has no account</span>
+  </div>
+  <div class="frame-phone">
+    <div class="statusbar"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+    <div class="p-body center">
+      <div class="owner-strip"><span class="avatar" style="width:20px;height:20px;font-size:9px;">SD</span> Sam&rsquo;s account · Oma Marta series</div>
+
+      <div style="flex:1;"></div>
+
+      <h1 style="font-size:32px; line-height:1.2; max-width:290px;">Hand the phone to Marta</h1>
+
+      <ul class="handoff-list" style="max-width:300px;">
+        <li><span class="hd"></span>Anna will call her Marta</li>
+        <li><span class="hd"></span>Questions will be slower and larger</li>
+        <li><span class="hd"></span>Take the phone back any time to rephrase or skip</li>
+      </ul>
+
+      <div style="flex:1;"></div>
+
+      <a class="btn btn-primary btn-big btn-block" style="font-size:18px; padding:17px 28px;" href="#1d">She&rsquo;s ready</a>
+      <a class="btn btn-ghost btn-block" style="margin-top:8px;" href="#1a">Back to my view</a>
+    </div>
+    <div class="homebar"></div>
+  </div>
+</section>
+
+</div>
+
+<!-- ============================ 1c + 1d ============================ -->
+<div class="duo">
+
+<section class="mock-section" id="1c">
+  <div class="mock-label">
+    <span class="tag">1c</span>
+    <h2>Interviewee home</h2>
+    <span class="note">Jan's phone — one job: start talking</span>
+  </div>
+  <div class="frame-phone">
+    <div class="statusbar"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+    <div class="p-body center">
+      <div class="small faint" style="font-family:var(--serif); font-size:15px;">Good morning, Jan</div>
+
+      <div style="flex:1;"></div>
+
+      <p class="serif" style="font-size:24px; line-height:1.35; max-width:300px;">Sam would love to hear about meeting Dad — the&nbsp;ferry&nbsp;story.</p>
+
+      <div style="height:38px;"></div>
+
+      <a class="talk-btn" href="#1d"><span class="glyph">◉</span>Start talking<span class="sub">Anna is ready to listen</span></a>
+
+      <div style="height:26px;"></div>
+      <a class="btn btn-ghost" href="#1c">Not today</a>
+
+      <div style="flex:1;"></div>
+
+      <a class="small" href="#1f">Your memories ▸</a>
+      <p class="small faint" style="margin-top:6px;">41 memories saved so far.</p>
+    </div>
+    <div class="homebar"></div>
+  </div>
+</section>
+
+<section class="mock-section" id="1d">
+  <div class="mock-label">
+    <span class="tag">1d</span>
+    <h2>Live session</h2>
+    <span class="note">Voice-first, dark, one question at a time</span>
+  </div>
+  <div class="frame-phone is-dark">
+    <div class="dark-session">
+      <div class="statusbar"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+      <div class="p-body center" style="min-height:640px;">
+        <span class="rec-pill"><span class="rd"></span>08:12</span>
+
+        <div style="height:34px;"></div>
+        <div class="orb"></div>
+        <div style="height:36px;"></div>
+
+        <div class="small" style="font-weight:700; letter-spacing:0.14em; text-transform:uppercase; font-size:10.5px; color:var(--dark-muted);">Anna</div>
+        <p class="serif" style="font-size:23px; line-height:1.35; max-width:310px; margin-top:8px;">Tell me about the moment you first saw him on that&nbsp;ferry.</p>
+
+        <div style="flex:1;"></div>
+
+        <p class="fade-txt" style="max-width:300px;">&hellip;the deck was nearly empty that early. I remember the wind more than anything — I&rsquo;d left my scarf in the cabin, and this young man in a grey coat kept glancing over as if he was working up the nerve to</p>
+
+        <div style="height:26px;"></div>
+
+        <div class="session-controls">
+          <span class="session-btn"><span class="sb-ic">❚❚</span>Pause</span>
+          <span class="session-btn"><span class="sb-ic">↷</span>Skip question</span>
+          <span class="session-btn primary"><span class="sb-ic">✓</span>I&rsquo;m done for today</span>
+        </div>
+      </div>
+      <div class="homebar"></div>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<!-- ============================ 1e + 1f ============================ -->
+<div class="duo">
+
+<section class="mock-section" id="1e">
+  <div class="mock-label">
+    <span class="tag">1e</span>
+    <h2>Recap</h2>
+    <span class="note">Right after &ldquo;I'm done for today&rdquo;</span>
+  </div>
+  <div class="frame-phone">
+    <div class="statusbar"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+    <div class="p-body">
+      <h1 style="font-size:27px;">What we heard today</h1>
+      <p class="muted small" style="margin:2px 0 14px;">Session 7 · 12 minutes with Anna</p>
+
+      <p class="serif" style="font-size:16px; line-height:1.55; color:var(--ink-soft);">You told Anna how you and Henk met on the overnight ferry — the wind on the deck, the borrowed coat, and the train to London you were both glad to miss. Three new memories are saved for the family.</p>
+
+      <div class="small" style="font-weight:700; letter-spacing:0.12em; text-transform:uppercase; font-size:10.5px; color:var(--faint); margin:22px 0 4px;">Saved today</div>
+      <div class="card" style="padding: 4px 16px;">
+        <div class="fact">
+          <span class="f-dot"></span>
+          <div><div class="f-txt">The crossing was overnight, Hoek van Holland to Harwich, spring 1975.</div><div class="f-meta">Meeting Henk · audio 02:20</div></div>
+        </div>
+        <div class="fact">
+          <span class="f-dot"></span>
+          <div><div class="f-txt">Henk offered her his coat on the deck; she pretended to be colder than she was.</div><div class="f-meta">Meeting Henk · audio 05:47</div></div>
+        </div>
+        <div class="fact">
+          <span class="f-dot"></span>
+          <div><div class="f-txt">They missed the first train to London because they kept talking.</div><div class="f-meta">Meeting Henk · audio 09:31</div></div>
+        </div>
+      </div>
+
+      <div class="teaser" style="margin-top:16px;">
+        <div class="small" style="font-weight:700; letter-spacing:0.12em; text-transform:uppercase; font-size:10px; color:var(--green-deep); margin-bottom:4px;">Next time</div>
+        <div class="serif" style="font-size:15.5px;">Next time, Anna would love to hear about the wedding in 1977.</div>
+      </div>
+
+      <div style="flex:1; min-height:18px;"></div>
+      <a class="btn btn-primary btn-big btn-block" href="#1c">Done</a>
+    </div>
+    <div class="homebar"></div>
+  </div>
+</section>
+
+<section class="mock-section" id="1f">
+  <div class="mock-label">
+    <span class="tag">1f</span>
+    <h2>Review list</h2>
+    <span class="note">Every memory, in Jan's own words</span>
+  </div>
+  <div class="frame-phone">
+    <div class="statusbar"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+    <div class="p-body">
+      <h1 style="font-size:24px; line-height:1.25;">Your memories — in your own words</h1>
+
+      <div class="pills" style="margin:14px 0 6px;">
+        <span class="chip pill-on">Newest</span>
+        <span class="chip">People</span>
+        <span class="chip">Places</span>
+        <span class="chip">Needs review</span>
+      </div>
+
+      <a class="mem" href="#1g">
+        <div class="m-txt">The bakery&rsquo;s rye recipe came from Jan&rsquo;s mother, not the de Vries side.
+          <div class="m-meta"><span class="badge badge-amber" style="margin-right:6px;"><span class="dot"></span>needs review</span>The bakery years · from Henk&rsquo;s session, last week</div>
+        </div>
+        <span class="arr">▸</span>
+      </a>
+      <a class="mem" href="#1g">
+        <div class="m-txt">The crossing was overnight, Hoek van Holland to Harwich, spring 1975.
+          <div class="m-meta">Meeting Henk · today</div>
+        </div>
+        <span class="arr">▸</span>
+      </a>
+      <a class="mem" href="#1g">
+        <div class="m-txt">Henk offered her his coat on the deck; she pretended to be colder than she was.
+          <div class="m-meta">Meeting Henk · today</div>
+        </div>
+        <span class="arr">▸</span>
+      </a>
+      <a class="mem" href="#1g">
+        <div class="m-txt">They missed the first train to London because they kept talking.
+          <div class="m-meta">Meeting Henk · today</div>
+        </div>
+        <span class="arr">▸</span>
+      </a>
+      <a class="mem" href="#1g">
+        <div class="m-txt">Moved with Henk and the children to Canada in October 1988.
+          <div class="m-meta">The move to Canada · 2 weeks ago</div>
+        </div>
+        <span class="arr">▸</span>
+      </a>
+      <a class="mem" href="#1g">
+        <div class="m-txt">Worked the counter of the bakery on Meent straat every Saturday morning.
+          <div class="m-meta">The bakery years · 3 weeks ago</div>
+        </div>
+        <span class="arr">▸</span>
+      </a>
+
+      <div style="flex:1; min-height:14px;"></div>
+      <p class="small faint" style="text-align:center;">41 memories saved so far.</p>
+    </div>
+    <div class="homebar"></div>
+  </div>
+</section>
+
+</div>
+
+<!-- ============================ 1g ============================ -->
+<section class="mock-section" id="1g">
+  <div class="mock-label">
+    <span class="tag">1g</span>
+    <h2>Review detail</h2>
+    <span class="note">That&rsquo;s right · Fix a detail · Retell next time</span>
+  </div>
+  <div class="frame-phone">
+    <div class="statusbar"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+    <div class="p-body">
+      <a class="small" href="#1f">‹ Your memories</a>
+
+      <p class="serif" style="font-style:italic; font-size:23px; line-height:1.4; margin-top:22px;">&ldquo;The bakery&rsquo;s rye recipe came from Jan&rsquo;s mother, not the de Vries side.&rdquo;</p>
+
+      <div class="card player" style="margin-top:22px;">
+        <span class="play">▶</span>
+        <div class="track"><i></i></div>
+        <span class="time">0:42 / 1:10</span>
+      </div>
+      <p class="small muted" style="margin-top:7px;">Session 8 · Dad&rsquo;s Story</p>
+
+      <div class="row" style="margin-top:16px; gap:8px;">
+        <span class="avatar plain" style="width:26px;height:26px;font-size:10px;">HD</span>
+        <span class="small muted">From Henk&rsquo;s session — mentions you</span>
+      </div>
+
+      <div style="flex:1; min-height:24px;"></div>
+
+      <div class="btn-stack">
+        <a class="btn btn-primary btn-big btn-block" href="#1f">That&rsquo;s right</a>
+        <div>
+          <a class="btn btn-big btn-block" href="#1f">Fix a detail</a>
+          <p class="small faint" style="text-align:center; margin-top:5px;">say it or type it</p>
+        </div>
+        <a class="btn btn-ghost btn-block" href="#1f">Retell next time</a>
+      </div>
+
+      <p class="small faint" style="text-align:center; margin-top:18px;">The original recording never changes. Your corrections update the memory.</p>
+    </div>
+    <div class="homebar"></div>
+  </div>
+</section>
+
+<footer class="doc-footer">postaud.io — V1 mockups · warm paper system · Newsreader + Instrument Sans</footer>
+
+</body>
+</html>

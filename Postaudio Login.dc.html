@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>postaud.io — Login mockups</title>
+<link rel="stylesheet" href="postaudio-mockups.css">
+<style>
+  /* ---- screen-specific layout: auth surfaces ---- */
+
+  .auth-stage {
+    min-height: 720px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 56px 24px 40px;
+    position: relative; overflow: hidden;
+  }
+  .auth-stage .big-quote {
+    position: absolute; top: -60px; left: 34px;
+    font-family: var(--serif); font-style: italic; font-weight: 300;
+    font-size: 340px; line-height: 1; color: rgba(33,30,26,0.045);
+    user-select: none; pointer-events: none;
+  }
+  .auth-stage .atmo {
+    position: absolute; bottom: 44px; left: 0; right: 0;
+    text-align: center; font-family: var(--serif); font-style: italic;
+    font-size: 16px; color: var(--faint); pointer-events: none;
+  }
+
+  .auth-card {
+    width: 100%; max-width: 400px; position: relative;
+    padding: 36px 38px 32px;
+  }
+  .auth-card.wide { max-width: 460px; }
+  .auth-card .wordmark { font-family: var(--serif); font-size: 20px; }
+  .auth-card .wordmark b { color: var(--green-deep); font-weight: 600; }
+  .auth-card h2.hello {
+    font-size: 27px; font-weight: 500; margin: 18px 0 4px;
+  }
+  .auth-card .sub { color: var(--muted); font-size: 13.5px; margin-bottom: 24px; }
+  .auth-card .btn-block { width: 100%; justify-content: center; }
+
+  .divider {
+    display: flex; align-items: center; gap: 12px;
+    margin: 20px 0; color: var(--faint);
+    font-size: 11.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .divider::before, .divider::after {
+    content: ""; flex: 1; height: 1px; background: var(--line);
+  }
+
+  .g-ic { width: 17px; height: 17px; flex-shrink: 0; }
+
+  .auth-foot {
+    margin-top: 22px; text-align: center; font-size: 12.5px; color: var(--faint);
+  }
+  .stage-foot {
+    margin-top: 26px; font-size: 12px; color: var(--faint); text-align: center;
+  }
+
+  /* invite acceptance (1b) */
+  .invite-head { display: flex; gap: 14px; align-items: flex-start; margin: 20px 0 6px; }
+  .invite-head .inv-t { font-family: var(--serif); font-size: 19px; line-height: 1.35; }
+  .invite-head .inv-t b { font-weight: 600; }
+  .invite-role { margin: 10px 0 20px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+
+  .series-access { border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; margin-bottom: 22px; }
+  .series-access .sa-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 12px 14px; border-bottom: 1px solid var(--line); background: var(--card);
+  }
+  .series-access .sa-row:last-child { border-bottom: none; }
+  .series-access .sa-t { font-family: var(--serif); font-size: 15px; }
+  .series-access .sa-d { font-size: 11.5px; color: var(--faint); margin-top: 1px; font-family: var(--sans); }
+
+  .fine-print { font-size: 12px; color: var(--faint); line-height: 1.55; margin-top: 16px; }
+
+  /* mobile sign-in (1c) */
+  .m-auth { padding: 54px 30px 30px; min-height: 700px; display: flex; flex-direction: column; }
+  .m-auth .wordmark { font-family: var(--serif); font-size: 21px; text-align: center; }
+  .m-auth .wordmark b { color: var(--green-deep); font-weight: 600; }
+  .m-auth h2.hello { font-size: 28px; font-weight: 500; text-align: center; margin: 40px 0 6px; }
+  .m-auth .sub { text-align: center; color: var(--muted); font-size: 13.5px; margin-bottom: 34px; }
+  .m-auth .field > label { font-size: 13px; }
+  .m-auth .input { padding: 13px 15px; font-size: 15px; border-radius: 12px; }
+  .m-auth .btn-block { width: 100%; justify-content: center; }
+  .m-auth .m-spacer { flex: 1; }
+  .m-auth .m-foot { text-align: center; font-size: 12.5px; color: var(--faint); padding-top: 18px; }
+</style>
+</head>
+<body>
+
+<header class="doc-header">
+  <div class="wordmark">post<b>aud</b>.io</div>
+  <h1>Login &amp; access</h1>
+  <p>Sign-in and invite-acceptance screens — the front door to a de Vries Family workspace. Warm paper, one primary action, and a first hint of the product's spoken-word soul.</p>
+  <nav class="doc-toc">
+    <a href="#1a">1a · Desktop sign-in</a>
+    <a href="#1b">1b · Invited member's first login</a>
+    <a href="#1c">1c · Mobile sign-in</a>
+  </nav>
+</header>
+
+<!-- ============================================================ 1a -->
+<section class="mock-section" id="1a">
+  <div class="mock-label">
+    <span class="tag">1a</span>
+    <h2>Desktop sign-in</h2>
+    <span class="note">Email + password or Google · no app chrome, just the door</span>
+  </div>
+
+  <div class="frame-desktop">
+    <div class="browser-bar">
+      <span class="dots"><i></i><i></i><i></i></span>
+      <span class="url">postaud.io/sign-in</span>
+    </div>
+    <div class="viewport">
+      <div class="auth-stage">
+        <div class="big-quote">&rdquo;</div>
+
+        <div class="card auth-card">
+          <div class="wordmark">post<b>aud</b>.io</div>
+          <h2 class="hello">Welcome back</h2>
+          <p class="sub">Sign in to keep the stories going.</p>
+
+          <div class="field">
+            <label for="a-email">Email</label>
+            <input class="input" id="a-email" type="email" value="sam@devries.family">
+          </div>
+          <div class="field">
+            <label for="a-pass">Password</label>
+            <input class="input" id="a-pass" type="password" value="••••••••••">
+          </div>
+
+          <a class="btn btn-primary btn-block" href="Postaudio%20Admin.dc.html#2a">Sign in</a>
+
+          <div class="divider">or</div>
+
+          <a class="btn btn-block" href="#1a">
+            <svg class="g-ic" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#4285F4" d="M23.5 12.27c0-.85-.08-1.66-.22-2.45H12v4.64h6.45a5.52 5.52 0 0 1-2.39 3.62v3h3.87c2.26-2.09 3.57-5.16 3.57-8.81z"/>
+              <path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.93-2.91l-3.87-3c-1.07.72-2.44 1.15-4.06 1.15-3.12 0-5.77-2.11-6.71-4.95H1.29v3.1A11.99 11.99 0 0 0 12 24z"/>
+              <path fill="#FBBC05" d="M5.29 14.29A7.2 7.2 0 0 1 4.91 12c0-.8.14-1.57.38-2.29v-3.1H1.29a12 12 0 0 0 0 10.78l4-3.1z"/>
+              <path fill="#EA4335" d="M12 4.77c1.76 0 3.34.6 4.58 1.79l3.44-3.44C17.95 1.19 15.24 0 12 0A11.99 11.99 0 0 0 1.29 6.61l4 3.1C6.23 6.88 8.88 4.77 12 4.77z"/>
+            </svg>
+            Continue with Google
+          </a>
+
+          <div class="auth-foot">
+            <a href="#1a">Forgot password?</a>
+          </div>
+        </div>
+
+        <div class="stage-foot">New here? Someone in your family usually opens the door — <a href="#1b">accept your invite</a>.</div>
+
+        <div class="atmo">&raquo;Tell me about the ferry.&laquo;</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 1b -->
+<section class="mock-section" id="1b">
+  <div class="mock-label">
+    <span class="tag">1b</span>
+    <h2>Invited member's first login</h2>
+    <span class="note">Jan accepts Sam's invite — sees who, what role, and which series before joining</span>
+  </div>
+
+  <div class="frame-desktop">
+    <div class="browser-bar">
+      <span class="dots"><i></i><i></i><i></i></span>
+      <span class="url">app.postaud.io/invite/jan-devries</span>
+    </div>
+    <div class="viewport">
+      <div class="auth-stage">
+        <div class="big-quote">&rdquo;</div>
+
+        <div class="card auth-card wide">
+          <div class="wordmark">post<b>aud</b>.io</div>
+
+          <div class="invite-head">
+            <span class="avatar lg">SD</span>
+            <div>
+              <div class="inv-t"><b>Sam de Vries</b> invited you to the <b>de&nbsp;Vries Family</b> workspace.</div>
+              <div class="small muted mt-1">For Jan de Vries &middot; jan.devries@xs4all.nl</div>
+            </div>
+          </div>
+
+          <div class="invite-role">
+            You'll join as <span class="badge">Interviewer</span>
+          </div>
+
+          <div class="series-access">
+            <div class="sa-row">
+              <div>
+                <div class="sa-t">Mam, in her own words</div>
+                <div class="sa-d">41 memories &middot; 6 sessions</div>
+              </div>
+              <span class="badge badge-amber">Your series &middot; subject</span>
+            </div>
+            <div class="sa-row">
+              <div>
+                <div class="sa-t">Dad's Story</div>
+                <div class="sa-d">64 memories &middot; 9 sessions</div>
+              </div>
+              <span class="badge">Can interview</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="b-pass">Choose a password</label>
+            <input class="input" id="b-pass" type="password" value="••••••••••">
+          </div>
+          <div class="field">
+            <label for="b-pass2">Confirm password</label>
+            <input class="input" id="b-pass2" type="password" value="••••••••••">
+            <div class="hint">At least 10 characters — a short sentence works well.</div>
+          </div>
+
+          <a class="btn btn-primary btn-block" href="Postaudio%20Mobile.dc.html#1c">Accept &amp; join</a>
+
+          <p class="fine-print">You'll see the two series above — your own words in &ldquo;Mam, in her own words&rdquo;, and the interviewer's side of Dad's Story. You won't see workspace billing, members, or any other series unless Sam grants access.</p>
+        </div>
+
+        <div class="stage-foot">Not Jan? <a href="#1a">Sign in with a different account</a>.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 1c -->
+<section class="mock-section" id="1c">
+  <div class="mock-label">
+    <span class="tag">1c</span>
+    <h2>Mobile sign-in</h2>
+    <span class="note">One primary action &middot; warm serif greeting &middot; light</span>
+  </div>
+
+  <div class="frame-phone">
+    <div class="statusbar"><span>9:41</span><span>&#9679;&#9679;&#9679; &#7076; &#9646;</span></div>
+
+    <div class="m-auth">
+      <div class="wordmark">post<b>aud</b>.io</div>
+
+      <h2 class="hello">Good to hear<br>from you again</h2>
+      <p class="sub">Sign in to keep the stories going.</p>
+
+      <div class="field">
+        <label for="c-email">Email</label>
+        <input class="input" id="c-email" type="email" placeholder="you@example.com">
+      </div>
+      <div class="field">
+        <label for="c-pass">Password</label>
+        <input class="input" id="c-pass" type="password" placeholder="Your password">
+      </div>
+
+      <a class="btn btn-primary btn-big btn-block" href="Postaudio%20Mobile.dc.html#1c">Sign in</a>
+
+      <div class="divider">or</div>
+
+      <a class="btn btn-block" href="#1c">
+        <svg class="g-ic" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="#4285F4" d="M23.5 12.27c0-.85-.08-1.66-.22-2.45H12v4.64h6.45a5.52 5.52 0 0 1-2.39 3.62v3h3.87c2.26-2.09 3.57-5.16 3.57-8.81z"/>
+          <path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.93-2.91l-3.87-3c-1.07.72-2.44 1.15-4.06 1.15-3.12 0-5.77-2.11-6.71-4.95H1.29v3.1A11.99 11.99 0 0 0 12 24z"/>
+          <path fill="#FBBC05" d="M5.29 14.29A7.2 7.2 0 0 1 4.91 12c0-.8.14-1.57.38-2.29v-3.1H1.29a12 12 0 0 0 0 10.78l4-3.1z"/>
+          <path fill="#EA4335" d="M12 4.77c1.76 0 3.34.6 4.58 1.79l3.44-3.44C17.95 1.19 15.24 0 12 0A11.99 11.99 0 0 0 1.29 6.61l4 3.1C6.23 6.88 8.88 4.77 12 4.77z"/>
+        </svg>
+        Continue with Google
+      </a>
+
+      <div class="auth-foot"><a href="#1c">Forgot password?</a></div>
+
+      <div class="m-spacer"></div>
+
+      <div class="m-foot spoken">&raquo;Tell me about the ferry.&laquo;</div>
+    </div>
+
+    <div class="homebar"></div>
+  </div>
+</section>
+
+<footer class="doc-footer">
+  postaud.io — V1 mockups &middot; warm paper system &middot; Newsreader + Instrument Sans
+</footer>
+
+</body>
+</html>

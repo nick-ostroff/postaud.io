@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>postaud.io — Screen map</title>
+<link rel="stylesheet" href="postaudio-mockups.css">
+<style>
+  /* ---------- flowchart-only layout (composes with the shared system) ---------- */
+
+  .map { max-width: 1360px; margin: 0 auto; padding: 0 32px; }
+
+  .lane {
+    display: grid; grid-template-columns: 190px 1fr; gap: 28px;
+    border-top: 1px solid var(--line-strong);
+    padding: 30px 0 36px; scroll-margin-top: 24px;
+  }
+  .lane-head { padding-top: 4px; }
+  .lane-head .lane-name { font-family: var(--serif); font-size: 21px; line-height: 1.2; }
+  .lane-head .lane-sub { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+  .lane-head .lane-file { display: inline-block; margin-top: 10px; font-size: 11px; color: var(--green-deep); border: 1px solid var(--line-strong); background: var(--card); border-radius: var(--r-pill); padding: 3px 10px; }
+  .lane-head .lane-file:hover { border-color: var(--green); text-decoration: none; }
+
+  .lane-body { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+
+  /* nodes */
+  a.node, span.node {
+    display: flex; flex-direction: column; gap: 4px;
+    width: 208px; padding: 12px 14px 13px;
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; box-shadow: var(--shadow-card);
+    color: var(--ink); flex-shrink: 0;
+  }
+  a.node:hover { text-decoration: none; border-color: var(--green); box-shadow: var(--shadow-pop); transform: translateY(-1px); }
+  .node .n-kick { font-size: 10px; letter-spacing: 0.05em; color: var(--faint); }
+  .node .n-row { display: flex; align-items: center; gap: 8px; }
+  .node .n-tag {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--green-deep); background: var(--green-tint);
+    padding: 2px 8px; border-radius: var(--r-pill); flex-shrink: 0;
+  }
+  .node .n-name { font-family: var(--serif); font-size: 15px; line-height: 1.25; }
+  .node .n-desc { color: var(--muted); font-size: 11.5px; line-height: 1.45; }
+
+  /* the hub */
+  a.node.hub {
+    width: 248px; padding: 16px 18px 17px;
+    border: 1.5px solid var(--green); box-shadow: var(--shadow-pop);
+  }
+  a.node.hub:hover { border-color: var(--green-deep); }
+  .node.hub .n-name { font-size: 17px; }
+  .hub-badge {
+    align-self: flex-start; margin-top: 4px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    color: #fff; background: var(--green); padding: 3px 9px; border-radius: var(--r-pill);
+  }
+
+  /* group node (interview — 3 directions) */
+  .node.group { width: 248px; }
+  .sublinks { display: flex; gap: 6px; margin-top: 6px; }
+  .sublinks a {
+    font-size: 11px; font-weight: 600; color: var(--green-deep);
+    border: 1px solid var(--line-strong); background: var(--paper);
+    border-radius: var(--r-pill); padding: 3px 10px;
+  }
+  .sublinks a:hover { border-color: var(--green); text-decoration: none; }
+
+  /* V2 nodes — dashed, muted, no links */
+  span.node.v2 {
+    background: transparent; border: 1.5px dashed var(--line-strong);
+    box-shadow: none; width: 196px;
+  }
+  span.node.v2 .n-name { color: var(--muted); font-size: 14.5px; }
+  span.node.v2 .n-desc { color: var(--faint); }
+  span.node.v2 .n-tag { background: rgba(33,30,26,0.07); color: var(--muted); }
+  .lane.is-v2 .lane-head .lane-name { color: var(--muted); }
+
+  /* arrows & joins */
+  .arr { color: var(--green-deep); font-size: 17px; line-height: 1; flex-shrink: 0; padding: 0 1px; }
+  .arr.soft { color: var(--faint); }
+  .arr-label { font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; color: var(--faint); flex-shrink: 0; max-width: 92px; line-height: 1.3; text-align: center; }
+
+  /* clusters */
+  .cluster {
+    position: relative; border: 1px solid var(--line); border-radius: 16px;
+    background: rgba(33,30,26,0.025);
+    padding: 24px 14px 14px; display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+  }
+  .cluster .cl-label {
+    position: absolute; top: -9px; left: 14px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--faint); background: var(--paper); padding: 1px 8px; border-radius: var(--r-pill);
+    border: 1px solid var(--line);
+  }
+  .cluster .node { width: 178px; }
+  .cluster .node.wiz .n-desc { display: none; }
+
+  /* admin converge grid */
+  .admin-map { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .admin-left { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .admin-left .feed { display: flex; align-items: center; gap: 10px; }
+  .or-chip {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--faint); border: 1px solid var(--line); border-radius: var(--r-pill);
+    padding: 2px 9px; background: var(--card); flex-shrink: 0;
+  }
+
+  /* the return loop */
+  .loop-back { position: relative; margin: 2px 26px 22px 24px; height: 34px;
+    border: 1.5px dashed oklch(0.52 0.06 165 / 0.55); border-top: none;
+    border-radius: 0 0 18px 18px;
+  }
+  .loop-back .lb-tip { position: absolute; left: -6.5px; top: -8px; color: var(--green-deep); font-size: 13px; line-height: 1; }
+  .loop-back .lb-label {
+    position: absolute; left: 50%; bottom: -10px; transform: translateX(-50%);
+    font-size: 11px; font-weight: 600; color: var(--green-deep);
+    background: var(--paper); border: 1px solid var(--line-strong);
+    border-radius: var(--r-pill); padding: 3px 13px; white-space: nowrap; max-width: 92%;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* dark-screen swatch */
+  .swatch-dark {
+    display: inline-block; width: 12px; height: 12px; border-radius: 4px;
+    background: var(--dark); box-shadow: inset 0 0 4px oklch(0.72 0.08 165 / 0.7);
+    vertical-align: -1px; margin-right: 2px; flex-shrink: 0;
+  }
+
+  /* legend */
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 20px; font-size: 11.5px; color: var(--muted); align-items: center; }
+  .legend .lg { display: inline-flex; align-items: center; gap: 7px; }
+  .legend .sw { display: inline-block; width: 15px; height: 11px; border-radius: 4px; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow-card); }
+  .legend .sw.hubby { border: 1.5px solid var(--green); }
+  .legend .sw.dashed { border: 1.5px dashed var(--line-strong); background: transparent; box-shadow: none; }
+
+  /* operator lane — slim */
+  .lane.is-op { padding: 22px 0 26px; }
+  .lane.is-op .node { width: 196px; }
+  .lane.is-op .node .n-tag { background: var(--dark); color: var(--mint); }
+
+  /* footer link row */
+  .foot-links { display: flex; flex-wrap: wrap; gap: 8px; margin: 40px 0 0; }
+  .foot-links a {
+    font-size: 12.5px; padding: 6px 14px; border: 1px solid var(--line-strong);
+    border-radius: var(--r-pill); background: var(--card); color: var(--ink-soft);
+  }
+  .foot-links a:hover { border-color: var(--green); color: var(--green-deep); text-decoration: none; }
+
+  @media (max-width: 900px) {
+    .lane { grid-template-columns: 1fr; gap: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="doc-header">
+  <div class="wordmark">post<b>aud</b>.io</div>
+  <h1>Screen map</h1>
+  <p>The master flowchart for V1 — every screen in the mockup set, arranged by lane. Each card links straight to its hi-fi mockup; dashed cards are V2, sketched here so nobody mistakes them for scope.</p>
+  <nav class="doc-toc">
+    <a href="#access">Access</a>
+    <a href="#admin">Admin &amp; setup</a>
+    <a href="#core">Core loop</a>
+    <a href="#mobile">Mobile</a>
+    <a href="#operator">Operator</a>
+    <a href="#v2">V2 (later)</a>
+  </nav>
+  <div class="legend">
+    <span class="lg"><span class="sw"></span> V1 screen — click through to the mockup</span>
+    <span class="lg"><span class="sw hubby"></span> hub of the loop</span>
+    <span class="lg"><span class="swatch-dark"></span> dark live-session screen</span>
+    <span class="lg"><span class="sw dashed"></span> V2 — on the roadmap, not in V1</span>
+  </div>
+</header>
+
+<div class="map">
+
+  <!-- ============================== ACCESS ============================== -->
+  <section class="lane" id="access">
+    <div class="lane-head">
+      <div class="lane-name">Access</div>
+      <div class="lane-sub">The front door — sign in, or arrive by invitation.</div>
+      <a class="lane-file" href="Postaudio%20Login.dc.html">Postaudio Login.dc.html</a>
+    </div>
+    <div class="lane-body">
+      <div class="flow">
+        <a class="node" href="Postaudio%20Login.dc.html#1a">
+          <span class="n-kick">Postaudio Login.dc.html</span>
+          <span class="n-row"><span class="n-tag">1a</span><span class="n-name">Desktop sign-in</span></span>
+          <span class="n-desc">Email + password, or continue with Google.</span>
+        </a>
+        <span class="arr soft">·</span>
+        <a class="node" href="Postaudio%20Login.dc.html#1b">
+          <span class="n-kick">Postaudio Login.dc.html</span>
+          <span class="n-row"><span class="n-tag">1b</span><span class="n-name">Invited first login</span></span>
+          <span class="n-desc">Shows who invited you, your role, and your series — then accept.</span>
+        </a>
+        <span class="arr soft">·</span>
+        <a class="node" href="Postaudio%20Login.dc.html#1c">
+          <span class="n-kick">Postaudio Login.dc.html</span>
+          <span class="n-row"><span class="n-tag">1c</span><span class="n-name">Mobile sign-in</span></span>
+          <span class="n-desc">The same door, phone-sized — most interviewees arrive here.</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== ADMIN & SETUP ============================== -->
+  <section class="lane" id="admin">
+    <div class="lane-head">
+      <div class="lane-name">Admin &amp; setup</div>
+      <div class="lane-sub">Sam's desktop: create a series, assign people, and watch it grow. Everything converges on series detail.</div>
+      <a class="lane-file" href="Postaudio%20Admin.dc.html">Postaudio Admin.dc.html</a>
+    </div>
+    <div class="lane-body">
+      <div class="admin-map">
+        <div class="admin-left">
+          <div class="feed">
+            <a class="node" href="Postaudio%20Admin.dc.html#2a">
+              <span class="n-kick">Postaudio Admin.dc.html</span>
+              <span class="n-row"><span class="n-tag">2a</span><span class="n-name">Workspace home</span></span>
+              <span class="n-desc">All four series with coverage and staleness at a glance.</span>
+            </a>
+            <span class="arr">→</span>
+            <span class="arr-label">open a series</span>
+          </div>
+          <div class="feed">
+            <div class="cluster">
+              <span class="cl-label">Create a series — 4-step wizard</span>
+              <a class="node wiz" href="Postaudio%20Admin.dc.html#6a">
+                <span class="n-kick">Postaudio Admin.dc.html</span>
+                <span class="n-row"><span class="n-tag">6a</span><span class="n-name">Basics</span></span>
+                <span class="n-desc">Template, title, subject, goal.</span>
+              </a>
+              <span class="arr">→</span>
+              <a class="node wiz" href="Postaudio%20Admin.dc.html#6b">
+                <span class="n-kick">Postaudio Admin.dc.html</span>
+                <span class="n-row"><span class="n-tag">6b</span><span class="n-name">Assign</span></span>
+                <span class="n-desc">Owner + access.</span>
+              </a>
+              <span class="arr">→</span>
+              <a class="node wiz" href="Postaudio%20Admin.dc.html#6c">
+                <span class="n-kick">Postaudio Admin.dc.html</span>
+                <span class="n-row"><span class="n-tag">6c</span><span class="n-name">Guide</span></span>
+                <span class="n-desc">Guide rails.</span>
+              </a>
+              <span class="arr">→</span>
+              <a class="node wiz" href="Postaudio%20Admin.dc.html#6d">
+                <span class="n-kick">Postaudio Admin.dc.html</span>
+                <span class="n-row"><span class="n-tag">6d</span><span class="n-name">Review &amp; launch</span></span>
+                <span class="n-desc">Question plan.</span>
+              </a>
+            </div>
+            <span class="arr">→</span>
+            <span class="arr-label">creates the series</span>
+          </div>
+          <div class="feed">
+            <span class="or-chip">or</span>
+            <a class="node" href="Postaudio%20Admin.dc.html#1d">
+              <span class="n-kick">Postaudio Admin.dc.html</span>
+              <span class="n-row"><span class="n-tag">1d</span><span class="n-name">Quick-create</span></span>
+              <span class="n-desc">The one-screen shortcut past the wizard.</span>
+            </a>
+            <span class="arr">→</span>
+          </div>
+        </div>
+        <a class="node hub" href="Postaudio%20Admin.dc.html#2b">
+          <span class="n-kick">Postaudio Admin.dc.html</span>
+          <span class="n-row"><span class="n-tag">2b</span><span class="n-name">Series detail</span></span>
+          <span class="n-desc">Sessions, topic queue, coverage, staleness — where every interview starts and every result lands.</span>
+          <span class="hub-badge">hub of the loop</span>
+        </a>
+      </div>
+      <div class="flow">
+        <div class="cluster">
+          <span class="cl-label">People &amp; access</span>
+          <a class="node" href="Postaudio%20Admin.dc.html#3a">
+            <span class="n-kick">Postaudio Admin.dc.html</span>
+            <span class="n-row"><span class="n-tag">3a</span><span class="n-name">Members &amp; roles</span></span>
+            <span class="n-desc">Invite people — Admin, Interviewer, or Viewer.</span>
+          </a>
+          <span class="arr">→</span>
+          <a class="node" href="Postaudio%20Admin.dc.html#3b">
+            <span class="n-kick">Postaudio Admin.dc.html</span>
+            <span class="n-row"><span class="n-tag">3b</span><span class="n-name">Per-series access</span></span>
+            <span class="n-desc">Who owns it, who can view, who can interview.</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== CORE LOOP ============================== -->
+  <section class="lane" id="core">
+    <div class="lane-head">
+      <div class="lane-name">Core loop</div>
+      <div class="lane-sub">Interview → results → knowledge → new topics — and the topic queue feeds the next session. Every pass improves what the AI knows.</div>
+      <a class="lane-file" href="Postaudio%20Mockups.dc.html">Postaudio Mockups.dc.html</a>
+    </div>
+    <div class="lane-body">
+      <div class="flow">
+        <a class="node group" href="Postaudio%20Mockups.dc.html#1a">
+          <span class="n-kick">Postaudio Mockups.dc.html</span>
+          <span class="n-row"><span class="n-tag">1a–1c</span><span class="n-name">Interview screen — 3 directions</span></span>
+          <span class="n-desc">One question at a time; the transcript builds live as Henk talks.</span>
+          <span class="sublinks">
+            <a href="Postaudio%20Mockups.dc.html#1a">1a</a>
+            <a href="Postaudio%20Mockups.dc.html#1b">1b</a>
+            <a href="Postaudio%20Mockups.dc.html#1c">1c</a>
+          </span>
+        </a>
+        <span class="arr">→</span>
+        <a class="node" href="Postaudio%20Mockups.dc.html#1e">
+          <span class="n-kick">Postaudio Mockups.dc.html</span>
+          <span class="n-row"><span class="n-tag">1e</span><span class="n-name">Post-interview results</span></span>
+          <span class="n-desc">Summary, saved facts, full transcript, and suggested next topics.</span>
+        </a>
+        <span class="arr">→</span>
+        <a class="node" href="Postaudio%20Mockups.dc.html#1f">
+          <span class="n-kick">Postaudio Mockups.dc.html</span>
+          <span class="n-row"><span class="n-tag">1f</span><span class="n-name">Knowledge dashboard</span></span>
+          <span class="n-desc">Known vs. still blank — people, places, and the timeline so far.</span>
+        </a>
+        <span class="arr soft">⇢</span>
+        <span class="arr-label">export anytime</span>
+        <a class="node" href="Postaudio%20Mockups.dc.html#1g">
+          <span class="n-kick">Postaudio Mockups.dc.html</span>
+          <span class="n-row"><span class="n-tag">1g</span><span class="n-name">Export</span></span>
+          <span class="n-desc">Markdown or plain text, ready to post somewhere permanent.</span>
+        </a>
+      </div>
+      <div class="loop-back">
+        <span class="lb-tip">▲</span>
+        <span class="lb-label">new topics feed the topic queue → back to <a href="Postaudio%20Admin.dc.html#2b">series detail (2b)</a> → the next interview</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== MOBILE ============================== -->
+  <section class="lane" id="mobile">
+    <div class="lane-head">
+      <div class="lane-name">Mobile</div>
+      <div class="lane-sub">Both roles, phone-sized. The interviewee never sees more than one primary action per screen.</div>
+      <a class="lane-file" href="Postaudio%20Mobile.dc.html">Postaudio Mobile.dc.html</a>
+    </div>
+    <div class="lane-body">
+      <div class="flow">
+        <div class="cluster">
+          <span class="cl-label">Owner on the go</span>
+          <a class="node" href="Postaudio%20Mobile.dc.html#1a">
+            <span class="n-kick">Postaudio Mobile.dc.html</span>
+            <span class="n-row"><span class="n-tag">1a</span><span class="n-name">Owner home</span></span>
+            <span class="n-desc">Sam's series, one tap from a session.</span>
+          </a>
+          <span class="arr">→</span>
+          <a class="node" href="Postaudio%20Mobile.dc.html#1b">
+            <span class="n-kick">Postaudio Mobile.dc.html</span>
+            <span class="n-row"><span class="n-tag">1b</span><span class="n-name">Hand the mic</span></span>
+            <span class="n-desc">"Hand the phone to Marta" — bigger text, slower pace, no account needed.</span>
+          </a>
+        </div>
+      </div>
+      <div class="flow">
+        <div class="cluster">
+          <span class="cl-label">Interviewee flow</span>
+          <a class="node" href="Postaudio%20Mobile.dc.html#1c">
+            <span class="n-kick">Postaudio Mobile.dc.html</span>
+            <span class="n-row"><span class="n-tag">1c</span><span class="n-name">Interviewee home</span></span>
+            <span class="n-desc">One job: a personal prompt and a big Start talking button.</span>
+          </a>
+          <span class="arr">→</span>
+          <a class="node" href="Postaudio%20Mobile.dc.html#1d">
+            <span class="n-kick"><span class="swatch-dark"></span>Postaudio Mobile.dc.html · dark</span>
+            <span class="n-row"><span class="n-tag">1d</span><span class="n-name">Live session</span></span>
+            <span class="n-desc">Voice-first, one question, faint live transcription. Pause · Skip · I'm done.</span>
+          </a>
+          <span class="arr">→</span>
+          <a class="node" href="Postaudio%20Mobile.dc.html#1e">
+            <span class="n-kick">Postaudio Mobile.dc.html</span>
+            <span class="n-row"><span class="n-tag">1e</span><span class="n-name">Recap</span></span>
+            <span class="n-desc">"What we heard today" — saved memories and a next-time teaser.</span>
+          </a>
+        </div>
+        <div class="cluster">
+          <span class="cl-label">Review loop</span>
+          <a class="node" href="Postaudio%20Mobile.dc.html#1f">
+            <span class="n-kick">Postaudio Mobile.dc.html</span>
+            <span class="n-row"><span class="n-tag">1f</span><span class="n-name">Review list</span></span>
+            <span class="n-desc">Every memory in their own words — newest, people, places, needs review.</span>
+          </a>
+          <span class="arr">⇄</span>
+          <a class="node" href="Postaudio%20Mobile.dc.html#1g">
+            <span class="n-kick">Postaudio Mobile.dc.html</span>
+            <span class="n-row"><span class="n-tag">1g</span><span class="n-name">Review detail</span></span>
+            <span class="n-desc">Hear the original audio, then: That's right · Fix a detail · Retell next time.</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== OPERATOR ============================== -->
+  <section class="lane is-op" id="operator">
+    <div class="lane-head">
+      <div class="lane-name">Operator</div>
+      <div class="lane-sub">Nick's console — metadata only; content needs an audited impersonation session.</div>
+      <a class="lane-file" href="Postaudio%20Superadmin.dc.html">Postaudio Superadmin.dc.html</a>
+    </div>
+    <div class="lane-body">
+      <div class="flow">
+        <a class="node" href="Postaudio%20Superadmin.dc.html#1a">
+          <span class="n-kick">Postaudio Superadmin.dc.html</span>
+          <span class="n-row"><span class="n-tag">1a</span><span class="n-name">All users</span></span>
+          <span class="n-desc">Growth stats, invite networks, status.</span>
+        </a>
+        <span class="arr">→</span>
+        <a class="node" href="Postaudio%20Superadmin.dc.html#1b">
+          <span class="n-kick">Postaudio Superadmin.dc.html</span>
+          <span class="n-row"><span class="n-tag">1b</span><span class="n-name">Account detail</span></span>
+          <span class="n-desc">Plan, series, network, activity — impersonate is audited.</span>
+        </a>
+        <span class="arr soft">·</span>
+        <a class="node" href="Postaudio%20Superadmin.dc.html#1c">
+          <span class="n-kick">Postaudio Superadmin.dc.html</span>
+          <span class="n-row"><span class="n-tag">1c</span><span class="n-name">Series registry</span></span>
+          <span class="n-desc">Every series across every account, metadata only.</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== V2 ============================== -->
+  <section class="lane is-v2" id="v2">
+    <div class="lane-head">
+      <div class="lane-name">V2 (later)</div>
+      <div class="lane-sub">Sketched, not mocked. Nothing here ships in V1.</div>
+      <span class="badge badge-amber mt-1"><span class="dot"></span> on the roadmap — not in V1</span>
+    </div>
+    <div class="lane-body">
+      <div class="flow">
+        <span class="node v2">
+          <span class="n-kick">later</span>
+          <span class="n-row"><span class="n-tag">V2</span><span class="n-name">SMS &amp; link invites</span></span>
+          <span class="n-desc">Invite without an email address.</span>
+        </span>
+        <span class="node v2">
+          <span class="n-kick">later</span>
+          <span class="n-row"><span class="n-tag">V2</span><span class="n-name">Phone-call recording</span></span>
+          <span class="n-desc">Anna calls the subject — no app at all.</span>
+        </span>
+        <span class="node v2">
+          <span class="n-kick">later</span>
+          <span class="n-row"><span class="n-tag">V2</span><span class="n-name">Scheduling &amp; reminders</span></span>
+          <span class="n-desc">"Tuesday at 3 with Dad", nudged automatically.</span>
+        </span>
+        <span class="node v2">
+          <span class="n-kick">later</span>
+          <span class="n-row"><span class="n-tag">V2</span><span class="n-name">Automatic topic chasing</span></span>
+          <span class="n-desc">The AI initiates when coverage goes stale.</span>
+        </span>
+        <span class="node v2">
+          <span class="n-kick">later</span>
+          <span class="n-row"><span class="n-tag">V2</span><span class="n-name">Multiple participants</span></span>
+          <span class="n-desc">Jan and Henk in the same session.</span>
+        </span>
+        <span class="node v2">
+          <span class="n-kick">later</span>
+          <span class="n-row"><span class="n-tag">V2</span><span class="n-name">Knowledge-graph visualization</span></span>
+          <span class="n-desc">People, places, and years as a living map.</span>
+        </span>
+        <span class="node v2">
+          <span class="n-kick">later</span>
+          <span class="n-row"><span class="n-tag">V2</span><span class="n-name">Publishing outputs</span></span>
+          <span class="n-desc">Blog, book chapters, permanent archive — the "post" in postaud.io.</span>
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot-links">
+    <a href="Postaudio%20Branding.dc.html">Brand directions — Postaudio Branding.dc.html</a>
+    <a href="Postaudio%20Branding.dc.html#1a">1a Corpus</a>
+    <a href="Postaudio%20Branding.dc.html#1b">1b Heirloom</a>
+    <a href="Postaudio%20Branding.dc.html#1c">1c postaud.io refined</a>
+  </div>
+
+</div>
+
+<footer class="doc-footer">
+  postaud.io — V1 mockups · warm paper system · Newsreader + Instrument Sans
+</footer>
+
+</body>
+</html>
