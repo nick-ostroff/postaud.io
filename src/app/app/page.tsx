@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 
@@ -11,7 +12,9 @@ export default function DashboardHome() {
             Your workspace — one place for every story.
           </div>
         </div>
-        <Button variant="primary">＋ New series</Button>
+        <Link href="/app/series/new">
+          <Button variant="primary">＋ New series</Button>
+        </Link>
       </div>
 
       <Card className="flex flex-col items-center gap-3 px-8 py-16 text-center">
@@ -19,9 +22,11 @@ export default function DashboardHome() {
         <p className="max-w-sm text-[13.5px] text-muted">
           A series is one person&apos;s story. Set it up once and Anna runs the interviews from here.
         </p>
-        <Button variant="primary" size="big" className="mt-2">
-          ＋ New series
-        </Button>
+        <Link href="/app/series/new">
+          <Button variant="primary" size="big" className="mt-2">
+            ＋ New series
+          </Button>
+        </Link>
       </Card>
     </div>
   );

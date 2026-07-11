@@ -29,12 +29,15 @@ export async function POST(request: Request) {
   }
 
   try {
-    await inviteMember({
+    const { userId } = await inviteMember({
       email: parsed.data.email,
       role: parsed.data.role,
       orgId: organization.id,
       invitedBy: user.id,
     });
+    // `userId` lets callers (e.g. the series wizard's inline invite row)
+    // immediately add the new member to local state without a re-fetch.
+    return NextResponse.json({ ok: true, userId });
   } catch (err) {
     if (err instanceof InviteMemberError) {
       return NextResponse.json({ error: err.code }, { status: 409 });
@@ -44,8 +47,6 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
-
-  return NextResponse.json({ ok: true });
 }
 
 // PATCH /api/members — change an existing member's role. Admin-only.
