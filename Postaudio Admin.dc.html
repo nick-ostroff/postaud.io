@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>postaud.io — Admin &amp; setup mockups</title>
+<link rel="stylesheet" href="postaudio-mockups.css">
+<style>
+  /* ---- screen-specific layout (composes with postaudio-mockups.css) ---- */
+  .ic { width: 18px; display: inline-block; text-align: center; font-size: 14px; }
+  .user-chip .u-n { font-weight: 600; font-size: 13px; line-height: 1.3; }
+
+  .wizard { max-width: 780px; }
+  .wiz-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 28px; }
+  .wiz-actions .right { margin-left: auto; display: flex; gap: 10px; }
+
+  .fake-select { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+  .fake-select .caret { margin-left: auto; color: var(--faint); font-size: 11px; }
+  .fake-select .avatar { width: 24px; height: 24px; font-size: 10px; }
+
+  .chip .x { color: var(--faint); font-size: 11px; margin-left: 3px; cursor: pointer; }
+  .chip.amber { background: var(--amber-tint); border-color: transparent; color: var(--amber); }
+  .chip.amber .x { color: var(--amber); opacity: .7; }
+  .chip.add { border-style: dashed; color: var(--muted); background: transparent; }
+  .chip-input { border: 1px dashed var(--line-strong); border-radius: var(--r-pill); background: transparent;
+                font-family: var(--sans); font-size: 12.5px; padding: 4px 14px; color: var(--ink); width: 150px; }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+  .access-row { display: flex; align-items: center; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--line); }
+  .access-row:last-child { border-bottom: none; }
+  .access-row .a-name { flex: 1; min-width: 0; }
+  .access-row .a-name .n { font-weight: 600; font-size: 13.5px; }
+  .access-row .a-name .e { font-size: 12px; color: var(--faint); }
+  .seg.sm span { padding: 4px 12px; font-size: 12px; }
+  .invite-row { display: flex; gap: 10px; align-items: center; margin-top: 14px; padding: 14px;
+                border: 1.5px dashed var(--line-strong); border-radius: var(--r-card); background: transparent; }
+  .invite-row .input, .invite-row .select { background: var(--card); }
+
+  .q-row { display: flex; align-items: center; gap: 14px; padding: 14px 6px; border-bottom: 1px solid var(--line); }
+  .q-row .q-drag { color: var(--faint); letter-spacing: -3px; cursor: grab; font-size: 15px; }
+  .q-row .q-txt { flex: 1; font-family: var(--serif); font-size: 16px; line-height: 1.45; }
+  .q-row .q-act { display: flex; gap: 4px; }
+  .q-row .q-act a { color: var(--faint); font-size: 13px; padding: 4px 7px; border-radius: var(--r-sm); }
+  .q-row .q-act a:hover { color: var(--ink); background: rgba(33,30,26,0.05); text-decoration: none; }
+  .q-ghost { display: block; text-align: center; margin-top: 14px; padding: 12px;
+             border: 1.5px dashed var(--line-strong); border-radius: var(--r-card);
+             color: var(--muted); font-weight: 600; font-size: 13px; }
+  .q-ghost:hover { border-color: var(--green); color: var(--green-deep); text-decoration: none; }
+
+  .kv { padding: 11px 0; border-bottom: 1px solid var(--line); }
+  .kv:last-child { border-bottom: none; }
+  .kv .k { display: flex; justify-content: space-between; font-size: 10.5px; font-weight: 700;
+           letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); margin-bottom: 3px; }
+  .kv .k a { font-size: 11px; letter-spacing: 0; text-transform: none; font-weight: 600; }
+  .kv .v { font-size: 13px; color: var(--ink-soft); }
+
+  .series-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  a.series-card { display: block; color: var(--ink); }
+  a.series-card:hover { text-decoration: none; border-color: var(--line-strong); }
+  .series-card .sc-t { font-family: var(--serif); font-size: 19px; }
+  .series-card .sc-sub { font-size: 12.5px; color: var(--muted); margin-top: 1px; }
+  .series-card .sc-foot { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px;
+                          color: var(--muted); margin-top: 9px; }
+
+  .two-col { display: grid; grid-template-columns: minmax(0, 1fr) 336px; gap: 20px; align-items: start; }
+
+  .sess { padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .sess:last-child { border-bottom: none; padding-bottom: 4px; }
+  .sess .s-top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .sess .s-top .t { font-weight: 600; font-size: 13.5px; }
+  .sess .s-sum { font-family: var(--serif); font-size: 14.5px; color: var(--ink-soft); margin-top: 4px; line-height: 1.5; }
+
+  .topic-row { padding: 9px 0; }
+  .topic-row .t-name { font-size: 13.5px; font-weight: 500; width: 208px; flex-shrink: 0; }
+
+  .rel { position: relative; }
+  .modal-dim { position: absolute; inset: 0; background: rgba(33,30,26,0.4);
+               display: flex; align-items: center; justify-content: center; padding: 40px; }
+  .modal-card { width: 470px; background: var(--card); border-radius: var(--r-card);
+                box-shadow: var(--shadow-pop); border: 1px solid var(--line); }
+
+  .people-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .side-card + .side-card { margin-top: 18px; }
+  .m-role { font-weight: 600; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<header class="doc-header">
+  <div class="wordmark">post<b>aud</b>.io</div>
+  <h1>Admin &amp; setup</h1>
+  <p>Desktop screens for the workspace owner: the four-step series wizard, workspace home, the series hub where the loop lives, and member &amp; access management.</p>
+  <nav class="doc-toc">
+    <a href="#6a">6a · Wizard — Basics</a>
+    <a href="#6b">6b · Wizard — Assign</a>
+    <a href="#6c">6c · Wizard — Guide</a>
+    <a href="#6d">6d · Wizard — Review &amp; launch</a>
+    <a href="#2a">2a · Workspace home</a>
+    <a href="#1d">1d · Quick-create series</a>
+    <a href="#2b">2b · Series detail</a>
+    <a href="#3a">3a · Members &amp; roles</a>
+    <a href="#3b">3b · Per-series access</a>
+  </nav>
+</header>
+
+<!-- ================================================================
+     6a — WIZARD STEP 1 · BASICS
+================================================================= -->
+<section class="mock-section" id="6a">
+  <div class="mock-label">
+    <span class="tag">6a</span>
+    <h2>Wizard step 1 · Basics</h2>
+    <span class="note">Template pre-fills the guide; the goal shapes every question Anna asks.</span>
+  </div>
+  <div class="frame-desktop">
+    <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">app.postaud.io/series/new</span></div>
+    <div class="viewport">
+      <div class="shell">
+        <aside class="side">
+          <div class="wordmark">post<b>aud</b>.io</div>
+          <div class="nav-label">Workspace</div>
+          <a class="nav-item" href="#2a"><span class="ic">⌂</span> Home</a>
+          <a class="nav-item active" href="#2b"><span class="ic">▤</span> Series</a>
+          <a class="nav-item" href="#3a"><span class="ic">☺</span> Members</a>
+          <div class="nav-label">You</div>
+          <a class="nav-item" href="#"><span class="ic">⚙</span> Settings</a>
+          <div class="spacer"></div>
+          <div class="user-chip"><span class="avatar">SD</span><div><div class="u-n">Sam de Vries</div><div class="small faint">Admin</div></div></div>
+        </aside>
+        <div class="main">
+          <div class="wizard">
+            <div class="crumbs"><a href="#2a">Home</a> / New series</div>
+            <div class="page-head">
+              <div>
+                <h1>New series</h1>
+                <div class="sub">Four quick steps — Anna handles the rest.</div>
+              </div>
+            </div>
+
+            <div class="steps">
+              <span class="st now"><span class="n">1</span> Basics</span><span class="bar"></span>
+              <span class="st"><span class="n">2</span> Assign</span><span class="bar"></span>
+              <span class="st"><span class="n">3</span> Guide</span><span class="bar"></span>
+              <span class="st"><span class="n">4</span> Review</span>
+            </div>
+
+            <div class="field">
+              <label>Start from a template</label>
+              <div class="grid-3">
+                <label class="radio-card on">
+                  <div><div class="rc-t">Life story</div><div class="rc-d">A whole life, told over many sessions — childhood to now.</div></div>
+                </label>
+                <label class="radio-card">
+                  <div><div class="rc-t">Family recipes &amp; traditions</div><div class="rc-d">The dishes, the rituals, and the stories behind them.</div></div>
+                </label>
+                <label class="radio-card">
+                  <div><div class="rc-t">Company history</div><div class="rc-d">How the business was really built — for founders and teams.</div></div>
+                </label>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Series title</label>
+              <input class="input" value="Dad's Story">
+            </div>
+
+            <div class="grid-2">
+              <div class="field">
+                <label>Who is this about?</label>
+                <div class="select fake-select"><span class="avatar plain">HD</span> Henk de Vries <span class="faint small">· member</span><span class="caret">▾</span></div>
+                <div class="hint">Pick a member — or someone without an account; you can hand them the mic in person.</div>
+              </div>
+              <div class="field">
+                <label>Your relationship</label>
+                <input class="input" value="My father">
+              </div>
+            </div>
+
+            <div class="field">
+              <label>What do you want Anna to learn?</label>
+              <textarea class="textarea">Capture Dad's whole life for the grandkids — especially the Rotterdam years and how he and Mam built the bakery.</textarea>
+              <div class="hint">This goal shapes every question Anna asks. Plain words work best.</div>
+            </div>
+
+            <div class="wiz-actions">
+              <div class="right"><a class="btn btn-primary" href="#6b">Continue</a></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================
+     6b — WIZARD STEP 2 · ASSIGN
+================================================================= -->
+<section class="mock-section" id="6b">
+  <div class="mock-label">
+    <span class="tag">6b</span>
+    <h2>Wizard step 2 · Assign</h2>
+    <span class="note">Pick an owner, grant per-member access, invite someone new without leaving the wizard.</span>
+  </div>
+  <div class="frame-desktop">
+    <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">app.postaud.io/series/new?step=assign</span></div>
+    <div class="viewport">
+      <div class="shell">
+        <aside class="side">
+          <div class="wordmark">post<b>aud</b>.io</div>
+          <div class="nav-label">Workspace</div>
+          <a class="nav-item" href="#2a"><span class="ic">⌂</span> Home</a>
+          <a class="nav-item active" href="#2b"><span class="ic">▤</span> Series</a>
+          <a class="nav-item" href="#3a"><span class="ic">☺</span> Members</a>
+          <div class="nav-label">You</div>
+          <a class="nav-item" href="#"><span class="ic">⚙</span> Settings</a>
+          <div class="spacer"></div>
+          <div class="user-chip"><span class="avatar">SD</span><div><div class="u-n">Sam de Vries</div><div class="small faint">Admin</div></div></div>
+        </aside>
+        <div class="main">
+          <div class="wizard">
+            <div class="crumbs"><a href="#2a">Home</a> / New series</div>
+            <div class="page-head">
+              <div>
+                <h1>New series</h1>
+                <div class="sub">Dad's Story · Henk de Vries</div>
+              </div>
+            </div>
+
+            <div class="steps">
+              <span class="st done"><span class="n">✓</span> Basics</span><span class="bar"></span>
+              <span class="st now"><span class="n">2</span> Assign</span><span class="bar"></span>
+              <span class="st"><span class="n">3</span> Guide</span><span class="bar"></span>
+              <span class="st"><span class="n">4</span> Review</span>
+            </div>
+
+            <div class="field">
+              <label>Series owner</label>
+              <div class="select fake-select" style="max-width:340px"><span class="avatar">SD</span> Sam de Vries <span class="faint small">· you</span><span class="caret">▾</span></div>
+              <div class="hint">The owner runs the guide, the topic queue, and access.</div>
+            </div>
+
+            <div class="field mt-3">
+              <label>Who else can be part of this?</label>
+              <div class="card card-pad">
+                <div class="access-row">
+                  <span class="avatar warm">JD</span>
+                  <div class="a-name"><div class="n">Jan de Vries</div><div class="e">jan.devries@xs4all.nl</div></div>
+                  <span class="seg sm"><span>Can view</span><span class="on">Can interview</span><span>No access</span></span>
+                </div>
+                <div class="access-row">
+                  <span class="avatar">EP</span>
+                  <div class="a-name"><div class="n">Ellen Park</div><div class="e">ellen.park@gmail.com</div></div>
+                  <span class="seg sm"><span>Can view</span><span class="on">Can interview</span><span>No access</span></span>
+                </div>
+                <div class="access-row">
+                  <span class="avatar">RD</span>
+                  <div class="a-name"><div class="n">Ruth de Vries</div><div class="e">ruth@devries.family</div></div>
+                  <span class="seg sm"><span class="on">Can view</span><span>Can interview</span><span>No access</span></span>
+                </div>
+              </div>
+              <div class="hint">Henk is the subject of this series — he can always join his own sessions.</div>
+
+              <div class="invite-row">
+                <span class="faint" style="font-size:16px">＋</span>
+                <input class="input" placeholder="Invite someone new — name@email.com" style="flex:1">
+                <div class="select fake-select" style="width:150px">Interviewer<span class="caret">▾</span></div>
+              </div>
+            </div>
+
+            <div class="wiz-actions">
+              <a class="btn btn-ghost" href="#6a">← Back</a>
+              <div class="right"><a class="btn btn-primary" href="#6c">Continue</a></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================
+     6c — WIZARD STEP 3 · GUIDE
+================================================================= -->
+<section class="mock-section" id="6c">
+  <div class="mock-label">
+    <span class="tag">6c</span>
+    <h2>Wizard step 3 · Guide</h2>
+    <span class="note">Guide rails — Anna improvises inside these, and never initiates the don't-bring-up list.</span>
+  </div>
+  <div class="frame-desktop">
+    <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">app.postaud.io/series/new?step=guide</span></div>
+    <div class="viewport">
+      <div class="shell">
+        <aside class="side">
+          <div class="wordmark">post<b>aud</b>.io</div>
+          <div class="nav-label">Workspace</div>
+          <a class="nav-item" href="#2a"><span class="ic">⌂</span> Home</a>
+          <a class="nav-item active" href="#2b"><span class="ic">▤</span> Series</a>
+          <a class="nav-item" href="#3a"><span class="ic">☺</span> Members</a>
+          <div class="nav-label">You</div>
+          <a class="nav-item" href="#"><span class="ic">⚙</span> Settings</a>
+          <div class="spacer"></div>
+          <div class="user-chip"><span class="avatar">SD</span><div><div class="u-n">Sam de Vries</div><div class="small faint">Admin</div></div></div>
+        </aside>
+        <div class="main">
+          <div class="wizard">
+            <div class="crumbs"><a href="#2a">Home</a> / New series</div>
+            <div class="page-head">
+              <div>
+                <h1>New series</h1>
+                <div class="sub">Dad's Story · Henk de Vries</div>
+              </div>
+            </div>
+
+            <div class="steps">
+              <span class="st done"><span class="n">✓</span> Basics</span><span class="bar"></span>
+              <span class="st done"><span class="n">✓</span> Assign</span><span class="bar"></span>
+              <span class="st now"><span class="n">3</span> Guide</span><span class="bar"></span>
+              <span class="st"><span class="n">4</span> Review</span>
+            </div>
+
+            <div class="field">
+              <label>Opening prompt</label>
+              <input class="input" value="Start warm: ask about Rotterdam before the war stories.">
+              <div class="hint">How Anna should open the very first session.</div>
+            </div>
+
+            <div class="field mt-3">
+              <label>Topics Anna must cover</label>
+              <div class="chip-row">
+                <span class="chip">Childhood in Rotterdam <span class="x">✕</span></span>
+                <span class="chip">The bakery <span class="x">✕</span></span>
+                <span class="chip">Meeting Jan <span class="x">✕</span></span>
+                <span class="chip">The move to Canada <span class="x">✕</span></span>
+                <input class="chip-input" placeholder="＋ Add a topic">
+              </div>
+            </div>
+
+            <div class="field mt-3">
+              <label>Don't bring up</label>
+              <div class="chip-row">
+                <span class="chip amber">His brother Pieter's accident <span class="x">✕</span></span>
+                <span class="chip amber">The 2009 bankruptcy <span class="x">✕</span></span>
+                <input class="chip-input" placeholder="＋ Add">
+              </div>
+              <div class="hint">Anna will never raise these; if Henk brings them up himself she'll listen, then gently move on.</div>
+            </div>
+
+            <div class="grid-2 mt-3">
+              <div class="field">
+                <label>Tone</label>
+                <span class="seg"><span class="on">Warm</span><span>Neutral</span><span>Playful</span></span>
+              </div>
+              <div class="field">
+                <label>Session length</label>
+                <span class="seg"><span>10 min</span><span class="on">20 min</span><span>45 min</span></span>
+              </div>
+            </div>
+
+            <div class="wiz-actions">
+              <a class="btn btn-ghost" href="#6b">← Back</a>
+              <div class="right"><a class="btn btn-primary" href="#6d">Continue</a></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================
+     6d — WIZARD STEP 4 · REVIEW & LAUNCH
+================================================================= -->
+<section class="mock-section" id="6d">
+  <div class="mock-label">
+    <span class="tag">6d</span>
+    <h2>Wizard step 4 · Review &amp; launch</h2>
+    <span class="note">Anna drafts the first session; Sam reorders, edits, launches.</span>
+  </div>
+  <div class="frame-desktop">
+    <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">app.postaud.io/series/new?step=review</span></div>
+    <div class="viewport">
+      <div class="shell">
+        <aside class="side">
+          <div class="wordmark">post<b>aud</b>.io</div>
+          <div class="nav-label">Workspace</div>
+          <a class="nav-item" href="#2a"><span class="ic">⌂</span> Home</a>
+          <a class="nav-item active" href="#2b"><span class="ic">▤</span> Series</a>
+          <a class="nav-item" href="#3a"><span class="ic">☺</span> Members</a>
+          <div class="nav-label">You</div>
+          <a class="nav-item" href="#"><span class="ic">⚙</span> Settings</a>
+          <div class="spacer"></div>
+          <div class="user-chip"><span class="avatar">SD</span><div><div class="u-n">Sam de Vries</div><div class="small faint">Admin</div></div></div>
+        </aside>
+        <div class="main">
+          <div class="crumbs"><a href="#2a">Home</a> / New series</div>
+          <div class="page-head">
+            <div>
+              <h1>New series</h1>
+              <div class="sub">Dad's Story · Henk de Vries</div>
+            </div>
+          </div>
+
+          <div class="steps">
+            <span class="st done"><span class="n">✓</span> Basics</span><span class="bar"></span>
+            <span class="st done"><span class="n">✓</span> Assign</span><span class="bar"></span>
+            <span class="st done"><span class="n">✓</span> Guide</span><span class="bar"></span>
+            <span class="st now"><span class="n">4</span> Review</span>
+          </div>
+
+          <div class="two-col">
+            <div>
+              <div class="card card-pad">
+                <h3>Anna drafted the first session</h3>
+                <p class="small muted">Reorder, edit, or remove anything — this is a starting point. Anna improvises follow-ups from whatever Henk says.</p>
+                <div class="mt-2">
+                  <div class="q-row">
+                    <span class="q-drag">⋮⋮</span>
+                    <span class="q-txt">To start at the beginning — where were you born, and what's the first home you remember?</span>
+                    <span class="q-act"><a href="#" title="Edit">✎</a><a href="#" title="Remove">✕</a></span>
+                  </div>
+                  <div class="q-row">
+                    <span class="q-drag">⋮⋮</span>
+                    <span class="q-txt">What did your parents do, and what was the kitchen like growing up?</span>
+                    <span class="q-act"><a href="#" title="Edit">✎</a><a href="#" title="Remove">✕</a></span>
+                  </div>
+                  <div class="q-row">
+                    <span class="q-drag">⋮⋮</span>
+                    <span class="q-txt">You grew up above a bakery. What's the earliest job you remember doing in the shop?</span>
+                    <span class="q-act"><a href="#" title="Edit">✎</a><a href="#" title="Remove">✕</a></span>
+                  </div>
+                  <div class="q-row">
+                    <span class="q-drag">⋮⋮</span>
+                    <span class="q-txt">Who was the storyteller in your family when you were a boy?</span>
+                    <span class="q-act"><a href="#" title="Edit">✎</a><a href="#" title="Remove">✕</a></span>
+                  </div>
+                  <div class="q-row" style="border-bottom:none">
+                    <span class="q-drag">⋮⋮</span>
+                    <span class="q-txt">Is there a story about your childhood that Sam has never heard?</span>
+                    <span class="q-act"><a href="#" title="Edit">✎</a><a href="#" title="Remove">✕</a></span>
+                  </div>
+                </div>
+                <a class="q-ghost" href="#">＋ Add a question</a>
+              </div>
+
+              <div class="wiz-actions">
+                <a class="btn btn-ghost" href="#6c">← Back</a>
+                <div class="right">
+                  <a class="btn" href="#2b">Create series</a>
+                  <a class="btn btn-primary" href="Postaudio%20Mockups.dc.html#1a">Create &amp; start first interview</a>
+                </div>
+              </div>
+            </div>
+
+            <div class="card card-pad">
+              <h3>Ready to go</h3>
+              <div class="kv">
+                <div class="k">Basics <a href="#6a">Edit</a></div>
+                <div class="v">Life story · <b>Dad's Story</b><br>Henk de Vries · my father</div>
+              </div>
+              <div class="kv">
+                <div class="k">Goal</div>
+                <div class="v serif" style="font-size:13.5px">Capture Dad's whole life for the grandkids — especially the Rotterdam years and how he and Mam built the bakery.</div>
+              </div>
+              <div class="kv">
+                <div class="k">Assign <a href="#6b">Edit</a></div>
+                <div class="v">Owner: Sam de Vries (you)<br>Jan &amp; Ellen can interview · Ruth can view</div>
+              </div>
+              <div class="kv">
+                <div class="k">Guide <a href="#6c">Edit</a></div>
+                <div class="v">Warm tone · 20-minute sessions<br>4 must-cover topics · 2 things Anna won't raise</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================
+     2a — WORKSPACE HOME
+================================================================= -->
+<section class="mock-section" id="2a">
+  <div class="mock-label">
+    <span class="tag">2a</span>
+    <h2>Workspace home</h2>
+    <span class="note">Every series in motion — coverage, freshness, and one stale nudge.</span>
+  </div>
+  <div class="frame-desktop">
+    <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">app.postaud.io/home</span></div>
+    <div class="viewport">
+      <div class="shell">
+        <aside class="side">
+          <div class="wordmark">post<b>aud</b>.io</div>
+          <div class="nav-label">Workspace</div>
+          <a class="nav-item active" href="#2a"><span class="ic">⌂</span> Home</a>
+          <a class="nav-item" href="#2b"><span class="ic">▤</span> Series</a>
+          <a class="nav-item" href="#3a"><span class="ic">☺</span> Members</a>
+          <div class="nav-label">You</div>
+          <a class="nav-item" href="#"><span class="ic">⚙</span> Settings</a>
+          <div class="spacer"></div>
+          <div class="user-chip"><span class="avatar">SD</span><div><div class="u-n">Sam de Vries</div><div class="small faint">Admin</div></div></div>
+        </aside>
+        <div class="main">
+          <div class="page-head">
+            <div>
+              <h1>Good morning, Sam</h1>
+              <div class="sub">The de Vries family workspace — four stories in motion.</div>
+            </div>
+            <a class="btn btn-primary" href="#6a">＋ New series</a>
+          </div>
+
+          <div class="stats mb-3">
+            <div class="card stat"><div class="s-n">4</div><div class="s-l">series</div></div>
+            <div class="card stat"><div class="s-n">144</div><div class="s-l">memories saved</div></div>
+            <div class="card stat"><div class="s-n">7</div><div class="s-l">sessions this month</div></div>
+            <div class="card stat"><div class="s-n">5</div><div class="s-l">members</div></div>
+          </div>
+
+          <div class="series-grid">
+            <a class="card card-pad series-card" href="#2b">
+              <div class="row" style="justify-content:space-between;align-items:flex-start">
+                <div>
+                  <div class="sc-t">Dad's Story</div>
+                  <div class="sc-sub">Henk de Vries · your father</div>
+                </div>
+              </div>
+              <div class="cov-row mt-2"><div class="cov"><i style="width:58%"></i></div><span class="pct">58%</span></div>
+              <div class="sc-foot"><span>64 memories · 9 sessions</span><span class="faint">Last session yesterday</span></div>
+            </a>
+
+            <a class="card card-pad series-card" href="#">
+              <div class="row" style="justify-content:space-between;align-items:flex-start">
+                <div>
+                  <div class="sc-t">Mam, in her own words</div>
+                  <div class="sc-sub">Jan de Vries · interviews herself</div>
+                </div>
+              </div>
+              <div class="cov-row mt-2"><div class="cov"><i style="width:44%"></i></div><span class="pct">44%</span></div>
+              <div class="sc-foot"><span>41 memories · 6 sessions</span><span class="faint">Last session 4 days ago</span></div>
+            </a>
+
+            <a class="card card-pad series-card" href="#">
+              <div class="row" style="justify-content:space-between;align-items:flex-start">
+                <div>
+                  <div class="sc-t">Oma Marta</div>
+                  <div class="sc-sub">Marta Visser · hand-the-mic on your phone</div>
+                </div>
+                <span class="badge badge-amber"><span class="dot"></span> going stale — interview soon</span>
+              </div>
+              <div class="cov-row mt-2"><div class="cov low"><i style="width:31%"></i></div><span class="pct">31%</span></div>
+              <div class="sc-foot"><span>27 memories · 4 sessions</span><span class="faint">Last session 3 weeks ago</span></div>
+            </a>
+
+            <a class="card card-pad series-card" href="#">
+              <div class="row" style="justify-content:space-between;align-items:flex-start">
+                <div>
+                  <div class="sc-t">Bakkerij de Vries — 60 years</div>
+                  <div class="sc-sub">The family bakery · an organization</div>
+                </div>
+                <span class="badge">New</span>
+              </div>
+              <div class="cov-row mt-2"><div class="cov"><i style="width:15%"></i></div><span class="pct">15%</span></div>
+              <div class="sc-foot"><span>12 memories · 2 sessions</span><span class="faint">Created last week — just getting going</span></div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================
+     1d — QUICK-CREATE SERIES
+================================================================= -->
+<section class="mock-section" id="1d">
+  <div class="mock-label">
+    <span class="tag">1d</span>
+    <h2>Quick-create series</h2>
+    <span class="note">Just the essentials, as a modal over the workspace — for people who skip wizards.</span>
+  </div>
+  <div class="frame-desktop">
+    <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">app.postaud.io/series/new?quick=1</span></div>
+    <div class="viewport rel">
+      <div class="shell">
+        <aside class="side">
+          <div class="wordmark">post<b>aud</b>.io</div>
+          <div class="nav-label">Workspace</div>
+          <a class="nav-item active" href="#2a"><span class="ic">⌂</span> Home</a>
+          <a class="nav-item" href="#2b"><span class="ic">▤</span> Series</a>
+          <a class="nav-item" href="#3a"><span class="ic">☺</span> Members</a>
+          <div class="nav-label">You</div>
+          <a class="nav-item" href="#"><span class="ic">⚙</span> Settings</a>
+          <div class="spacer"></div>
+          <div class="user-chip"><span class="avatar">SD</span><div><div class="u-n">Sam de Vries</div><div class="small faint">Admin</div></div></div>
+        </aside>
+        <div class="main">
+          <div class="page-head">
+            <div>
+              <h1>Good morning, Sam</h1>
+              <div class="sub">The de Vries family workspace — four stories in motion.</div>
+            </div>
+            <span class="btn btn-primary">＋ New series</span>
+          </div>
+          <div class="stats mb-3">
+            <div class="card stat"><div class="s-n">4</div><div class="s-l">series</div></div>
+            <div class="card stat"><div class="s-n">144</div><div class="s-l">memories saved</div></div>
+            <div class="card stat"><div class="s-n">7</div><div class="s-l">sessions this month</div></div>
+            <div class="card stat"><div class="s-n">5</div><div class="s-l">members</div></div>
+          </div>
+          <div class="series-grid">
+            <span class="card card-pad series-card">
+              <div class="sc-t">Dad's Story</div>
+              <div class="sc-sub">Henk de Vries · your father</div>
+              <div class="cov-row mt-2"><div class="cov"><i style="width:58%"></i></div><span class="pct">58%</span></div>
+              <div class="sc-foot"><span>64 memories · 9 sessions</span><span class="faint">Last session yesterday</span></div>
+            </span>
+            <span class="card card-pad series-card">
+              <div class="sc-t">Mam, in her own words</div>
+              <div class="sc-sub">Jan de Vries · interviews herself</div>
+              <div class="cov-row mt-2"><div class="cov"><i style="width:44%"></i></div><span class="pct">44%</span></div>
+              <div class="sc-foot"><span>41 memories · 6 sessions</span><span class="faint">Last session 4 days ago</span></div>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-dim">
+        <div class="modal-card">
+          <div class="card-pad">
+            <div class="row" style="justify-content:space-between;align-items:flex-start">
+              <h3 style="font-size:20px">New series</h3>
+              <a href="#2a" class="faint" style="font-size:14px" title="Close">✕</a>
+            </div>
+            <p class="small muted mb-2">Just the essentials — Anna can take it from here.</p>
+            <div class="field">
+              <label>Title</label>
+              <input class="input" placeholder="What should we call it?">
+            </div>
+            <div class="field">
+              <label>Who is it about?</label>
+              <div class="select fake-select"><span class="muted">Choose a member — or someone without an account</span><span class="caret">▾</span></div>
+            </div>
+            <div class="field">
+              <label>What should Anna learn?</label>
+              <textarea class="textarea" placeholder="A sentence or two is plenty — this shapes every question."></textarea>
+            </div>
+            <a class="btn btn-primary" href="#2b" style="width:100%;justify-content:center">Create</a>
+            <p class="small muted mt-2" style="text-align:center">Need guide rails? <a href="#6a">Use the full wizard</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================
+     2b — SERIES DETAIL (HUB OF THE LOOP)
+================================================================= -->
+<section class="mock-section" id="2b">
+  <div class="mock-label">
+    <span class="tag">2b</span>
+    <h2>Series detail — Dad's Story</h2>
+    <span class="note">The hub of the loop: sessions go in, knowledge comes out, the queue points forward.</span>
+  </div>
+  <div class="frame-desktop">
+    <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">app.postaud.io/series/dads-story</span></div>
+    <div class="viewport">
+      <div class="shell">
+        <aside class="side">
+          <div class="wordmark">post<b>aud</b>.io</div>
+          <div class="nav-label">Workspace</div>
+          <a class="nav-item" href="#2a"><span class="ic">⌂</span> Home</a>
+          <a class="nav-item active" href="#2b"><span class="ic">▤</span> Series</a>
+          <a class="nav-item" href="#3a"><span class="ic">☺</span> Members</a>
+          <div class="nav-label">You</div>
+          <a class="nav-item" href="#"><span class="ic">⚙</span> Settings</a>
+          <div class="spacer"></div>
+          <div class="user-chip"><span class="avatar">SD</span><div><div class="u-n">Sam de Vries</div><div class="small faint">Admin</div></div></div>
+        </aside>
+        <div class="main">
+          <div class="crumbs"><a href="#2a">Home</a> / Series / Dad's Story</div>
+          <div class="page-head">
+            <div>
+              <h1>Dad's Story</h1>
+              <div class="row mt-1" style="flex-wrap:wrap">
+                <span class="chip"><span class="avatar plain" style="width:20px;height:20px;font-size:9px">HD</span> Henk de Vries · your father</span>
+                <span class="chip"><span class="k">covered</span> <span style="display:inline-block;width:64px" class="cov"><i style="width:58%"></i></span> 58%</span>
+              </div>
+            </div>
+            <div class="row">
+              <a class="btn btn-ghost" href="#3b">Access</a>
+              <a class="btn btn-primary btn-big" href="Postaudio%20Mockups.dc.html#1a">Start interview</a>
+            </div>
+          </div>
+
+          <div class="two-col">
+            <div>
+              <div class="card card-pad">
+                <div class="row" style="justify-content:space-between">
+                  <h3>Sessions</h3>
+                  <span class="small faint">9 so far</span>
+                </div>
+                <div class="sess">
+                  <div class="s-top">
+                    <span class="t"><a href="Postaudio%20Mockups.dc.html#1e">Session 9</a></span>
+                    <span class="small faint">yesterday · 22 min</span>
+                    <span class="badge">5 new memories</span>
+                  </div>
+                  <div class="s-sum">Henk talked about the objects his father left behind — the shop clock, the watch, and why he keeps both stopped.</div>
+                </div>
+                <div class="sess">
+                  <div class="s-top">
+                    <span class="t"><a href="#">Session 8</a></span>
+                    <span class="small faint">July 3 · 19 min</span>
+                    <span class="badge">6 new memories</span>
+                  </div>
+                  <div class="s-sum">Where the bakery's recipes really came from — including a rye that wasn't a de Vries recipe at all.</div>
+                </div>
+                <div class="sess">
+                  <div class="s-top">
+                    <span class="t"><a href="#">Session 7</a></span>
+                    <span class="small faint">June 26 · 24 min</span>
+                    <span class="badge">7 new memories</span>
+                  </div>
+                  <div class="s-sum">The early married years with Jan, in the little flat above the shop.</div>
+                </div>
+                <div class="sess">
+                  <div class="s-top">
+                    <span class="t"><a href="#">Session 6</a></span>
+                    <span class="small faint">June 19 · 21 min</span>
+                    <span class="badge">6 new memories</span>
+                  </div>
+                  <div class="s-sum">Selling the Rotterdam bakery, and the long decision to leave for Canada.</div>
+                </div>
+                <div class="mt-2"><a href="#" class="small">View all 9 sessions →</a></div>
+              </div>
+
+              <div class="card card-pad mt-2">
+                <h3>Topic queue</h3>
+                <p class="small muted">What Anna plans to explore next — reorder, add your own, or let her follow the thread.</p>
+                <div class="mt-2">
+                  <div class="cov-row topic-row"><span class="t-name">Childhood in Rotterdam</span><div class="cov"><i style="width:78%"></i></div><span class="pct">78%</span></div>
+                  <div class="cov-row topic-row"><span class="t-name">Meeting Jan</span><div class="cov"><i style="width:90%"></i></div><span class="pct">90%</span></div>
+                  <div class="cov-row topic-row"><span class="t-name">The bakery years</span><div class="cov"><i style="width:45%"></i></div><span class="pct">45%</span></div>
+                  <div class="cov-row topic-row"><span class="t-name">The move to Canada, 1988</span><div class="cov low"><i style="width:12%"></i></div><span class="pct">12%</span></div>
+                  <div class="cov-row topic-row"><span class="t-name">Brothers &amp; sisters</span><div class="cov low"><i style="width:35%"></i></div><span class="pct">35%</span></div>
+                  <div class="cov-row topic-row"><span class="t-name">Health &amp; habits <span class="badge badge-muted" style="margin-left:6px">still blank</span></span><div class="cov"><i style="width:0%"></i></div><span class="pct">0%</span></div>
+                </div>
+                <div class="mt-3">
+                  <div class="nav-label" style="padding:0 0 8px">Suggested after the last session</div>
+                  <div class="chip-row">
+                    <span class="chip add">＋ The first winter in Canada</span>
+                    <span class="chip add">＋ Why the bakery almost failed in 1994</span>
+                    <span class="chip add">＋ His father's watch</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="card card-pad side-card">
+                <h3>What Anna knows</h3>
+                <p class="small muted">64 memories saved for the family.</p>
+                <div class="nav-label" style="padding:14px 0 8px">People</div>
+                <div class="people-chips">
+                  <span class="chip">Jan <span class="k">wife</span></span>
+                  <span class="chip">Cor <span class="k">uncle</span></span>
+                  <span class="chip">Marta <span class="k">mother-in-law</span></span>
+                  <span class="chip">Willem <span class="k">brother</span></span>
+                  <span class="chip">Ruth &amp; Sam <span class="k">children</span></span>
+                </div>
+                <div class="nav-label" style="padding:16px 0 10px">Timeline</div>
+                <div class="tl">
+                  <div class="tl-item"><div class="tl-year">1949</div><div class="tl-txt">Born in Rotterdam</div></div>
+                  <div class="tl-item"><div class="tl-year">1975</div><div class="tl-txt">Met Jan on the Hoek van Holland ferry</div></div>
+                  <div class="tl-item" style="padding-bottom:4px"><div class="tl-year">1988</div><div class="tl-txt">Moved the family to Canada</div></div>
+                </div>
+                <div class="mt-2"><a class="small" href="Postaudio%20Mockups.dc.html#1f">Open the knowledge base →</a></div>
+              </div>
+
+              <div class="card card-pad side-card">
+                <h3>Who's involved</h3>
+                <div class="access-row">
+                  <span class="avatar">SD</span>
+                  <div class="a-name"><div class="n">Sam de Vries</div><div class="e">owner</div></div>
+                </div>
+                <div class="access-row">
+                  <span class="avatar warm">JD</span>
+                  <div class="a-name"><div class="n">Jan de Vries</div></div>
+                  <span class="badge">can interview</span>
+                </div>
+                <div class="access-row">
+                  <span class="avatar">RD</span>
+                  <div class="a-name"><div class="n">Ruth de Vries</div></div>
+                  <span class="badge badge-muted">can view</span>
+                </div>
+                <div class="mt-1"><a class="small" href="#3b">Manage access →</a></div>
+              </div>
+
+              <div class="card card-pad side-card">
+                <h3>Export</h3>
+                <p class="small muted">Take everything Anna has learned with you — nothing is locked in.</p>
+                <a class="btn mt-2" href="Postaudio%20Mockups.dc.html#1g">↧ Markdown / text</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================
+     3a — MEMBERS & ROLES
+================================================================= -->
+<section class="mock-section" id="3a">
+  <div class="mock-label">
+    <span class="tag">3a</span>
+    <h2>Members &amp; roles</h2>
+    <span class="note">Workspace-level roles: Admin / Interviewer / Viewer — one invite still pending.</span>
+  </div>
+  <div class="frame-desktop">
+    <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">app.postaud.io/members</span></div>
+    <div class="viewport">
+      <div class="shell">
+        <aside class="side">
+          <div class="wordmark">post<b>aud</b>.io</div>
+          <div class="nav-label">Workspace</div>
+          <a class="nav-item" href="#2a"><span class="ic">⌂</span> Home</a>
+          <a class="nav-item" href="#2b"><span class="ic">▤</span> Series</a>
+          <a class="nav-item active" href="#3a"><span class="ic">☺</span> Members</a>
+          <div class="nav-label">You</div>
+          <a class="nav-item" href="#"><span class="ic">⚙</span> Settings</a>
+          <div class="spacer"></div>
+          <div class="user-chip"><span class="avatar">SD</span><div><div class="u-n">Sam de Vries</div><div class="small faint">Admin</div></div></div>
+        </aside>
+        <div class="main">
+          <div class="page-head">
+            <div>
+              <h1>Members</h1>
+              <div class="sub">Five people in the de Vries family workspace.</div>
+            </div>
+            <a class="btn btn-primary" href="#">＋ Invite member</a>
+          </div>
+
+          <div class="card card-pad mb-2">
+            <div class="row" style="gap:10px">
+              <input class="input" placeholder="Invite someone — name@email.com" style="flex:1;max-width:380px">
+              <div class="select fake-select" style="width:160px">Interviewer<span class="caret">▾</span></div>
+              <a class="btn" href="#">Send invite</a>
+            </div>
+            <div class="hint">Admins manage everything · Interviewers run sessions on series they're given · Viewers read what they're shown.</div>
+          </div>
+
+          <div class="card">
+            <table class="tbl">
+              <thead>
+                <tr><th>Member</th><th>Role</th><th>Series</th><th>Last active</th><th></th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div class="row">
+                      <span class="avatar">SD</span>
+                      <div><div style="font-weight:600">Sam de Vries</div><div class="small faint">sam@devries.family</div></div>
+                    </div>
+                  </td>
+                  <td><span class="m-role">Admin</span></td>
+                  <td class="muted">All four series</td>
+                  <td class="muted">Today</td>
+                  <td class="faint" style="text-align:right">⋯</td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="row">
+                      <span class="avatar warm">JD</span>
+                      <div><div style="font-weight:600">Jan de Vries</div><div class="small faint">jan.devries@xs4all.nl</div></div>
+                    </div>
+                  </td>
+                  <td><span class="m-role">Interviewer</span></td>
+                  <td class="muted">Mam, in her own words · Dad's Story</td>
+                  <td class="muted">4 days ago</td>
+                  <td class="faint" style="text-align:right">⋯</td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="row">
+                      <span class="avatar">EP</span>
+                      <div><div style="font-weight:600">Ellen Park</div><div class="small faint">ellen.park@gmail.com</div></div>
+                    </div>
+                  </td>
+                  <td><span class="m-role">Interviewer</span></td>
+                  <td class="muted">Oma Marta</td>
+                  <td class="muted">2 weeks ago</td>
+                  <td class="faint" style="text-align:right">⋯</td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="row">
+                      <span class="avatar plain">HD</span>
+                      <div><div style="font-weight:600">Henk de Vries</div><div class="small faint">subject of Dad's Story</div></div>
+                    </div>
+                  </td>
+                  <td><span class="m-role">Interviewer</span></td>
+                  <td class="muted">Dad's Story</td>
+                  <td class="muted">Yesterday</td>
+                  <td class="faint" style="text-align:right">⋯</td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="row">
+                      <span class="avatar">RD</span>
+                      <div><div style="font-weight:600">Ruth de Vries</div><div class="small faint">ruth@devries.family</div></div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="row" style="gap:8px">
+                      <span class="m-role">Viewer</span>
+                      <span class="badge badge-amber">Invited — hasn't accepted</span>
+                    </div>
+                  </td>
+                  <td class="muted">Dad's Story</td>
+                  <td class="muted">—</td>
+                  <td class="faint" style="text-align:right">⋯</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================
+     3b — PER-SERIES ACCESS
+================================================================= -->
+<section class="mock-section" id="3b">
+  <div class="mock-label">
+    <span class="tag">3b</span>
+    <h2>Per-series access — Dad's Story</h2>
+    <span class="note">Series-level grants sit on top of workspace roles; subjects without accounts get the mic in person.</span>
+  </div>
+  <div class="frame-desktop">
+    <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">app.postaud.io/series/dads-story/access</span></div>
+    <div class="viewport">
+      <div class="shell">
+        <aside class="side">
+          <div class="wordmark">post<b>aud</b>.io</div>
+          <div class="nav-label">Workspace</div>
+          <a class="nav-item" href="#2a"><span class="ic">⌂</span> Home</a>
+          <a class="nav-item active" href="#2b"><span class="ic">▤</span> Series</a>
+          <a class="nav-item" href="#3a"><span class="ic">☺</span> Members</a>
+          <div class="nav-label">You</div>
+          <a class="nav-item" href="#"><span class="ic">⚙</span> Settings</a>
+          <div class="spacer"></div>
+          <div class="user-chip"><span class="avatar">SD</span><div><div class="u-n">Sam de Vries</div><div class="small faint">Admin</div></div></div>
+        </aside>
+        <div class="main">
+          <div class="crumbs"><a href="#2a">Home</a> / <a href="#2b">Series</a> / <a href="#2b">Dad's Story</a> / Access</div>
+          <div class="page-head">
+            <div>
+              <h1>Who can see Dad's Story</h1>
+              <div class="row mt-1" style="flex-wrap:wrap">
+                <span class="chip"><span class="avatar plain" style="width:20px;height:20px;font-size:9px">HD</span> Henk de Vries · your father</span>
+                <span class="chip">64 memories · 9 sessions · 58% covered</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="two-col">
+            <div>
+              <div class="card card-pad">
+                <h3>Owner</h3>
+                <div class="access-row" style="border-bottom:none">
+                  <span class="avatar">SD</span>
+                  <div class="a-name"><div class="n">Sam de Vries <span class="faint small">· you</span></div><div class="e">sam@devries.family</div></div>
+                  <span class="badge">Owner</span>
+                </div>
+                <div class="hint">Owners run the guide, the topic queue, and access — and can hand ownership on.</div>
+              </div>
+
+              <div class="card card-pad mt-2">
+                <h3>Members</h3>
+                <p class="small muted">Series access sits on top of each member's workspace role.</p>
+                <div class="access-row">
+                  <span class="avatar plain">HD</span>
+                  <div class="a-name"><div class="n">Henk de Vries <span class="badge badge-muted" style="margin-left:4px">subject</span></div><div class="e">records his own sessions</div></div>
+                  <span class="seg sm"><span>Can view</span><span class="on">Can interview</span><span>No access</span></span>
+                </div>
+                <div class="access-row">
+                  <span class="avatar warm">JD</span>
+                  <div class="a-name"><div class="n">Jan de Vries</div><div class="e">jan.devries@xs4all.nl</div></div>
+                  <span class="seg sm"><span>Can view</span><span class="on">Can interview</span><span>No access</span></span>
+                </div>
+                <div class="access-row">
+                  <span class="avatar">EP</span>
+                  <div class="a-name"><div class="n">Ellen Park</div><div class="e">ellen.park@gmail.com</div></div>
+                  <span class="seg sm"><span>Can view</span><span>Can interview</span><span class="on">No access</span></span>
+                </div>
+                <div class="access-row">
+                  <span class="avatar">RD</span>
+                  <div class="a-name"><div class="n">Ruth de Vries <span class="badge badge-amber" style="margin-left:4px">invite pending</span></div><div class="e">ruth@devries.family</div></div>
+                  <span class="seg sm"><span class="on">Can view</span><span>Can interview</span><span>No access</span></span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="card card-pad">
+                <h3>Subjects without an account</h3>
+                <p class="small muted mt-1">Some people you'll interview — like Oma Marta — never need a login. Open their series on your phone and hand them the mic; the session records into the workspace under your account, and their words land in the knowledge base just the same.</p>
+                <div class="mt-2"><a class="small" href="Postaudio%20Mobile.dc.html#1b">See how hand-the-mic works →</a></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="doc-footer">postaud.io — V1 mockups · warm paper system · Newsreader + Instrument Sans</footer>
+
+</body>
+</html>
