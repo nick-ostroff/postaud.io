@@ -237,7 +237,8 @@ export function Wizard({
   }, [step, questionPlanLoaded]);
 
   function buildPayload() {
-    const inviteEmailTrimmed = subjectChoice === "new" ? inviteSubjectEmail.trim() : "";
+    const inviteEmailTrimmed =
+      subjectChoice === "new" && subjectKindNew === "person" ? inviteSubjectEmail.trim() : "";
     const subjectKind: SubjectKind = inviteEmailTrimmed ? "member" : uiSubjectKind;
     return {
       title: title.trim(),
@@ -378,7 +379,11 @@ export function Wizard({
                       { value: "organization", label: "An organization" },
                     ]}
                     value={subjectKindNew}
-                    onChange={(v) => setSubjectKindNew(v as "person" | "organization")}
+                    onChange={(v) => {
+                      const kind = v as "person" | "organization";
+                      setSubjectKindNew(kind);
+                      if (kind === "organization") setInviteSubjectEmail("");
+                    }}
                   />
                 </div>
                 <Field label="Their name">
@@ -389,18 +394,20 @@ export function Wizard({
                     placeholder={subjectKindNew === "organization" ? "The family bakery" : "Full name"}
                   />
                 </Field>
-                <Field
-                  label="Invite them by email (optional)"
-                  hint="Sends an invite so they can sign in and join their own sessions later."
-                >
-                  <input
-                    type="email"
-                    className={inputClasses}
-                    value={inviteSubjectEmail}
-                    onChange={(e) => setInviteSubjectEmail(e.target.value)}
-                    placeholder="name@email.com"
-                  />
-                </Field>
+                {subjectKindNew === "person" && (
+                  <Field
+                    label="Invite them by email (optional)"
+                    hint="Sends an invite so they can sign in and join their own sessions later."
+                  >
+                    <input
+                      type="email"
+                      className={inputClasses}
+                      value={inviteSubjectEmail}
+                      onChange={(e) => setInviteSubjectEmail(e.target.value)}
+                      placeholder="name@email.com"
+                    />
+                  </Field>
+                )}
               </Card>
             )}
 

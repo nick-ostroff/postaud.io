@@ -158,59 +158,74 @@ export async function createSeries(
     throw new Error(seriesErr?.message ?? "Could not create series.");
   }
 
-  const accessRows = input.access
-    .filter((a) => memberIds.has(a.userId) && a.userId !== subjectUserId && (a.canView || a.canInterview))
-    .map((a) => ({
-      series_id: series.id,
-      user_id: a.userId,
-      can_view: a.canView,
-      can_interview: a.canInterview,
-    }));
-  if (accessRows.length > 0) {
-    const { error: accessErr } = await supabase.from("series_access").insert(accessRows);
-    if (accessErr) throw new Error(accessErr.message);
-  }
+  // From here on, `series` exists. If anything below fails, best-effort clean
+  // up the row we just created (series_access/topics cascade via FK) rather
+  // than leaving an orphaned, half-configured series behind — then rethrow so
+  // the caller still sees the original failure.
+  try {
+    const accessRows = input.access
+      .filter((a) => memberIds.has(a.userId) && a.userId !== subjectUserId && (a.canView || a.canInterview))
+      .map((a) => ({
+        series_id: series.id,
+        user_id: a.userId,
+        can_view: a.canView,
+        can_interview: a.canInterview,
+      }));
+    if (accessRows.length > 0) {
+      const { error: accessErr } = await supabase.from("series_access").insert(accessRows);
+      if (accessErr) throw new Error(accessErr.message);
+    }
 
-  const usedNames = new Set<string>();
-  const seenTopicText = new Set<string>();
-  const topicRows: Database["public"]["Tables"]["topics"]["Insert"][] = [];
+    const usedNames = new Set<string>();
+    const seenTopicText = new Set<string>();
+    const topicRows: Database["public"]["Tables"]["topics"]["Insert"][] = [];
 
-  input.mustCover.forEach((raw, i) => {
-    const name = raw.trim();
-    if (!name) return;
-    const key = name.toLowerCase();
-    if (seenTopicText.has(key)) return; // dedupe repeated chips
-    seenTopicText.add(key);
-    usedNames.add(name);
-    topicRows.push({
-      series_id: series.id,
-      name,
-      description: null,
-      must_cover: true,
-      suggested: false,
-      position: i,
+    input.mustCover.forEach((raw, i) => {
+      const name = raw.trim();
+      if (!name) return;
+      const key = name.toLowerCase();
+      if (seenTopicText.has(key)) return; // dedupe repeated chips
+      seenTopicText.add(key);
+      usedNames.add(name);
+      topicRows.push({
+        series_id: series.id,
+        name,
+        description: null,
+        must_cover: true,
+        suggested: false,
+        position: i,
+      });
     });
-  });
 
-  (input.questionPlan ?? []).forEach((raw, i) => {
-    const text = raw.trim();
-    if (!text) return;
-    const key = text.toLowerCase();
-    if (seenTopicText.has(key)) return; // already a must-cover chip, or a dup question
-    seenTopicText.add(key);
-    topicRows.push({
-      series_id: series.id,
-      name: slugName(text, usedNames),
-      description: text,
-      must_cover: false,
-      suggested: false,
-      position: input.mustCover.length + i,
+    (input.questionPlan ?? []).forEach((raw, i) => {
+      const text = raw.trim();
+      if (!text) return;
+      const key = text.toLowerCase();
+      if (seenTopicText.has(key)) return; // already a must-cover chip, or a dup question
+      seenTopicText.add(key);
+      topicRows.push({
+        series_id: series.id,
+        name: slugName(text, usedNames),
+        description: text,
+        must_cover: false,
+        suggested: false,
+        position: input.mustCover.length + i,
+      });
     });
-  });
 
-  if (topicRows.length > 0) {
-    const { error: topicsErr } = await supabase.from("topics").insert(topicRows);
-    if (topicsErr) throw new Error(topicsErr.message);
+    if (topicRows.length > 0) {
+      const { error: topicsErr } = await supabase.from("topics").insert(topicRows);
+      if (topicsErr) throw new Error(topicsErr.message);
+    }
+  } catch (err) {
+    const { error: cleanupErr } = await supabase.from("series").delete().eq("id", series.id);
+    const original = err instanceof Error ? err.message : String(err);
+    if (cleanupErr) {
+      throw new Error(
+        `${original} (additionally, cleanup of orphaned series ${series.id} failed: ${cleanupErr.message})`,
+      );
+    }
+    throw err instanceof Error ? err : new Error(original);
   }
 
   return { id: series.id };
