@@ -15,7 +15,7 @@ export default function SettingsPage() {
 
       <section className="mt-6 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#111] p-5 shadow-sm transition-colors">
         <h2 className="text-sm font-medium tracking-wide text-neutral-500 dark:text-neutral-400 uppercase">Recording retention</h2>
-        <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">How long to keep call recordings before auto-deletion.</p>
+        <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">How long to keep interview recordings before auto-deletion.</p>
         <div className="mt-3 flex gap-2">
           {[7, 30, 90].map((d) => (
             <button

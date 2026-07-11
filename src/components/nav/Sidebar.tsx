@@ -2,78 +2,72 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Avatar } from "@/components/ui/Avatar";
 
-// Temporary: trimmed to Home only during the phone-era teardown. The
-// remaining nav (templates/contacts/sends/settings/billing) comes back
-// as part of the V1 rebuild.
-const navItems = [
-  { href: "/app", label: "Dashboard" },
+const workspaceItems = [
+  { href: "/app", label: "Home", icon: "⌂" },
+  { href: "/app/series", label: "Series", icon: "▤" },
+  { href: "/app/members", label: "Members", icon: "☺" },
 ];
 
+const youItems = [{ href: "/app/settings", label: "Settings", icon: "⚙" }];
+
 type Props = {
-  orgName: string;
-  email: string;
-  creditsRemaining: number;
-  creditsTotal: number;
+  name: string;
+  role: string;
 };
 
-export function Sidebar({ orgName, email, creditsRemaining, creditsTotal }: Props) {
+function NavItem({ href, label, icon }: { href: string; label: string; icon: string }) {
   const pathname = usePathname();
-  const pct = creditsTotal > 0 ? (creditsRemaining / creditsTotal) * 100 : 0;
-
+  const active = href === "/app" ? pathname === "/app" : pathname.startsWith(href);
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#0a0a0a]">
-      <div className="px-5 pb-4 pt-5">
-        <Link href="/app" className="text-lg font-semibold tracking-tight text-neutral-900 dark:text-neutral-50 hover:opacity-80 transition-opacity">
-          PostAud<span className="text-neutral-400 dark:text-neutral-500">.io</span>
-        </Link>
-        <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-500">{orgName}</div>
+    <Link
+      href={href}
+      className={
+        "flex items-center gap-2.5 rounded-sm px-2.5 py-2 text-[13.5px] font-medium " +
+        (active
+          ? "bg-green-tint text-green-deep font-semibold"
+          : "text-ink-soft hover:bg-[rgba(33,30,26,0.05)] hover:no-underline")
+      }
+    >
+      <span aria-hidden>{icon}</span> {label}
+    </Link>
+  );
+}
+
+export function Sidebar({ name, role }: Props) {
+  return (
+    <aside className="flex w-[232px] shrink-0 flex-col gap-1 border-r border-line bg-paper-2 p-3.5">
+      <div className="serif px-2.5 pb-[18px] text-[19px]">
+        post<b className="font-semibold text-green-deep">aud</b>.io
       </div>
 
-      <nav className="flex flex-col gap-0.5 px-2 text-[13px] font-medium mt-2">
-        {navItems.map((item) => {
-          const active =
-            item.href === "/app"
-              ? pathname === "/app"
-              : pathname.startsWith(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={
-                "rounded-lg px-3 py-2 transition-colors " +
-                (active
-                  ? "bg-neutral-900 dark:bg-neutral-800 text-white dark:text-neutral-50"
-                  : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-900 hover:text-neutral-900 dark:hover:text-neutral-200")
-              }
-            >
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
+      <div className="px-2.5 pb-1.5 pt-3.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-faint">
+        Workspace
+      </div>
+      {workspaceItems.map((item) => (
+        <NavItem key={item.href} {...item} />
+      ))}
 
-      <div className="mt-auto border-t border-neutral-200 dark:border-neutral-800 px-5 py-4 text-xs font-medium">
-        <div className="flex items-center justify-between">
-          <span className="text-neutral-500 dark:text-neutral-400">Credits</span>
-          <span className="text-neutral-900 dark:text-neutral-100">
-            {creditsRemaining}
-            <span className="text-neutral-400 dark:text-neutral-600"> / {creditsTotal}</span>
-          </span>
-        </div>
-        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
-          <div className="h-full bg-neutral-900 dark:bg-neutral-200" style={{ width: `${pct}%` }} />
-        </div>
+      <div className="px-2.5 pb-1.5 pt-3.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-faint">
+        You
+      </div>
+      {youItems.map((item) => (
+        <NavItem key={item.href} {...item} />
+      ))}
 
-        <div className="mt-5 border-t border-neutral-200 dark:border-neutral-800 pt-4">
-          <div className="truncate text-neutral-700 dark:text-neutral-300">{email}</div>
-          <form action="/auth/sign-out" method="POST">
-            <button className="mt-2 text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-200 transition-colors">
-              Sign out →
-            </button>
-          </form>
+      <div className="flex-1" />
+
+      <div className="flex items-center gap-2.5 border-t border-line p-2.5">
+        <Avatar name={name} />
+        <div className="min-w-0">
+          <div className="truncate text-[13.5px] font-medium text-ink">{name}</div>
+          <div className="text-xs text-faint">{role}</div>
         </div>
       </div>
+      <form action="/auth/sign-out" method="POST" className="px-2.5">
+        <button className="text-xs font-medium text-faint hover:text-ink">Sign out →</button>
+      </form>
     </aside>
   );
 }
