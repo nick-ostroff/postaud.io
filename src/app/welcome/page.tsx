@@ -4,13 +4,8 @@ import { getSeriesForUser } from "@/db/queries";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
+import { ROLE_LABELS } from "@/lib/roles";
 import { AcceptForm } from "./AcceptForm";
-
-const ROLE_LABELS: Record<string, string> = {
-  admin: "Admin",
-  interviewer: "Interviewer",
-  viewer: "Viewer",
-};
 
 export default async function WelcomePage() {
   const supabase = await createClient();
@@ -78,7 +73,7 @@ export default async function WelcomePage() {
           </div>
         )}
 
-        <AcceptForm />
+        <AcceptForm orgId={membership.organization_id} />
 
         <p className="mt-4 text-[12px] leading-relaxed text-faint">
           {series.length > 0

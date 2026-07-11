@@ -66,7 +66,7 @@ export async function getViewer() {
   // or we end up calling bootstrap repeatedly and creating duplicate orgs.
   const { data: memberships } = await supabase
     .from("memberships")
-    .select("organization_id, role")
+    .select("organization_id, role, accepted_at")
     .eq("user_id", user.id)
     .limit(1);
   let membership = memberships?.[0] ?? null;
@@ -79,14 +79,14 @@ export async function getViewer() {
     });
     const { data: retry } = await supabase
       .from("memberships")
-      .select("organization_id, role")
+      .select("organization_id, role, accepted_at")
       .eq("user_id", user.id)
       .limit(1);
     membership = retry?.[0] ?? null;
   }
 
   if (!membership) {
-    return { user, supabase, organization: null, role: null };
+    return { user, supabase, organization: null, role: null, acceptedAt: null };
   }
 
   const { data: organization } = await supabase
@@ -95,7 +95,7 @@ export async function getViewer() {
     .eq("id", membership.organization_id)
     .maybeSingle();
 
-  return { user, supabase, organization, role: membership.role };
+  return { user, supabase, organization, role: membership.role, acceptedAt: membership.accepted_at };
 }
 
 // =========================================================

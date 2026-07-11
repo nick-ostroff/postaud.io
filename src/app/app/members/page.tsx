@@ -2,15 +2,14 @@ import { getViewer, listMembers } from "@/db/queries";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
+import { ROLE_LABELS } from "@/lib/roles";
 import { InviteForm } from "./InviteForm";
 
-const ROLE_LABELS: Record<string, string> = {
-  admin: "Admin",
-  interviewer: "Interviewer",
-  viewer: "Viewer",
-};
-
-/** "Today" / "Yesterday" / "N days ago" / calendar date — matches the mockup's Last active column. */
+/**
+ * "Today" / "Yesterday" / "N days ago" / calendar date — renders the
+ * "Joined" column from `accepted_at` (there's no `last_active` tracking in
+ * the schema yet; this is join-time, not last-session time).
+ */
 function formatJoined(iso: string | null): string {
   if (!iso) return "—";
   const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);

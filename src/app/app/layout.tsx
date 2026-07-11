@@ -1,14 +1,19 @@
+import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/nav/Sidebar";
 import { getViewer } from "@/db/queries";
-
-const ROLE_LABELS: Record<string, string> = {
-  admin: "Admin",
-  owner: "Owner",
-  member: "Member",
-};
+import { ROLE_LABELS } from "@/lib/roles";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user, role } = await getViewer();
+  const { user, organization, role, acceptedAt } = await getViewer();
+
+  // Invited members must finish the /welcome accept flow (set password, see
+  // role + accessible series, accept) before reaching anything under /app —
+  // enforced centrally here so no individual page/route can be missed.
+  // `/welcome` itself lives outside `/app` (not wrapped by this layout), so
+  // this can't loop.
+  if (organization && !acceptedAt) {
+    redirect("/welcome");
+  }
 
   const name =
     (user.user_metadata?.full_name as string | undefined) ||

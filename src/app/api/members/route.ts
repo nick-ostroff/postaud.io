@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getViewer } from "@/db/queries";
 import { serviceClient } from "@/db/service";
-import { inviteMember } from "@/server/members/invite";
+import { InviteMemberError, inviteMember } from "@/server/members/invite";
 
 const inviteSchema = z.object({
   email: z.string().email(),
@@ -36,6 +36,9 @@ export async function POST(request: Request) {
       invitedBy: user.id,
     });
   } catch (err) {
+    if (err instanceof InviteMemberError) {
+      return NextResponse.json({ error: err.code }, { status: 409 });
+    }
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Could not send invite." },
       { status: 500 },
@@ -59,13 +62,17 @@ export async function PATCH(request: Request) {
   }
 
   const svc = serviceClient();
-  const { error } = await svc
+  const { data, error } = await svc
     .from("memberships")
     .update({ role: parsed.data.role })
     .eq("user_id", parsed.data.userId)
-    .eq("organization_id", organization.id);
+    .eq("organization_id", organization.id)
+    .select();
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+  if (!data || data.length === 0) {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
   return NextResponse.json({ ok: true });

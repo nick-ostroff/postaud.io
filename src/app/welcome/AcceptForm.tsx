@@ -9,7 +9,7 @@ import { Field } from "@/components/ui/Field";
 const inputClasses =
   "w-full rounded-sm border border-line-strong bg-card px-[13px] py-2.5 text-[14px] text-ink focus:border-green focus:outline focus:outline-2 focus:-outline-offset-1 focus:outline-green";
 
-export function AcceptForm() {
+export function AcceptForm({ orgId }: { orgId: string }) {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -41,7 +41,11 @@ export function AcceptForm() {
         return;
       }
 
-      const res = await fetch("/welcome/accept", { method: "POST" });
+      const res = await fetch("/welcome/accept", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ organizationId: orgId }),
+      });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
         setState("error");

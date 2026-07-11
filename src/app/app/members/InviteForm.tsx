@@ -15,6 +15,13 @@ const ROLE_OPTIONS: { value: MemberRole; label: string }[] = [
 const inputClasses =
   "rounded-sm border border-line-strong bg-card px-[13px] py-2.5 text-[14px] text-ink focus:border-green focus:outline focus:outline-2 focus:-outline-offset-1 focus:outline-green";
 
+// Typed error codes from `POST /api/members` (see `InviteMemberError` in
+// src/server/members/invite.ts) mapped to user-facing copy.
+const ERROR_MESSAGES: Record<string, string> = {
+  already_member: "Already a member of this workspace.",
+  in_other_workspace: "That email already belongs to another postaud.io workspace.",
+};
+
 export function InviteForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -36,7 +43,7 @@ export function InviteForm() {
       if (!res.ok) {
         const body = await res.json().catch(() => null);
         setState("error");
-        setErrorMsg(body?.error ?? "Could not send invite.");
+        setErrorMsg((body?.error && ERROR_MESSAGES[body.error]) ?? body?.error ?? "Could not send invite.");
         return;
       }
       setEmail("");
