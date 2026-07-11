@@ -57,7 +57,8 @@ export async function draftQuestionPlan(input: QuestionPlanInput): Promise<strin
   const response = await client.messages.create({
     model: MODEL,
     max_tokens: 1024,
-    temperature: 0.7,
+    // No sampling params: claude-sonnet-5 returns 400 for non-default
+    // temperature/top_p/top_k. Variety is steered via the prompt instead.
     tools: [
       {
         name: "question_plan",
