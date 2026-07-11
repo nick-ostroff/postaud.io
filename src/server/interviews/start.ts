@@ -25,6 +25,29 @@ export type StartInterviewInput = {
 };
 
 /**
+ * The most recent in_progress interview for this series + conductor, or null.
+ * limit(1) rather than .maybeSingle() — a stray duplicate in_progress row
+ * (pre-0007 data, or a future constraint regression) must not throw here, it
+ * should just resume the most recent one.
+ */
+async function findInProgress(
+  supabase: SupabaseClient<Database>,
+  seriesId: string,
+  conductedBy: string,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("interviews")
+    .select("id")
+    .eq("series_id", seriesId)
+    .eq("conducted_by", conductedBy)
+    .eq("status", "in_progress")
+    .order("started_at", { ascending: false })
+    .limit(1);
+  if (error) throw new Error(error.message);
+  return data && data.length > 0 ? data[0].id : null;
+}
+
+/**
  * Credit-gate + reuse-or-create for a session start. Callers must already
  * have verified the caller can interview this series (route-level 403) —
  * this only owns the org's credit balance and the in-progress row.
@@ -33,6 +56,12 @@ export type StartInterviewInput = {
  * rather than inserting a duplicate: Task 10's retry flow (reconnecting after
  * a dropped connection) depends on getting the *same* interview id back
  * instead of abandoning one row per attempt.
+ *
+ * The check-then-insert has an inherent race (two concurrent starts can both
+ * see "nothing in progress"), so 0007's partial unique index
+ * (`interviews_one_inprogress_per_conductor`) is the real guarantee: the
+ * losing insert fails with Postgres 23505, which we catch and resolve by
+ * re-fetching the winner's row.
  */
 export async function startInterview(
   supabase: SupabaseClient<Database>,
@@ -42,20 +71,9 @@ export async function startInterview(
     throw new StartInterviewError("no_credits", "This workspace has no interview credits remaining.");
   }
 
-  // limit(1) rather than .maybeSingle() — a stray duplicate in_progress row
-  // (shouldn't happen, but isn't enforced by a DB constraint) must not throw
-  // here, it should just resume the most recent one.
-  const { data: existing, error: existingErr } = await supabase
-    .from("interviews")
-    .select("id")
-    .eq("series_id", input.seriesId)
-    .eq("conducted_by", input.conductedBy)
-    .eq("status", "in_progress")
-    .order("started_at", { ascending: false })
-    .limit(1);
-  if (existingErr) throw new Error(existingErr.message);
-  if (existing && existing.length > 0) {
-    return { interviewId: existing[0].id };
+  const existingId = await findInProgress(supabase, input.seriesId, input.conductedBy);
+  if (existingId) {
+    return { interviewId: existingId };
   }
 
   const { data: created, error: createErr } = await supabase
@@ -68,8 +86,19 @@ export async function startInterview(
     })
     .select("id")
     .single();
-  if (createErr || !created) {
-    throw new Error(createErr?.message ?? "Could not start interview.");
+
+  if (createErr) {
+    // Unique violation on interviews_one_inprogress_per_conductor (0007):
+    // a concurrent start won the race between our check and our insert —
+    // return the winner's row instead of erroring.
+    if (createErr.code === "23505") {
+      const racedId = await findInProgress(supabase, input.seriesId, input.conductedBy);
+      if (racedId) return { interviewId: racedId };
+    }
+    throw new Error(createErr.message);
+  }
+  if (!created) {
+    throw new Error("Could not start interview.");
   }
   return { interviewId: created.id };
 }
