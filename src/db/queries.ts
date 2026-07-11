@@ -1,5 +1,7 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/db/server";
 import { serviceClient } from "@/db/service";
+import type { Database, Entity, Fact, Interview, Membership, Series, Topic } from "@/db/types";
 
 /**
  * Idempotently creates the `public.users` row, a default organization, and an
@@ -38,7 +40,7 @@ export async function ensureViewerBootstrapped(args: {
 
   const { error: mErr } = await svc
     .from("memberships")
-    .insert({ user_id: args.id, organization_id: org.id, role: "owner" });
+    .insert({ user_id: args.id, organization_id: org.id, role: "admin" });
   if (mErr) throw new Error(mErr.message);
 }
 
@@ -86,4 +88,97 @@ export async function getViewer() {
     .maybeSingle();
 
   return { user, supabase, organization, role: membership.role };
+}
+
+// =========================================================
+// Series / interview knowledge-base helpers
+// (RLS scopes all of these to the caller's org + series access —
+// pass a request-scoped client, not the service client, unless you
+// intend to bypass row-level security.)
+// =========================================================
+
+/** All series visible to the current user (per `can_view_series` RLS). */
+export async function getSeriesForUser(sb: SupabaseClient<Database>): Promise<Series[]> {
+  const { data, error } = await sb
+    .from("series")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+/** A single series by id, or null if not found / not visible to the caller. */
+export async function getSeries(sb: SupabaseClient<Database>, id: string): Promise<Series | null> {
+  const { data, error } = await sb.from("series").select("*").eq("id", id).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export type SeriesKnowledge = {
+  topics: Topic[];
+  facts: Array<Fact & { entities: Entity[] }>;
+  entities: Entity[];
+};
+
+/** Topics + facts (with linked entities) + entities for a series. */
+export async function getSeriesKnowledge(
+  sb: SupabaseClient<Database>,
+  seriesId: string,
+): Promise<SeriesKnowledge> {
+  const [topicsRes, factsRes, entitiesRes] = await Promise.all([
+    sb.from("topics").select("*").eq("series_id", seriesId).order("position", { ascending: true }),
+    sb
+      .from("facts")
+      .select("*, fact_entities ( entities ( * ) )")
+      .eq("series_id", seriesId)
+      .order("created_at", { ascending: false }),
+    sb.from("entities").select("*").eq("series_id", seriesId).order("name", { ascending: true }),
+  ]);
+  if (topicsRes.error) throw new Error(topicsRes.error.message);
+  if (factsRes.error) throw new Error(factsRes.error.message);
+  if (entitiesRes.error) throw new Error(entitiesRes.error.message);
+
+  type FactWithEntities = Fact & {
+    fact_entities: Array<{ entities: Entity | null }> | null;
+  };
+
+  const facts = ((factsRes.data ?? []) as unknown as FactWithEntities[]).map((f) => {
+    const { fact_entities, ...rest } = f;
+    const entities = (fact_entities ?? [])
+      .map((fe) => fe.entities)
+      .filter((e): e is Entity => e !== null);
+    return { ...rest, entities };
+  });
+
+  return {
+    topics: topicsRes.data ?? [],
+    facts,
+    entities: entitiesRes.data ?? [],
+  };
+}
+
+/** A single interview by id, or null if not found / not visible to the caller. */
+export async function getInterview(sb: SupabaseClient<Database>, id: string): Promise<Interview | null> {
+  const { data, error } = await sb.from("interviews").select("*").eq("id", id).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export type MemberRow = Membership & { users: { email: string; display_name: string | null } | null };
+
+/**
+ * Members of the current workspace. NOTE: the memberships SELECT policy
+ * (0003_fix_memberships_rls_recursion.sql) only allows `user_id = auth.uid()`
+ * — it was never widened to let org admins see other members' rows. Until
+ * that policy is extended (e.g. via `is_org_admin()`), calling this with a
+ * request-scoped client returns only the caller's own membership. Pass the
+ * service client from an admin-gated route if you need the full roster now.
+ */
+export async function listMembers(sb: SupabaseClient<Database>): Promise<MemberRow[]> {
+  const { data, error } = await sb
+    .from("memberships")
+    .select("*, users ( email, display_name )")
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as MemberRow[];
 }

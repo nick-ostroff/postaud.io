@@ -9,7 +9,6 @@ export type OrgListRow = {
   credits_remaining: number;
   created_at: string;
   owner_email: string | null;
-  interviews_this_month: number;
 };
 
 export async function listOrganizations(opts: {
@@ -27,9 +26,9 @@ export async function listOrganizations(opts: {
   const fetchLimit = searching ? 500 : limit;
   const fetchOffset = searching ? 0 : offset;
 
-  // Pull orgs + owner email + this-month interview count in one round trip.
-  // We fetch a bit wide and filter in memory on search — the scale here is
-  // "platform admin looking at the customer list," not a hot path.
+  // Pull orgs + admin email in one round trip. We fetch a bit wide and
+  // filter in memory on search — the scale here is "platform admin looking
+  // at the customer list," not a hot path.
   let query = svc
     .from("organizations")
     .select(`
@@ -39,10 +38,9 @@ export async function listOrganizations(opts: {
       status,
       credits_remaining,
       created_at,
-      memberships!inner ( role, users ( email ) ),
-      interview_requests ( id, sent_at )
+      memberships!inner ( role, users ( email ) )
     `)
-    .eq("memberships.role", "owner")
+    .eq("memberships.role", "admin")
     .order("created_at", { ascending: false })
     .range(fetchOffset, fetchOffset + fetchLimit - 1);
 
@@ -55,18 +53,10 @@ export async function listOrganizations(opts: {
   const { data, error } = await query;
   if (error) throw new Error(error.message);
 
-  const monthStart = new Date();
-  monthStart.setDate(1);
-  monthStart.setHours(0, 0, 0, 0);
-
   const rows: OrgListRow[] = (data ?? []).map((row) => {
     const memberships = row.memberships as unknown as Array<{ role: string; users: { email?: string } | null }> | { role: string; users: { email?: string } | null };
-    const owner = Array.isArray(memberships) ? memberships[0] : memberships;
-    const ownerEmail = owner?.users?.email ?? null;
-    const interviewRequests = row.interview_requests as unknown as Array<{ id: string; sent_at: string | null }> | null;
-    const interviewsThisMonth = (interviewRequests ?? []).filter(
-      (r) => r.sent_at && new Date(r.sent_at) >= monthStart,
-    ).length;
+    const admin = Array.isArray(memberships) ? memberships[0] : memberships;
+    const ownerEmail = admin?.users?.email ?? null;
     return {
       id: row.id,
       name: row.name,
@@ -75,7 +65,6 @@ export async function listOrganizations(opts: {
       credits_remaining: row.credits_remaining,
       created_at: row.created_at,
       owner_email: ownerEmail,
-      interviews_this_month: interviewsThisMonth,
     };
   });
 
@@ -100,13 +89,6 @@ export type OrgDetail = {
     created_at: string;
   };
   members: Array<{ user_id: string; email: string; role: string; created_at: string }>;
-  recentRequests: Array<{
-    id: string;
-    status: string;
-    sent_at: string | null;
-    completed_at: string | null;
-    contact_phone: string;
-  }>;
   auditLog: Array<{
     id: number;
     at: string;
@@ -133,13 +115,6 @@ export async function getOrganizationDetail(orgId: string): Promise<OrgDetail | 
     .select("user_id, role, created_at, users ( email )")
     .eq("organization_id", orgId);
 
-  const { data: requests } = await svc
-    .from("interview_requests")
-    .select("id, status, sent_at, completed_at, contacts ( phone_e164 )")
-    .eq("organization_id", orgId)
-    .order("sent_at", { ascending: false, nullsFirst: false })
-    .limit(25);
-
   // audit_logs for this org: either action targeted it, or actor was a member
   const { data: audit } = await svc
     .from("audit_logs")
@@ -158,13 +133,6 @@ export async function getOrganizationDetail(orgId: string): Promise<OrgDetail | 
       email: (m.users as { email?: string } | null)?.email ?? "",
       role: m.role,
       created_at: m.created_at,
-    })),
-    recentRequests: (requests ?? []).map((r) => ({
-      id: r.id,
-      status: r.status,
-      sent_at: r.sent_at,
-      completed_at: r.completed_at,
-      contact_phone: (r.contacts as { phone_e164?: string } | null)?.phone_e164 ?? "",
     })),
     auditLog: (audit ?? []).map((a) => ({
       id: a.id,

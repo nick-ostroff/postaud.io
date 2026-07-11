@@ -39,14 +39,13 @@ export default async function AccountsListPage({ searchParams }: { searchParams:
               <th className="px-4 py-3 font-medium">Plan</th>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium text-right">Credits</th>
-              <th className="px-4 py-3 font-medium text-right">Interviews (mo)</th>
               <th className="px-4 py-3 font-medium">Created</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
             {rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-neutral-500">
+                <td colSpan={6} className="px-4 py-12 text-center text-neutral-500">
                   No accounts match.
                 </td>
               </tr>
@@ -78,9 +77,6 @@ export default async function AccountsListPage({ searchParams }: { searchParams:
                 </td>
                 <td className="px-4 py-3 text-right tabular-nums text-neutral-900 dark:text-white">
                   {r.credits_remaining}
-                </td>
-                <td className="px-4 py-3 text-right tabular-nums text-neutral-600 dark:text-neutral-400">
-                  {r.interviews_this_month}
                 </td>
                 <td className="px-4 py-3 text-neutral-500">
                   {new Date(r.created_at).toLocaleDateString()}

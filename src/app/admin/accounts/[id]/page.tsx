@@ -9,7 +9,7 @@ export default async function AccountDetailPage({ params }: { params: Params }) 
   const { id } = await params;
   const detail = await getOrganizationDetail(id);
   if (!detail) notFound();
-  const { organization, members, recentRequests, auditLog } = detail;
+  const { organization, members, auditLog } = detail;
 
   return (
     <div className="space-y-8">
@@ -73,45 +73,6 @@ export default async function AccountDetailPage({ params }: { params: Params }) 
                   <td className="px-4 py-2 text-neutral-900 dark:text-white">{m.email}</td>
                   <td className="px-4 py-2 text-neutral-600 dark:text-neutral-400">{m.role}</td>
                   <td className="px-4 py-2 text-neutral-500">{new Date(m.created_at).toLocaleDateString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section>
-        <h2 className="text-[15px] font-medium text-neutral-900 dark:text-white mb-3">
-          Recent interview requests
-        </h2>
-        <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#111] overflow-hidden">
-          <table className="w-full text-[14px]">
-            <thead className="bg-neutral-50 dark:bg-[#161616] text-left text-neutral-600 dark:text-neutral-400">
-              <tr>
-                <th className="px-4 py-2 font-medium">Contact</th>
-                <th className="px-4 py-2 font-medium">Status</th>
-                <th className="px-4 py-2 font-medium">Sent</th>
-                <th className="px-4 py-2 font-medium">Completed</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
-              {recentRequests.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-neutral-500">
-                    No interview requests yet.
-                  </td>
-                </tr>
-              )}
-              {recentRequests.map((r) => (
-                <tr key={r.id}>
-                  <td className="px-4 py-2 text-neutral-900 dark:text-white">{r.contact_phone || "—"}</td>
-                  <td className="px-4 py-2 text-neutral-600 dark:text-neutral-400">{r.status}</td>
-                  <td className="px-4 py-2 text-neutral-500">
-                    {r.sent_at ? new Date(r.sent_at).toLocaleString() : "—"}
-                  </td>
-                  <td className="px-4 py-2 text-neutral-500">
-                    {r.completed_at ? new Date(r.completed_at).toLocaleString() : "—"}
-                  </td>
                 </tr>
               ))}
             </tbody>
