@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>postaud.io — Branding mockups</title>
+<link rel="stylesheet" href="postaudio-mockups.css">
+<style>
+/* Per-board display faces — one extra family per board, allowed by the build brief */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&display=swap'); /* 1a Corpus */
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400..600&display=swap'); /* 1b Heirloom annotations */
+
+/* ============================================================
+   Direction-board chrome (shared skeleton, skinned per board)
+   ============================================================ */
+
+.board {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(30px, 4.5vw, 56px);
+  box-shadow: var(--shadow-pop);
+}
+.board .b-meta {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+  margin-bottom: clamp(28px, 4vw, 46px);
+}
+.board .ghost-n {
+  position: absolute; right: 18px; top: -34px; z-index: 0;
+  font-size: clamp(160px, 22vw, 280px); line-height: 1; font-weight: 600;
+  opacity: 0.05; pointer-events: none; user-select: none;
+}
+.board > *:not(.ghost-n) { position: relative; z-index: 1; }
+
+.b-hero { margin-bottom: clamp(30px, 4vw, 48px); }
+.b-naming { max-width: 620px; }
+.b-body {
+  display: grid; grid-template-columns: 1.08fr 1fr; gap: clamp(28px, 4vw, 56px);
+  align-items: start;
+}
+.b-col-label {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+  margin-bottom: 14px; opacity: 0.55;
+}
+
+/* swatch rows */
+.sw-row { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 clamp(30px, 4vw, 44px); }
+.sw { flex: 1; min-width: 116px; max-width: 190px; }
+.sw i { display: block; height: 62px; margin-bottom: 9px; border: 1px solid rgba(0,0,0,0.14); }
+.sw b { display: block; font-size: 12px; letter-spacing: 0.01em; }
+.sw span { display: block; font-size: 10.5px; opacity: 0.62; margin-top: 1px;
+  font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace; }
+
+/* type specimen rows */
+.spec .sp { padding: 16px 0 18px; display: grid; grid-template-columns: 148px 1fr; gap: 18px; align-items: baseline; }
+.spec .sp + .sp { border-top: 1px solid rgba(0,0,0,0.1); }
+.spec .sp-l { font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; opacity: 0.55; line-height: 1.6; }
+
+/* component strip */
+.comps { display: flex; flex-direction: column; gap: 22px; }
+.comp .cp-l { font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; opacity: 0.55; margin-bottom: 9px; }
+.comp .cp-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+/* ============================================================
+   1a — CORPUS · archival, catalogued, exact
+   ============================================================ */
+
+.board-corpus {
+  --cx-paper: #F4F3EF;
+  --cx-card: #FCFBF8;
+  --cx-ink: #1C1B22;
+  --cx-blue: oklch(0.37 0.075 264);
+  --cx-blue-tint: oklch(0.37 0.075 264 / 0.1);
+  --cx-red: oklch(0.47 0.12 29);
+  --cx-line: rgba(28, 27, 34, 0.18);
+  --cx-serif: "Fraunces", "Newsreader", Georgia, serif;
+  color: var(--cx-ink);
+  font-variant-numeric: tabular-nums;
+}
+.board.board-corpus {
+  background:
+    radial-gradient(rgba(28,27,34,0.045) 1px, transparent 1.4px) 0 0 / 24px 24px,
+    var(--cx-paper);
+  border: 1.5px solid var(--cx-ink);
+  border-radius: 4px;
+}
+.board-corpus .b-meta { color: var(--cx-blue); border-bottom: 1px solid var(--cx-line); padding-bottom: 12px; }
+.board-corpus .ghost-n { font-family: var(--cx-serif); color: var(--cx-blue); }
+
+.board-corpus .b-hero { display: grid; grid-template-columns: 1fr auto; gap: 34px; align-items: start; }
+.board-corpus .b-mark {
+  font-family: var(--cx-serif); font-weight: 540; letter-spacing: -0.025em;
+  font-size: clamp(58px, 8.5vw, 112px); line-height: 0.95; color: var(--cx-ink);
+}
+.board-corpus .b-mark em { font-style: normal; color: var(--cx-red); }
+.board-corpus .b-naming {
+  font-family: var(--cx-serif); font-style: italic; font-size: 16.5px; line-height: 1.55;
+  color: var(--cx-ink); margin-top: 20px;
+}
+.board-corpus .b-naming b { font-style: normal; font-weight: 600; }
+.board-corpus .b-tagline {
+  font-family: var(--cx-serif); font-style: italic; font-weight: 420;
+  font-size: clamp(24px, 3vw, 34px); line-height: 1.2; color: var(--cx-blue); margin-top: 26px;
+}
+/* accession plate */
+.c-plate {
+  border: 1.5px solid var(--cx-blue); outline: 1px solid var(--cx-blue); outline-offset: 3px;
+  background: var(--cx-card); padding: 18px 22px; text-align: center; min-width: 158px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--cx-blue);
+  align-self: start; margin-top: 10px;
+}
+.c-plate .n { font-family: var(--cx-serif); font-size: 34px; font-weight: 560; letter-spacing: 0.02em; margin: 8px 0 6px; color: var(--cx-ink); }
+.c-plate .r { border-top: 1px solid var(--cx-line); margin-top: 10px; padding-top: 9px; }
+
+.board-corpus .sw i { border-radius: 2px; border-color: var(--cx-line); }
+.board-corpus .spec .sp + .sp { border-color: var(--cx-line); }
+.board-corpus .c-display { font-family: var(--cx-serif); font-weight: 500; font-size: 27px; line-height: 1.25; letter-spacing: -0.01em; }
+.board-corpus .c-ui { font-size: 13.5px; font-weight: 500; letter-spacing: 0.01em; }
+.board-corpus .c-ui .idx { display: block; margin-top: 8px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.2em; color: var(--cx-blue); }
+.board-corpus .c-spoken { font-family: var(--cx-serif); font-style: italic; font-weight: 420; font-size: 17.5px; line-height: 1.5; color: var(--cx-ink); }
+
+.c-btn {
+  display: inline-flex; align-items: center; gap: 10px; cursor: pointer;
+  font-family: var(--sans); font-size: 11px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+  background: var(--cx-blue); color: #F4F3EF; padding: 12px 22px; border-radius: 2px;
+}
+.c-btn.ghost { background: transparent; color: var(--cx-blue); border: 1px solid var(--cx-blue); padding: 11px 21px; }
+.c-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;
+  color: var(--cx-blue); border: 1px solid var(--cx-blue); background: var(--cx-card);
+  padding: 4px 11px; border-radius: 2px;
+}
+.c-badge.red { color: var(--cx-red); border: 1.5px dashed var(--cx-red); background: transparent; transform: rotate(-1.5deg); }
+
+/* catalogue card */
+.c-card { background: var(--cx-card); border: 1px solid var(--cx-ink); border-radius: 2px; box-shadow: 3px 3px 0 var(--cx-blue-tint); }
+.c-card .cc-head {
+  display: flex; justify-content: space-between; gap: 12px; padding: 11px 16px 9px;
+  border-bottom: 1.5px solid var(--cx-red);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+}
+.c-card .cc-head span:last-child { color: var(--cx-blue); font-weight: 600; }
+.c-card .cc-body {
+  padding: 5px 16px 8px; font-family: var(--cx-serif); font-size: 14.5px; line-height: 26px;
+  background: repeating-linear-gradient(to bottom, transparent 0 25px, oklch(0.37 0.075 264 / 0.16) 25px 26px);
+}
+.c-card .cc-foot { padding: 8px 16px 10px; border-top: 1px solid var(--cx-line); font-size: 9.5px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--cx-blue); }
+
+/* accession fact */
+.c-fact { background: var(--cx-card); border: 1px solid var(--cx-line); border-left: 4px solid var(--cx-blue); border-radius: 2px; padding: 14px 18px 13px; }
+.c-fact .cf-no { font-size: 10px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--cx-red); margin-bottom: 7px; }
+.c-fact .cf-txt { font-family: var(--cx-serif); font-style: italic; font-weight: 440; font-size: 17px; line-height: 1.45; color: var(--cx-ink); }
+.c-fact .cf-file { margin-top: 9px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--cx-blue); opacity: 0.85; }
+
+/* ============================================================
+   1b — HEIRLOOM · cream, kept, handed down
+   ============================================================ */
+
+.board-heirloom {
+  --hl-cream: #FBF5EA;
+  --hl-lace: #F3E9D8;
+  --hl-white: #FFFDF7;
+  --hl-rose: oklch(0.60 0.075 25);
+  --hl-rose-tint: oklch(0.60 0.075 25 / 0.13);
+  --hl-sepia: #8A705A;
+  --hl-blue: oklch(0.70 0.035 230);
+  --hl-ink: #46392E;
+  --hl-line: rgba(138, 112, 90, 0.24);
+  color: var(--hl-ink);
+}
+.board.board-heirloom {
+  background:
+    radial-gradient(120% 80% at 18% 0%, oklch(0.60 0.075 25 / 0.06), transparent 55%),
+    radial-gradient(120% 90% at 88% 100%, oklch(0.70 0.035 230 / 0.1), transparent 50%),
+    var(--hl-cream);
+  border: 1px solid var(--hl-line);
+  border-radius: 36px;
+}
+.board-heirloom .b-meta { color: var(--hl-sepia); letter-spacing: 0.2em; font-weight: 600; }
+.board-heirloom .ghost-n { font-family: var(--serif); font-style: italic; color: var(--hl-rose); opacity: 0.07; }
+
+.board-heirloom .b-hero { text-align: center; }
+.board-heirloom .b-annot {
+  font-family: "Caveat", cursive; font-size: 23px; color: var(--hl-rose);
+  transform: rotate(-2deg); display: inline-block; margin-bottom: 2px;
+}
+.board-heirloom .b-mark {
+  font-family: var(--serif); font-style: italic; font-weight: 320; letter-spacing: -0.015em;
+  font-size: clamp(60px, 8.5vw, 114px); line-height: 1.02; color: var(--hl-ink);
+}
+.board-heirloom .b-mark span { color: var(--hl-rose); }
+.board-heirloom .b-naming {
+  font-family: var(--serif); font-size: 16.5px; line-height: 1.6; color: var(--hl-sepia);
+  margin: 16px auto 0;
+}
+.board-heirloom .b-naming b { font-style: italic; font-weight: 500; color: var(--hl-ink); }
+.board-heirloom .b-tagline {
+  font-family: var(--serif); font-style: italic; font-weight: 380;
+  font-size: clamp(24px, 3vw, 33px); color: var(--hl-rose); margin-top: 22px;
+}
+
+.board-heirloom .sw i { border-radius: 999px; height: 56px; border-color: var(--hl-line); }
+.board-heirloom .spec .sp + .sp { border-color: var(--hl-line); }
+.board-heirloom .hl-display { font-family: var(--serif); font-style: italic; font-weight: 340; font-size: 28px; line-height: 1.3; }
+.board-heirloom .hl-ui { font-size: 14px; color: var(--hl-ink); }
+.board-heirloom .hl-ui .soft { color: var(--hl-sepia); }
+.board-heirloom .hl-spoken { font-family: var(--serif); font-style: italic; font-size: 17.5px; line-height: 1.55; color: var(--hl-ink); }
+.board-heirloom .hl-annot-spec { font-family: "Caveat", cursive; font-size: 24px; color: var(--hl-rose); transform: rotate(-1.5deg); display: inline-block; }
+
+.hl-btn {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  font-family: var(--sans); font-size: 15px; font-weight: 600;
+  background: var(--hl-rose); color: #FFF9EF; padding: 13px 30px; border-radius: 999px;
+  box-shadow: 0 10px 26px oklch(0.60 0.075 25 / 0.3);
+}
+.hl-btn.quiet { background: var(--hl-lace); color: var(--hl-sepia); box-shadow: none; font-size: 13.5px; padding: 11px 22px; }
+.hl-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 12px; font-weight: 600; padding: 5px 14px; border-radius: 999px;
+  background: var(--hl-rose-tint); color: var(--hl-rose);
+}
+.hl-badge i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.hl-badge.sepia { background: var(--hl-lace); color: var(--hl-sepia); }
+
+.hl-card {
+  background: var(--hl-white); border: 1px solid var(--hl-line); border-radius: 24px;
+  padding: 20px 24px; box-shadow: 0 2px 4px rgba(70,57,46,0.05), 0 14px 34px rgba(70,57,46,0.08);
+}
+.hl-card .hlc-kicker { font-family: var(--serif); font-weight: 500; font-size: 17px; margin-bottom: 6px; }
+.hl-card .hlc-quote { font-family: var(--serif); font-style: italic; font-size: 15px; line-height: 1.55; color: var(--hl-ink); }
+.hl-card .hlc-meta { margin-top: 10px; font-size: 12px; color: var(--hl-sepia); }
+
+/* keepsake memory card — stamp + ribbon + photo corners, all CSS */
+.hl-keep {
+  position: relative; background: var(--hl-white); border: 1px solid var(--hl-line);
+  border-radius: 20px; padding: 24px 96px 20px 26px;
+  box-shadow: 0 2px 4px rgba(70,57,46,0.05), 0 14px 34px rgba(70,57,46,0.09);
+}
+.hl-keep .pc { position: absolute; width: 20px; height: 20px; background: var(--hl-lace); }
+.hl-keep .pc.tl { top: 0; left: 0; clip-path: polygon(0 0, 100% 0, 0 100%); border-top-left-radius: 19px; }
+.hl-keep .pc.bl { bottom: 0; left: 0; clip-path: polygon(0 0, 100% 100%, 0 100%); border-bottom-left-radius: 19px; }
+.hl-keep .hl-ribbon {
+  display: inline-block; background: var(--hl-rose); color: #FFF9EF;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  padding: 5px 18px; margin-bottom: 12px;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 50%, 100% 100%, 0 100%, 8px 50%);
+}
+.hl-keep .hlk-txt { font-family: var(--serif); font-style: italic; font-weight: 380; font-size: 19px; line-height: 1.45; color: var(--hl-ink); }
+.hl-keep .hlk-note { margin-top: 10px; font-size: 12px; color: var(--hl-sepia); }
+.hl-keep .hlk-hand { font-family: "Caveat", cursive; font-size: 21px; color: var(--hl-rose); transform: rotate(-2deg); display: inline-block; margin-top: 4px; }
+.hl-stamp {
+  position: absolute; top: 16px; right: 16px; width: 62px; height: 74px;
+  transform: rotate(3deg);
+  background-color: var(--hl-blue);
+  background-image:
+    radial-gradient(circle 3px, var(--hl-white) 97%, transparent),
+    radial-gradient(circle 3px, var(--hl-white) 97%, transparent),
+    radial-gradient(circle 3px, var(--hl-white) 97%, transparent),
+    radial-gradient(circle 3px, var(--hl-white) 97%, transparent);
+  background-size: 12px 12px;
+  background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+  background-position: 0 -6px, 0 calc(100% + 6px), -6px 0, calc(100% + 6px) 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  color: #FFFDF7; box-shadow: 0 4px 12px rgba(70,57,46,0.16);
+}
+.hl-stamp b { font-family: var(--serif); font-size: 15px; font-weight: 500; }
+.hl-stamp span { font-size: 6.5px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; }
+.hl-stamp .yr { font-size: 9px; font-weight: 600; letter-spacing: 0.1em; }
+
+/* ============================================================
+   1c — postaud.io refined · the shipping warm-paper system
+   ============================================================ */
+
+.board.board-refined {
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-card);
+}
+.board-refined .b-meta { color: var(--green-deep); }
+.board-refined .ghost-n { font-family: var(--serif); color: var(--green-deep); opacity: 0.055; }
+
+.board-refined .b-mark {
+  font-family: var(--serif); font-weight: 500; letter-spacing: -0.025em;
+  font-size: clamp(54px, 8vw, 104px); line-height: 1; color: var(--ink);
+}
+.board-refined .b-mark b { color: var(--green-deep); font-weight: 600; }
+.board-refined .b-mark .md { color: var(--faint); font-weight: 300; padding: 0 0.06em; }
+.board-refined .b-gloss {
+  display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 16px;
+  font-size: 13px; font-weight: 600; color: var(--muted);
+}
+.board-refined .b-gloss b { color: var(--green-deep); }
+.board-refined .b-naming { font-family: var(--serif); font-size: 16.5px; line-height: 1.6; color: var(--ink-soft); margin-top: 14px; max-width: 640px; }
+.board-refined .b-tagline {
+  font-family: var(--serif); font-weight: 450; font-size: clamp(23px, 2.8vw, 31px);
+  line-height: 1.25; margin-top: 22px; color: var(--ink); max-width: 700px;
+}
+.board-refined .b-rule {
+  display: inline-block; margin-top: 18px; padding: 8px 16px 8px 14px;
+  border-left: 3px solid var(--green); background: var(--green-tint); border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--green-deep);
+}
+.board-refined .sw i { border-radius: var(--r-sm); border-color: var(--line-strong); }
+.board-refined .spec .sp + .sp { border-color: var(--line); }
+.board-refined .r-display { font-family: var(--serif); font-weight: 500; font-size: 27px; line-height: 1.28; letter-spacing: -0.01em; }
+.board-refined .r-ui { font-size: 13.5px; font-weight: 500; color: var(--ink-soft); }
+.board-refined .r-ui .m { color: var(--muted); font-weight: 400; }
+
+/* light / dark rule demo */
+.r-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 26px; }
+.r-duo .r-lt { padding: 18px 20px; }
+.r-duo .duo-l { font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--faint); margin-bottom: 10px; }
+.r-dark {
+  border-radius: var(--r-card); padding: 18px 20px; color: #F7F5F0;
+  background: radial-gradient(ellipse 85% 70% at 50% 20%, oklch(0.72 0.08 165 / 0.16), transparent 70%), var(--dark);
+  display: flex; flex-direction: column; align-items: center; text-align: center; justify-content: center; gap: 9px;
+}
+.r-dark .duo-l { color: var(--dark-muted); margin-bottom: 0; }
+.mini-orb {
+  width: 42px; height: 42px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, oklch(0.78 0.09 165), oklch(0.52 0.06 165) 70%);
+  box-shadow: 0 0 26px oklch(0.72 0.08 165 / 0.5);
+  animation: orb-breathe 3.2s ease-in-out infinite;
+}
+.r-dark .listening { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--mint); }
+.r-dark .spoken { font-size: 14px; }
+
+.r-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 26px; }
+
+/* ============================================================
+   Comparison strip — one memory, three ways
+   ============================================================ */
+
+.cmp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: stretch; }
+.cmp { border-radius: 14px; padding: 22px 22px 18px; display: flex; flex-direction: column; gap: 16px; box-shadow: var(--shadow-card); }
+.cmp .cmp-foot { margin-top: auto; padding-top: 12px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; opacity: 0.6; }
+.cmp.board-corpus { background: radial-gradient(rgba(28,27,34,0.04) 1px, transparent 1.4px) 0 0 / 24px 24px, var(--cx-paper); border: 1.5px solid var(--cx-ink); border-radius: 4px; }
+.cmp.board-corpus .cmp-foot { color: var(--cx-blue); opacity: 1; }
+.cmp.board-heirloom { background: var(--hl-cream); border: 1px solid var(--hl-line); border-radius: 26px; }
+.cmp.board-heirloom .cmp-foot { color: var(--hl-sepia); opacity: 1; }
+.cmp.board-refined { background: var(--paper); border: 1px solid var(--line-strong); }
+.cmp.board-refined .cmp-foot { color: var(--green-deep); opacity: 1; }
+.cmp .hl-keep { padding-right: 88px; }
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+
+@media (max-width: 980px) {
+  .b-body { grid-template-columns: 1fr; }
+  .board-corpus .b-hero { grid-template-columns: 1fr; }
+  .c-plate { justify-self: start; }
+  .cmp-grid { grid-template-columns: 1fr; }
+  .r-duo { grid-template-columns: 1fr; }
+  .spec .sp { grid-template-columns: 1fr; gap: 6px; }
+}
+</style>
+</head>
+<body>
+
+<header class="doc-header">
+  <div class="wordmark">post<b>aud</b>.io</div>
+  <h1>Brand directions</h1>
+  <p>Three ways this product could look, sound, and be named — presented as direction boards. Two roads not taken, and the warm-paper system every other mockup in this folder already ships with. Same flagship memory runs through all three, so the differences are real, not theoretical.</p>
+  <nav class="doc-toc">
+    <a href="#1a">1a · Corpus</a>
+    <a href="#1b">1b · Heirloom</a>
+    <a href="#1c">1c · postaud.io refined</a>
+    <a href="#compare">Side by side</a>
+  </nav>
+</header>
+
+<!-- ==================================================== 1a CORPUS -->
+<section class="mock-section" id="1a">
+  <div class="mock-label">
+    <span class="tag">1a</span>
+    <h2>Direction — Corpus</h2>
+    <span class="note">the archival direction · scholarly, catalogued, exact · a name not taken</span>
+  </div>
+
+  <div class="board board-corpus">
+    <div class="ghost-n">01</div>
+    <div class="b-meta">
+      <span>Direction 01 / 03 — Corpus</span>
+      <span>Fraunces + Instrument Sans · ink blue on archive white</span>
+    </div>
+
+    <div class="b-hero">
+      <div>
+        <div class="b-mark">Corpus<em>.</em></div>
+        <p class="b-naming"><b>corpus</b> (n.) — Latin, <b>“body.”</b> The complete recorded work of one voice: every session, every fact, catalogued and cross-filed. Library catalogue meets modern software.</p>
+        <div class="b-tagline">“A body of knowledge, built out loud.”</div>
+      </div>
+      <div class="c-plate">
+        <div>Archief</div>
+        <div class="n">DV·64</div>
+        <div>Session IX</div>
+        <div class="r">Acc. 04:12 · Shelf DV</div>
+      </div>
+    </div>
+
+    <div class="b-col-label">Palette — archival</div>
+    <div class="sw-row">
+      <div class="sw"><i style="background:#F4F3EF"></i><b>Archive white</b><span>#F4F3EF</span></div>
+      <div class="sw"><i style="background:#FCFBF8"></i><b>Card stock</b><span>#FCFBF8</span></div>
+      <div class="sw"><i style="background:#1C1B22"></i><b>Blue-black ink</b><span>#1C1B22</span></div>
+      <div class="sw"><i style="background:oklch(0.37 0.075 264)"></i><b>Ink blue</b><span>oklch(0.37 0.075 264) ≈ #333D66</span></div>
+      <div class="sw"><i style="background:oklch(0.47 0.12 29)"></i><b>Stamp red</b><span>oklch(0.47 0.12 29) ≈ #963D2E</span></div>
+      <div class="sw"><i style="background:rgba(28,27,34,0.18)"></i><b>Rule grey</b><span>rgba(28,27,34,.18)</span></div>
+    </div>
+
+    <div class="b-body">
+      <div>
+        <div class="b-col-label">Type specimen</div>
+        <div class="spec">
+          <div class="sp">
+            <div class="sp-l">Display<br>Fraunces 500</div>
+            <div class="c-display">Where were you born, and what’s the first home you remember?</div>
+          </div>
+          <div class="sp">
+            <div class="sp-l">UI<br>Instrument Sans · tabular figures</div>
+            <div class="c-ui">64 entries · 9 sessions · coverage 58% · catalogued yesterday
+              <span class="idx">Index — People — Places — Timeline</span>
+            </div>
+          </div>
+          <div class="sp">
+            <div class="sp-l">Spoken words<br>Fraunces italic</div>
+            <div class="c-spoken">“Apprenticed under his uncle Cor at fourteen; hated the 4 a.m. starts, loved the smell.”</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="comps">
+        <div class="comp">
+          <div class="cp-l">Buttons</div>
+          <div class="cp-row">
+            <span class="c-btn">Start session 10 →</span>
+            <span class="c-btn ghost">Consult the index</span>
+          </div>
+        </div>
+        <div class="comp">
+          <div class="cp-l">Badges</div>
+          <div class="cp-row">
+            <span class="c-badge">Indexed · 64 entries</span>
+            <span class="c-badge red">Needs review</span>
+          </div>
+        </div>
+        <div class="comp">
+          <div class="cp-l">Card — catalogue entry</div>
+          <div class="c-card">
+            <div class="cc-head"><span>De Vries, Henk</span><span>b. 1949 · Rotterdam</span></div>
+            <div class="cc-body">Baker. Rotterdam → Guelph, Ontario. Sixty-four entries across nine sessions; coverage 58 percent and growing.</div>
+            <div class="cc-foot">Series: Dad’s Story · Shelf DV · Last entry: yesterday</div>
+          </div>
+        </div>
+        <div class="comp">
+          <div class="cp-l">Fact — accession style</div>
+          <div class="c-fact">
+            <div class="cf-no">Fact №64 · Session 3 · 04:12</div>
+            <p class="cf-txt">Met Jan, spring 1975, on the Hoek van Holland ferry.</p>
+            <div class="cf-file">Filed under: Meeting Jan — People: Jan · Places: Hoek van Holland</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================================================== 1b HEIRLOOM -->
+<section class="mock-section" id="1b">
+  <div class="mock-label">
+    <span class="tag">1b</span>
+    <h2>Direction — Heirloom</h2>
+    <span class="note">the keepsake direction · soft, kept, handed down · a name not taken</span>
+  </div>
+
+  <div class="board board-heirloom">
+    <div class="ghost-n">02</div>
+    <div class="b-meta">
+      <span>Direction 02 / 03 — Heirloom</span>
+      <span>Newsreader italic + Caveat · faded rose on cream</span>
+    </div>
+
+    <div class="b-hero">
+      <span class="b-annot">for the ones who come after</span>
+      <div class="b-mark">heir<span>loom</span></div>
+      <p class="b-naming"><b>heirloom</b> (n.) — a thing kept in the family and handed down. Not a database, not an archive — a keepsake. Cream paper, faded photo tones, everything rounded like a well-worn album.</p>
+      <div class="b-tagline">“The stories stay.”</div>
+    </div>
+
+    <div class="b-col-label" style="color:var(--hl-sepia); opacity:1;">Palette — faded photo tones</div>
+    <div class="sw-row">
+      <div class="sw"><i style="background:#FBF5EA"></i><b>Cream</b><span>#FBF5EA</span></div>
+      <div class="sw"><i style="background:#F3E9D8"></i><b>Old lace</b><span>#F3E9D8</span></div>
+      <div class="sw"><i style="background:oklch(0.60 0.075 25)"></i><b>Faded rose</b><span>oklch(0.60 0.075 25) ≈ #B37A70</span></div>
+      <div class="sw"><i style="background:#8A705A"></i><b>Sepia</b><span>#8A705A</span></div>
+      <div class="sw"><i style="background:oklch(0.70 0.035 230)"></i><b>Photo blue</b><span>oklch(0.70 0.035 230) ≈ #9AACB9</span></div>
+      <div class="sw"><i style="background:#46392E"></i><b>Warm ink</b><span>#46392E</span></div>
+    </div>
+
+    <div class="b-body">
+      <div>
+        <div class="b-col-label" style="color:var(--hl-sepia); opacity:1;">Type specimen</div>
+        <div class="spec">
+          <div class="sp">
+            <div class="sp-l">Display<br>Newsreader italic 340</div>
+            <div class="hl-display">Tell me about the kitchen you grew up in.</div>
+          </div>
+          <div class="sp">
+            <div class="sp-l">UI<br>Instrument Sans</div>
+            <div class="hl-ui">64 memories kept for the family <span class="soft">· going quiet — visit soon</span></div>
+          </div>
+          <div class="sp">
+            <div class="sp-l">Spoken words<br>Newsreader italic</div>
+            <div class="hl-spoken">“His father wound the shop clock every Saturday; Henk still winds a watch he can’t wear.”</div>
+          </div>
+          <div class="sp">
+            <div class="sp-l">Annotation<br>Caveat</div>
+            <div><span class="hl-annot-spec">add this one to the album →</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="comps">
+        <div class="comp">
+          <div class="cp-l" style="color:var(--hl-sepia); opacity:1;">Buttons</div>
+          <div class="cp-row">
+            <span class="hl-btn">Start talking</span>
+            <span class="hl-btn quiet">Not today</span>
+          </div>
+        </div>
+        <div class="comp">
+          <div class="cp-l" style="color:var(--hl-sepia); opacity:1;">Badges</div>
+          <div class="cp-row">
+            <span class="hl-badge"><i></i>kept safe</span>
+            <span class="hl-badge sepia">from Oma Marta</span>
+          </div>
+        </div>
+        <div class="comp">
+          <div class="cp-l" style="color:var(--hl-sepia); opacity:1;">Card — series keepsake</div>
+          <div class="hl-card">
+            <div class="hlc-kicker">Dad’s Story</div>
+            <p class="hlc-quote">“…especially the Rotterdam years, and how he and Mam built the bakery.”</p>
+            <div class="hlc-meta">64 memories kept · last visit yesterday</div>
+          </div>
+        </div>
+        <div class="comp">
+          <div class="cp-l" style="color:var(--hl-sepia); opacity:1;">Memory — keepsake card</div>
+          <div class="hl-keep">
+            <i class="pc tl"></i><i class="pc bl"></i>
+            <div class="hl-stamp"><span>Nederland</span><b>75c</b><span class="yr">1975</span></div>
+            <div class="hl-ribbon">the ferry story</div>
+            <p class="hlk-txt">Met Jan, spring 1975, on the Hoek van Holland ferry.</p>
+            <div class="hlk-note">kept from Session 3 · in his own voice, 04:12</div>
+            <span class="hlk-hand">his favourite one</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================================================== 1c REFINED -->
+<section class="mock-section" id="1c">
+  <div class="mock-label">
+    <span class="tag">1c</span>
+    <h2>Direction — postaud.io refined</h2>
+    <span class="note">the shipping direction · this file’s own stylesheet, presented at its best</span>
+  </div>
+
+  <div class="board board-refined">
+    <div class="ghost-n">03</div>
+    <div class="b-meta">
+      <span>Direction 03 / 03 — postaud.io</span>
+      <span><span class="badge"><i class="dot-i"></i>Selected — used across all mockups</span></span>
+    </div>
+
+    <div class="b-hero">
+      <div class="b-mark">post<span class="md">·</span><b>aud</b><span class="md">·</span>io</div>
+      <div class="b-gloss">
+        <span><b>post</b> — as in publish</span>
+        <span><b>aud</b> — as in audio</span>
+        <span><b>.io</b> — where it lives</span>
+      </div>
+      <p class="b-naming">Audio goes in; learning comes out; the learning gets posted to something permanent — a memory, a blog, a book, an archive. The transcript is not the product. The growing knowledge base is.</p>
+      <div class="b-tagline">An AI interviewer that builds knowledge through conversation.</div>
+      <div class="b-rule">“Paper for reading, dark only when someone is speaking.”</div>
+    </div>
+
+    <div class="b-col-label" style="color:var(--faint); opacity:1;">Palette — warm paper (spec §5, exact)</div>
+    <div class="sw-row">
+      <div class="sw"><i style="background:#F7F5F0"></i><b>Paper</b><span>#F7F5F0</span></div>
+      <div class="sw"><i style="background:#EFECE6"></i><b>Paper 2</b><span>#EFECE6</span></div>
+      <div class="sw"><i style="background:#FFFFFF"></i><b>Card</b><span>#FFFFFF</span></div>
+      <div class="sw"><i style="background:#211E1A"></i><b>Ink / dark session</b><span>#211E1A</span></div>
+      <div class="sw"><i style="background:#6E675C"></i><b>Muted</b><span>#6E675C</span></div>
+      <div class="sw"><i style="background:oklch(0.52 0.06 165)"></i><b>Green</b><span>oklch(0.52 0.06 165) ≈ #3D7562</span></div>
+      <div class="sw"><i style="background:oklch(0.72 0.08 165)"></i><b>Mint (on dark)</b><span>oklch(0.72 0.08 165) ≈ #6FB597</span></div>
+      <div class="sw"><i style="background:oklch(0.50 0.10 50)"></i><b>Amber (staleness)</b><span>oklch(0.50 0.10 50) ≈ #96603B</span></div>
+    </div>
+
+    <div class="b-body">
+      <div>
+        <div class="b-col-label" style="color:var(--faint); opacity:1;">Type specimen</div>
+        <div class="spec">
+          <div class="sp">
+            <div class="sp-l">Display<br>Newsreader 500</div>
+            <div class="r-display">You grew up above a bakery. What’s the earliest job you remember doing in the shop?</div>
+          </div>
+          <div class="sp">
+            <div class="sp-l">UI<br>Instrument Sans</div>
+            <div class="r-ui">64 memories · 9 sessions · coverage 58% <span class="m">· last session yesterday</span></div>
+          </div>
+          <div class="sp">
+            <div class="sp-l">Spoken words<br>Newsreader italic</div>
+            <div class="spoken">“Sold the Rotterdam bakery and moved the family to Canada in October 1988.”</div>
+          </div>
+        </div>
+
+        <div class="r-duo">
+          <div class="card r-lt">
+            <div class="duo-l">Everywhere else — paper</div>
+            <div class="fact" style="border-bottom:none; padding-bottom:0;">
+              <span class="f-dot"></span>
+              <div>
+                <div class="f-txt">Grew up above the bakery on Meent straat, Rotterdam — third of five children.</div>
+                <div class="f-meta">Childhood in Rotterdam · Session 1 · 01:38</div>
+              </div>
+            </div>
+          </div>
+          <div class="r-dark">
+            <div class="duo-l">Live session — dark</div>
+            <div class="mini-orb"></div>
+            <div class="listening">Anna is listening</div>
+            <div class="spoken">“…we crossed at night, and the lights of the harbour…”</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="comps">
+        <div class="comp">
+          <div class="cp-l" style="color:var(--faint); opacity:1;">Buttons</div>
+          <div class="cp-row">
+            <span class="btn btn-primary">Start interview</span>
+            <span class="btn">Export</span>
+            <span class="btn btn-ghost">Not today</span>
+          </div>
+        </div>
+        <div class="comp">
+          <div class="cp-l" style="color:var(--faint); opacity:1;">Badges</div>
+          <div class="cp-row">
+            <span class="badge"><i class="dot-i"></i>On track</span>
+            <span class="badge badge-amber"><i class="dot-i"></i>going stale — interview soon</span>
+            <span class="badge badge-muted">Viewer</span>
+          </div>
+        </div>
+        <div class="comp">
+          <div class="cp-l" style="color:var(--faint); opacity:1;">Card — series</div>
+          <div class="card card-pad">
+            <h3>Dad’s Story</h3>
+            <div class="small muted mb-1">Henk de Vries · my father · 64 memories · 9 sessions</div>
+            <div class="cov-row"><div class="cov"><i style="width:58%"></i></div><span class="pct">58%</span></div>
+          </div>
+        </div>
+        <div class="comp">
+          <div class="cp-l" style="color:var(--faint); opacity:1;">Fact row</div>
+          <div class="card card-pad" style="padding-top:8px; padding-bottom:8px;">
+            <div class="fact" style="border-bottom:none;">
+              <span class="f-dot"></span>
+              <div>
+                <div class="f-txt">Met Jan, spring 1975, on the Hoek van Holland ferry.</div>
+                <div class="f-meta">Meeting Jan · Session 3 · 04:12</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="comp">
+          <div class="cp-l" style="color:var(--faint); opacity:1;">The system in use</div>
+          <div class="r-links" style="margin-top:0;">
+            <a class="chip" href="Postaudio%20Login.dc.html">Login</a>
+            <a class="chip" href="Postaudio%20Admin.dc.html">Admin &amp; setup</a>
+            <a class="chip" href="Postaudio%20Mockups.dc.html">Core loop</a>
+            <a class="chip" href="Postaudio%20Mobile.dc.html">Mobile</a>
+            <a class="chip" href="Postaudio%20Superadmin.dc.html">Operator</a>
+            <a class="chip" href="Postaudio%20Flowchart.dc.html">Screen map</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================================================== COMPARE -->
+<section class="mock-section" id="compare">
+  <div class="mock-label">
+    <span class="tag">compare</span>
+    <h2>The same memory, three ways</h2>
+    <span class="note">one flagship fact — the ferry story — rendered in each direction</span>
+  </div>
+
+  <div class="cmp-grid">
+    <div class="cmp board-corpus">
+      <div class="c-fact">
+        <div class="cf-no">Fact №64 · Session 3 · 04:12</div>
+        <p class="cf-txt">Met Jan, spring 1975, on the Hoek van Holland ferry.</p>
+        <div class="cf-file">Filed under: Meeting Jan</div>
+      </div>
+      <div class="cmp-foot">1a — Corpus · catalogued</div>
+    </div>
+
+    <div class="cmp board-heirloom">
+      <div class="hl-keep">
+        <i class="pc tl"></i><i class="pc bl"></i>
+        <div class="hl-stamp"><span>Nederland</span><b>75c</b><span class="yr">1975</span></div>
+        <div class="hl-ribbon">the ferry story</div>
+        <p class="hlk-txt">Met Jan, spring 1975, on the Hoek van Holland ferry.</p>
+        <div class="hlk-note">kept from Session 3 · 04:12</div>
+      </div>
+      <div class="cmp-foot">1b — Heirloom · kept</div>
+    </div>
+
+    <div class="cmp board-refined">
+      <div class="card card-pad" style="padding-top:10px; padding-bottom:10px;">
+        <div class="fact" style="border-bottom:none;">
+          <span class="f-dot"></span>
+          <div>
+            <div class="f-txt">Met Jan, spring 1975, on the Hoek van Holland ferry.</div>
+            <div class="f-meta">Meeting Jan · Session 3 · 04:12 · <a href="#">That’s right</a> · <a href="#">Fix a detail</a></div>
+          </div>
+        </div>
+      </div>
+      <div class="cmp-foot">1c — postaud.io · shipped</div>
+    </div>
+  </div>
+</section>
+
+<footer class="doc-footer">
+  postaud.io — V1 mockups · warm paper system · Newsreader + Instrument Sans
+</footer>
+
+</body>
+</html>
