@@ -1,12 +1,312 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, EntityKind, InterviewMessage, Topic } from "@/db/types";
+import { serviceClient } from "@/db/service";
+import { extractKnowledge } from "@/server/ai/extract";
+import type { Extraction } from "@/server/ai/extract";
+
+const MODEL = "claude-sonnet-5";
+
+/** Minimum subject turns for the "every session must add facts" invariant (spec §7). */
+const MIN_SUBJECT_TURNS_FOR_FACT_INVARIANT = 4;
+
+type Db = SupabaseClient<Database>;
+
+class NoFactsError extends Error {
+  constructor() {
+    super("no_facts");
+    this.name = "NoFactsError";
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Stage 1: load + extract + invariant guard
+// ---------------------------------------------------------------------------
+
+async function runPipeline(db: Db, interviewId: string): Promise<void> {
+  const { data: interview, error: ivErr } = await db
+    .from("interviews")
+    .select("id, series_id, status")
+    .eq("id", interviewId)
+    .maybeSingle();
+  if (ivErr) throw new Error(ivErr.message);
+  if (!interview) throw new Error(`interview ${interviewId} not found`);
+
+  // Idempotency: already processed → no-op. Anything not yet `completed`
+  // (in_progress, abandoned) isn't ours to process either.
+  if (interview.status === "processed") return;
+  if (interview.status !== "completed") {
+    console.warn(`[process-interview] ${interviewId} is '${interview.status}', skipping`);
+    return;
+  }
+
+  const [{ data: series, error: sErr }, { data: topics, error: tErr }, { data: messages, error: mErr }] =
+    await Promise.all([
+      db.from("series").select("id, goal, subject_name").eq("id", interview.series_id).maybeSingle(),
+      db.from("topics").select("*").eq("series_id", interview.series_id),
+      db
+        .from("interview_messages")
+        .select("id, role, text, t_offset_sec, seq")
+        .eq("interview_id", interviewId)
+        .order("seq", { ascending: true }),
+    ]);
+  if (sErr) throw new Error(sErr.message);
+  if (!series) throw new Error(`series ${interview.series_id} not found`);
+  if (tErr) throw new Error(tErr.message);
+  if (mErr) throw new Error(mErr.message);
+
+  const transcript = (messages ?? []).map((m) => ({
+    id: m.id,
+    role: m.role,
+    text: m.text,
+    tOffsetSec: m.t_offset_sec,
+  }));
+  if (transcript.length === 0) throw new Error(`interview ${interviewId} has no transcript messages`);
+
+  const extractInput = {
+    seriesGoal: series.goal,
+    subjectName: series.subject_name,
+    topics: (topics ?? []).map((t) => ({ name: t.name, description: t.description ?? undefined })),
+    transcript,
+  };
+
+  let extraction = await extractKnowledge(extractInput);
+
+  // Invariant guard (spec §7 "every session must add facts"): a real
+  // conversation (≥4 subject turns) that yields zero facts gets one forced
+  // retry; if the model still refuses, record no_facts and leave the row
+  // `completed` for the tick to retry later.
+  const subjectTurns = transcript.filter((m) => m.role === "subject").length;
+  if (extraction.facts.length === 0 && subjectTurns >= MIN_SUBJECT_TURNS_FOR_FACT_INVARIANT) {
+    extraction = await extractKnowledge(extractInput, {
+      extraInstruction:
+        "You must extract at least one fact from this transcript. The subject spoke at length — there is " +
+        "always at least one concrete, atomic claim or event in what they said. Find it.",
+    });
+    if (extraction.facts.length === 0) throw new NoFactsError();
+  }
+
+  await persistExtraction(db, {
+    interviewId,
+    seriesId: interview.series_id,
+    extraction,
+    existingTopics: (topics ?? []) as Topic[],
+    messages: (messages ?? []) as Pick<InterviewMessage, "id" | "role" | "text" | "t_offset_sec" | "seq">[],
+  });
+
+  // Mark processed, guarded on the still-completed state; clear any stale error.
+  const { error: doneErr } = await db
+    .from("interviews")
+    .update({ status: "processed", process_error: null })
+    .eq("id", interviewId)
+    .eq("status", "completed");
+  if (doneErr) throw new Error(doneErr.message);
+}
+
+// ---------------------------------------------------------------------------
+// Stage 2: persist — summaries, topics, facts, entities, coverage
+// ---------------------------------------------------------------------------
+
+const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
+
+type PersistArgs = {
+  interviewId: string;
+  seriesId: string;
+  extraction: Extraction;
+  existingTopics: Topic[];
+  messages: Pick<InterviewMessage, "id" | "role" | "text" | "t_offset_sec" | "seq">[];
+};
+
+async function persistExtraction(db: Db, args: PersistArgs): Promise<void> {
+  const { interviewId, seriesId, extraction, existingTopics, messages } = args;
+
+  // 1) Summary first — it's what the recap page polls for, so it lands ASAP.
+  const { error: sumErr } = await db.from("interview_summaries").upsert(
+    {
+      interview_id: interviewId,
+      short: extraction.summary.short,
+      long: extraction.summary.long,
+      bullets: extraction.summary.bullets,
+      model: MODEL,
+    },
+    { onConflict: "interview_id" },
+  );
+  if (sumErr) throw new Error(sumErr.message);
+
+  // 2) Topics: name → id map, creating rows for topic names the model
+  // introduced. Fact-bearing topics are real covered topics (suggested:false);
+  // the model's future-session ideas go in as suggested:true — both appended
+  // after the current max position. Names are matched case-insensitively so a
+  // model's "childhood" doesn't duplicate an existing "Childhood".
+  const topicIdByKey = new Map<string, string>(existingTopics.map((t) => [t.name.trim().toLowerCase(), t.id]));
+  let nextPosition = existingTopics.reduce((max, t) => Math.max(max, t.position), -1) + 1;
+
+  const newTopicRows: Database["public"]["Tables"]["topics"]["Insert"][] = [];
+  const queueTopic = (name: string, description: string | null, suggested: boolean) => {
+    const key = name.trim().toLowerCase();
+    if (topicIdByKey.has(key) || newTopicRows.some((r) => r.name.trim().toLowerCase() === key)) return;
+    newTopicRows.push({ series_id: seriesId, name: name.trim(), description, suggested, position: nextPosition++ });
+  };
+  for (const fact of extraction.facts) queueTopic(fact.topic, null, false);
+  for (const t of extraction.suggestedTopics) queueTopic(t.name, t.description, true);
+
+  if (newTopicRows.length > 0) {
+    const { data: inserted, error: topErr } = await db.from("topics").insert(newTopicRows).select("id, name");
+    if (topErr) throw new Error(topErr.message);
+    for (const t of inserted ?? []) topicIdByKey.set(t.name.trim().toLowerCase(), t.id);
+  }
+
+  // 3) Facts — kept in one function Task 13 wraps with merge/dedupe.
+  const factIds = await insertFacts(db, { interviewId, seriesId, extraction, topicIdByKey, messages });
+
+  // 4) Entities + fact_entities links.
+  await linkEntities(db, seriesId, extraction, factIds);
+
+  // 5) Coverage: only topics that exist (including ones just created), clamped 0..1.
+  for (const c of extraction.coverage) {
+    const topicId = topicIdByKey.get(c.topic.trim().toLowerCase());
+    if (!topicId) continue;
+    const { error: covErr } = await db
+      .from("topics")
+      .update({ coverage_score: clamp01(c.score) })
+      .eq("id", topicId);
+    if (covErr) throw new Error(covErr.message);
+  }
+}
+
 /**
- * Post-interview processing pipeline entry point.
+ * Direct fact insert — Task 13 replaces/wraps this with merge-aware dedupe.
+ * Returns the new fact ids in the same order as `extraction.facts`.
+ */
+async function insertFacts(
+  db: Db,
+  args: {
+    interviewId: string;
+    seriesId: string;
+    extraction: Extraction;
+    topicIdByKey: Map<string, string>;
+    messages: PersistArgs["messages"];
+  },
+): Promise<string[]> {
+  const { interviewId, seriesId, extraction, topicIdByKey, messages } = args;
+  if (extraction.facts.length === 0) return [];
+
+  const messageById = new Map(messages.map((m) => [m.id, m]));
+  const rows: Database["public"]["Tables"]["facts"]["Insert"][] = extraction.facts.map((f) => {
+    // Validate the model's citation: only ids that exist in this transcript
+    // count (a hallucinated id would violate the FK), and the audio offset
+    // comes from that message's recorded position.
+    const source = f.sourceMessageId ? messageById.get(f.sourceMessageId) : undefined;
+    return {
+      series_id: seriesId,
+      topic_id: topicIdByKey.get(f.topic.trim().toLowerCase()) ?? null,
+      source_interview_id: interviewId,
+      source_message_id: source?.id ?? null,
+      audio_offset_sec: source?.t_offset_sec ?? null,
+      statement: f.statement,
+      confidence: clamp01(f.confidence),
+      status: "active",
+    };
+  });
+
+  const { data, error } = await db.from("facts").insert(rows).select("id");
+  if (error) throw new Error(error.message);
+  const ids = (data ?? []).map((r) => r.id);
+  if (ids.length !== rows.length) throw new Error("facts insert returned an unexpected row count");
+  return ids;
+}
+
+/** Upserts entities on (series_id, kind, name) and links them to their facts. */
+async function linkEntities(db: Db, seriesId: string, extraction: Extraction, factIds: string[]): Promise<void> {
+  const entityKey = (kind: EntityKind, name: string) => `${kind} ${name.trim().toLowerCase()}`;
+
+  const uniqueEntities = new Map<string, { kind: EntityKind; name: string }>();
+  for (const fact of extraction.facts) {
+    for (const e of fact.entities) {
+      const key = entityKey(e.kind, e.name);
+      if (!uniqueEntities.has(key)) uniqueEntities.set(key, { kind: e.kind, name: e.name.trim() });
+    }
+  }
+  if (uniqueEntities.size === 0) return;
+
+  const { data: entityRows, error: entErr } = await db
+    .from("entities")
+    .upsert(
+      [...uniqueEntities.values()].map((e) => ({ series_id: seriesId, kind: e.kind, name: e.name })),
+      { onConflict: "series_id,kind,name" },
+    )
+    .select("id, kind, name");
+  if (entErr) throw new Error(entErr.message);
+
+  const entityIdByKey = new Map((entityRows ?? []).map((e) => [entityKey(e.kind, e.name), e.id]));
+
+  const links: Database["public"]["Tables"]["fact_entities"]["Insert"][] = [];
+  extraction.facts.forEach((fact, i) => {
+    const factId = factIds[i];
+    if (!factId) return;
+    for (const e of fact.entities) {
+      const entityId = entityIdByKey.get(entityKey(e.kind, e.name));
+      if (entityId && !links.some((l) => l.fact_id === factId && l.entity_id === entityId)) {
+        links.push({ fact_id: factId, entity_id: entityId });
+      }
+    }
+  });
+  if (links.length === 0) return;
+
+  const { error: linkErr } = await db.from("fact_entities").upsert(links, { onConflict: "fact_id,entity_id" });
+  if (linkErr) throw new Error(linkErr.message);
+}
+
+// ---------------------------------------------------------------------------
+// Entry point
+// ---------------------------------------------------------------------------
+
+/**
+ * Post-interview knowledge pipeline: transcript → facts / entities / summary /
+ * coverage. Called fire-and-forget by the complete route (which `.catch()`es),
+ * and later retried by the tick for rows left in `completed` with a
+ * `process_error`.
  *
- * PLACEHOLDER (Task 10): the real body — transcribing/segmenting the audio,
- * extracting facts, updating topic coverage, writing the recap summary — lands
- * in Task 12, which replaces this function. Until then it's a no-op so the
- * complete route can call it fire-and-forget without a hard dependency on the
- * pipeline existing yet.
+ * Behavior contract:
+ * - Idempotent: an already-`processed` interview is a no-op.
+ * - Invariant guard (spec §7): a transcript with ≥4 subject turns must yield
+ *   at least one fact — one forced retry, then `process_error='no_facts'`
+ *   with status left `completed` so the tick can retry.
+ * - On any other failure: records `process_error` + increments
+ *   `process_attempts` in the DB, then rethrows (callers already .catch()).
  */
 export async function processInterview(interviewId: string): Promise<void> {
-  console.log(`[process-interview] placeholder invoked for interview ${interviewId} — pipeline arrives in Task 12`);
+  const db = serviceClient();
+  try {
+    await runPipeline(db, interviewId);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    await recordProcessError(db, interviewId, message);
+    if (err instanceof NoFactsError) {
+      // Soft-fail: recorded as no_facts for the tick to retry; don't blow up
+      // the fire-and-forget caller's error log with an expected state.
+      console.warn(`[process-interview] ${interviewId}: extraction produced zero facts, left for retry`);
+      return;
+    }
+    throw err;
+  }
+}
+
+/** Best-effort error bookkeeping — never throws (we're already on the error path). */
+async function recordProcessError(db: Db, interviewId: string, message: string): Promise<void> {
+  try {
+    const { data } = await db
+      .from("interviews")
+      .select("process_attempts")
+      .eq("id", interviewId)
+      .maybeSingle();
+    await db
+      .from("interviews")
+      .update({
+        process_error: message.slice(0, 500),
+        process_attempts: (data?.process_attempts ?? 0) + 1,
+      })
+      .eq("id", interviewId);
+  } catch (recordErr) {
+    console.error(`[process-interview] failed to record process_error for ${interviewId}:`, recordErr);
+  }
 }
