@@ -212,7 +212,10 @@ handle this in both directions.
 - `unpackStash(chunks) → pairs` — inverse
 - Written as `pa_op_prev.0 … pa_op_prev.N`, all `httpOnly`, `secure` in prod,
   `sameSite=lax`
-- `readImpersonation(cookies)` — decode `pa_op_imp`, return null if absent/invalid
+- `readImpersonation(cookies)` — decode `pa_op_imp`, return null if absent/invalid.
+  Expired sessions are still returned, paired with `isExpired(session, now)` —
+  hiding an expired session would take the Exit button away from the one
+  operator who most needs it.
 
 Round-tripping `pack`/`unpack` is the highest-value unit test in this change —
 if chunking is wrong, exit strands the operator inside a customer's account.
@@ -286,7 +289,8 @@ in `src/server/**/__tests__/`):
   multiple chunks, and a single-chunk payload
 - `collectAuthCookies` picks up both chunked and unchunked Supabase cookie names
   and ignores unrelated cookies
-- `readImpersonation` returns null on absent, malformed, and expired cookies
+- `readImpersonation` returns null on absent and malformed cookies, but still
+  returns an expired session; `isExpired` flags it
 - `listPlatformUsers` row shaping: multi-org membership, unaccepted membership,
   a user who is the subject of series, a user with no activity
 - `getPlatformUserDetail` returns null for an unknown id
