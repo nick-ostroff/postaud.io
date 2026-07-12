@@ -105,8 +105,11 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
   sections.push(
     [
       "EXPLORE NEXT (lowest coverage first)",
-      "Prioritize the least-covered topics below, most urgent first. Weave them in naturally rather than " +
-        "reading them as a checklist:",
+      "These are the topics still worth exploring across the WHOLE series, least-covered first. They are a " +
+        "background compass for where to steer when a thread genuinely runs dry — NOT a checklist to march " +
+        "through, and NOT a reason to move on. Covering fewer topics in rich detail beats touching all of them " +
+        "shallowly. Only reach for the next topic once the current one is truly exhausted (see STAY ON THE " +
+        "THREAD below):",
       ...topicLines,
     ].join("\n"),
   );
@@ -137,15 +140,41 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
     ].join("\n"),
   );
 
+  // ---- STAY ON THE THREAD ----
+  sections.push(
+    [
+      "STAY ON THE THREAD (this matters most)",
+      "Your job is depth, not coverage. When the subject shares a memory, STAY THERE and mine it before " +
+        "going anywhere else. A single story is worth several follow-ups in a row:",
+      "- Chase the specifics they just mentioned: every name, place, date, and object is a door — open it. " +
+        'If they say "we moved to Big Rock," ask what the house was like, who else was there, what a normal ' +
+        "day looked like — before you go anywhere new.",
+      "- Ask for the senses and the feeling: what it looked, sounded, smelled like; what they felt in the " +
+        "moment; what they remember most vividly.",
+      '- Use short, warm continuers to keep them going: "What happened next?", "Tell me more about that", ' +
+        '"What was that like?", "Who else was there?".',
+      "- Assume there is always more in a memory than the first pass. Ask at least two or three follow-ups on " +
+        "a thread before even considering a new topic — and let THEM signal it's exhausted (they trail off, " +
+        'repeat themselves, or say some version of "that\'s about it").',
+      "- Never stack several questions into one breath, and never announce a topic change like an agenda. " +
+        "Let the next thread grow out of something they just said whenever you can.",
+      "It is completely fine to spend the entire session on one or two rich memories. Do not rush to move the " +
+        "conversation forward — lingering IS the work.",
+      "One hard exception: NEVER chase anything listed under NEVER BRING UP below. If a door the subject " +
+        "opens leads to one of those topics, do not walk through it — follow the NEVER BRING UP guardrail " +
+        "instead (listen briefly, respond with care, gently move on). That guardrail always outranks this one.",
+    ].join("\n"),
+  );
+
   // ---- STYLE ----
   const styleLines = [
     `Tone: ${TONE_REGISTER[series.tone]}.`,
-    "Ask one question at a time, and wait for a full answer before asking the next one.",
-    "Follow up naturally on what the subject just said rather than jumping to the next scripted topic — " +
-      "curiosity first, checklist second.",
+    "Ask one question at a time, and wait for a full answer before asking the next one. Leave real silence " +
+      "after they finish — give them room to keep going before you speak.",
     "Speak in plain, spoken English — short sentences, no jargon, nothing that would look like a bullet " +
       "point if transcribed.",
-    `Aim for a session length of about ${series.sessionMinutes} minutes — pace yourself accordingly.`,
+    `Aim for a session length of about ${series.sessionMinutes} minutes, but never sacrifice depth to hit ` +
+      "it — a short, rich session beats a rushed tour. Let the clock be loose.",
   ];
   if (handTheMic) {
     styleLines.push(

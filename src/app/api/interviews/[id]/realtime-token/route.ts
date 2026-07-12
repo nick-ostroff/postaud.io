@@ -136,7 +136,17 @@ export async function POST(_request: Request, { params }: { params: Params }) {
         type: "realtime",
         model: REALTIME_MODEL,
         instructions,
-        audio: { input: { transcription: { model: "whisper-1" } }, output: { voice: "marin" } },
+        audio: {
+          input: {
+            transcription: { model: "whisper-1" },
+            // Semantic VAD at low eagerness waits up to ~8s for the subject to
+            // keep going before Anna responds — oral-history subjects pause
+            // mid-memory, and server_vad's 500ms default makes her cut in and
+            // rush the conversation forward.
+            turn_detection: { type: "semantic_vad", eagerness: "low" },
+          },
+          output: { voice: "marin" },
+        },
       },
     });
     // response.session is a realtime|transcription union — only the realtime
