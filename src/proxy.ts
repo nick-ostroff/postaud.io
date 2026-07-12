@@ -34,10 +34,16 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Gate /super — non-admins get 404, never 403. We return 404 rather than
-  // redirecting so the console's existence is not disclosed. /admin no longer
-  // exists and is left to 404 naturally, which leaks nothing about the new path.
-  if (request.nextUrl.pathname.startsWith("/super") || request.nextUrl.pathname.startsWith("/api/super")) {
+  // Gate /super and /api/super — non-admins get 404, never 403. We return 404
+  // rather than redirecting so the console's existence is not disclosed.
+  //
+  // EXCEPTION: the impersonation exit route must stay reachable while
+  // impersonating, when the caller's session belongs to the target user and is
+  // NOT an admin. It authorizes on possession of the `pa_op_prev` cookie
+  // instead — safe, because that cookie is a session the caller already had.
+  const path = request.nextUrl.pathname;
+  const isExitRoute = path === "/api/super/impersonate/exit";
+  if ((path.startsWith("/super") || path.startsWith("/api/super")) && !isExitRoute) {
     // Intentionally NOT using platformAdminEmails() from @/lib/env —
     // middleware runtime can't carry Zod. Keep in sync with src/lib/env.ts.
     const adminEmails = (process.env.PLATFORM_ADMIN_EMAILS ?? "")
