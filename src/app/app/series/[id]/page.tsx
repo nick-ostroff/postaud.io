@@ -15,6 +15,7 @@ import {
   listInterviewsForSeries,
 } from "@/db/queries";
 import { ExportCard } from "./ExportCard";
+import { PendingSummaryRefresher } from "./PendingSummaryRefresher";
 import { PromoteChip } from "./PromoteChip";
 import { ReprocessButton } from "./ReprocessButton";
 
@@ -92,12 +93,20 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
     .filter((t) => t.statement)
     .slice(-3);
 
+  // A visible session without a summary is still being processed — mount the
+  // poller so the page updates itself once the pipeline lands. Errored
+  // sessions are excluded: their summary isn't coming without a reprocess.
+  const summaryPending = sessions
+    .slice(0, VISIBLE_SESSIONS)
+    .some((s) => s.summaryShort == null && !s.processError);
+
   const subjectSubtitle = series.subject_relationship
     ? `${series.subject_name} · ${series.subject_relationship}`
     : series.subject_name;
 
   return (
     <div>
+      {summaryPending && <PendingSummaryRefresher />}
       <div className="mb-2 text-[12.5px] text-faint">
         <Link href="/app" className="text-muted">
           Home

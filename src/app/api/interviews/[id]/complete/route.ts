@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { serviceClient } from "@/db/service";
 import { authorizeInterview, InterviewAuthError } from "@/server/interviews/authorize";
@@ -42,14 +42,20 @@ export async function POST(request: Request, { params }: { params: Params }) {
       durationSec: parsed.data.durationSec,
     });
 
-    // Fire-and-forget: never block the user's redirect on the pipeline, and
-    // never let a pipeline error surface as a failed completion. Only fire on
-    // the transition that actually completed the interview — a retried POST
-    // that finds it already completed must not re-fire the pipeline (that's
-    // how two concurrent runs would otherwise both extract facts).
+    // Post-response, not fire-and-forget: `after()` keeps the serverless
+    // instance alive past the response, so the pipeline actually finishes
+    // instead of being frozen mid-flight when the response is sent (a bare
+    // `void` promise died here every time; the cron sweep remains the
+    // backstop). Never blocks the user's redirect, and a pipeline error never
+    // surfaces as a failed completion. Only fires on the transition that
+    // actually completed the interview — a retried POST that finds it already
+    // completed must not re-fire the pipeline (that's how two concurrent runs
+    // would otherwise both extract facts).
     if (!result.alreadyCompleted) {
-      void processInterview(id).catch((e) => {
-        console.error(`[complete] processInterview failed for ${id}:`, e);
+      after(async () => {
+        await processInterview(id).catch((e) => {
+          console.error(`[complete] processInterview failed for ${id}:`, e);
+        });
       });
     }
 
