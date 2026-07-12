@@ -40,6 +40,13 @@ export async function primaryOrgId(targetUserId: string): Promise<string | null>
   return data?.organization_id ?? null;
 }
 
+/**
+ * Throws if the row can't be written. supabase-js `.insert()` RESOLVES with
+ * `{ error }` rather than rejecting, so the old fire-and-forget `await insert()`
+ * swallowed every failure and the caller happily handed over the target's
+ * session — a fully working, completely UNLOGGED impersonation. The start route
+ * fails closed on this throw.
+ */
 export async function logImpersonationStart(a: {
   adminEmail: string;
   targetUserId: string;
@@ -47,7 +54,7 @@ export async function logImpersonationStart(a: {
   organizationId: string | null;
 }): Promise<void> {
   const svc = serviceClient();
-  await svc.from("audit_logs").insert({
+  const { error } = await svc.from("audit_logs").insert({
     organization_id: a.organizationId,
     target_type: "user",
     target_id: a.targetUserId,
@@ -55,8 +62,16 @@ export async function logImpersonationStart(a: {
     actor_email: a.adminEmail,
     meta: { targetEmail: a.targetEmail },
   });
+  if (error) {
+    throw new Error(`Failed to write impersonation_started audit row: ${error.message}`);
+  }
 }
 
+/**
+ * Reports failures to the caller, which deliberately does NOT fail closed: a
+ * broken end-log must never block the operator from escaping the customer's
+ * account. Exit logs the error and restores the session regardless.
+ */
 export async function logImpersonationEnd(a: {
   adminEmail: string;
   targetUserId: string;
@@ -64,11 +79,14 @@ export async function logImpersonationEnd(a: {
   durationSeconds: number;
 }): Promise<void> {
   const svc = serviceClient();
-  await svc.from("audit_logs").insert({
+  const { error } = await svc.from("audit_logs").insert({
     target_type: "user",
     target_id: a.targetUserId,
     action: "admin.impersonation_ended",
     actor_email: a.adminEmail,
     meta: { targetEmail: a.targetEmail, durationSeconds: a.durationSeconds },
   });
+  if (error) {
+    console.error("[impersonate] failed to write impersonation_ended audit row", error);
+  }
 }

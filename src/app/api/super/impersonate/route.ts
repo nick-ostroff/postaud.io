@@ -5,7 +5,9 @@ import {
   collectAuthCookies,
   encodeSession,
   IMP_COOKIE,
+  OPERATOR_COOKIE_MAX_AGE,
   packStash,
+  prevChunkNames,
 } from "@/lib/auth/impersonation";
 import { logImpersonationStart, mintSessionToken, primaryOrgId } from "@/server/super/impersonate";
 
@@ -64,14 +66,30 @@ export async function POST(req: NextRequest) {
   }
 
   const secure = process.env.NODE_ENV === "production";
-  for (const chunk of packStash(prevAuth)) {
+
+  // The stash holds an admin session, so it stays httpOnly. The 8h maxAge keeps
+  // Exit reachable after a browser restart — without it these were session
+  // cookies while the target's Supabase cookie persists for 400 days, so closing
+  // the browser mid-impersonation reopened INSIDE the customer's account with no
+  // banner and no way out.
+  const stash = packStash(prevAuth);
+  for (const chunk of stash) {
     response.cookies.set(chunk.name, chunk.value, {
       httpOnly: true,
       secure,
       sameSite: "lax",
       path: "/",
+      maxAge: OPERATOR_COOKIE_MAX_AGE,
     });
   }
+
+  // Drop any stale stash chunks from a previous, longer impersonation that this
+  // stash doesn't overwrite — leftovers would corrupt the base64 concatenation.
+  const fresh = new Set(stash.map((c) => c.name));
+  for (const name of prevChunkNames(req.cookies.getAll().map((c) => ({ name: c.name, value: c.value })))) {
+    if (!fresh.has(name)) response.cookies.delete(name);
+  }
+
   response.cookies.set(
     IMP_COOKIE,
     encodeSession({
@@ -80,15 +98,23 @@ export async function POST(req: NextRequest) {
       targetEmail: minted.email,
       startedAt: Date.now(),
     }),
-    { httpOnly: true, secure, sameSite: "lax", path: "/" },
+    { httpOnly: true, secure, sameSite: "lax", path: "/", maxAge: OPERATOR_COOKIE_MAX_AGE },
   );
 
-  await logImpersonationStart({
-    adminEmail,
-    targetUserId: userId,
-    targetEmail: minted.email,
-    organizationId: await primaryOrgId(userId),
-  });
+  // Fail CLOSED: an impersonation that isn't in the audit log must not happen.
+  // The target's cookies live only on `response`, so aborting here costs nothing
+  // and leaves the operator's own session untouched.
+  try {
+    await logImpersonationStart({
+      adminEmail,
+      targetUserId: userId,
+      targetEmail: minted.email,
+      organizationId: await primaryOrgId(userId),
+    });
+  } catch (err) {
+    console.error("[impersonate] audit write failed; refusing to start session", err);
+    return NextResponse.json({ ok: false, error: "Could not record impersonation" }, { status: 500 });
+  }
 
   return response;
 }

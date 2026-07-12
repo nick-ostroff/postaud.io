@@ -89,9 +89,13 @@ describe("readImpersonation", () => {
     startedAt: 1_700_000_000_000,
   };
 
-  it("round-trips an encoded session", () => {
+  it("round-trips a validly signed session", () => {
     const all: CookiePair[] = [{ name: "pa_op_imp", value: encodeSession(session) }];
     expect(readImpersonation(all)).toEqual(session);
+  });
+
+  it("emits a payload.signature pair, not a bare payload", () => {
+    expect(encodeSession(session).split(".")).toHaveLength(2);
   });
 
   it("returns null when absent", () => {
@@ -103,8 +107,37 @@ describe("readImpersonation", () => {
   });
 
   it("returns null when fields are missing", () => {
-    const value = Buffer.from(JSON.stringify({ adminEmail: "a@b.c" })).toString("base64url");
+    const payload = Buffer.from(JSON.stringify({ adminEmail: "a@b.c" })).toString("base64url");
+    // Correctly signed, but structurally incomplete.
+    const signed = encodeSession(session);
+    const value = `${payload}.${signed.split(".")[1]}`;
     expect(readImpersonation([{ name: "pa_op_imp", value }])).toBeNull();
+  });
+
+  it("rejects an UNSIGNED cookie — the audit-forgery payload", () => {
+    // Exactly what an attacker with no session and no admin can craft: a bare
+    // base64url payload naming any admin as the actor. The exit route feeds this
+    // into audit_logs with service-role privileges, so it must not be trusted.
+    const forged = Buffer.from(
+      JSON.stringify({ ...session, adminEmail: "framed@pixelocity.com" }),
+      "utf8",
+    ).toString("base64url");
+    expect(readImpersonation([{ name: "pa_op_imp", value: forged }])).toBeNull();
+  });
+
+  it("rejects a tampered payload carrying a valid signature for a DIFFERENT payload", () => {
+    const [, signature] = encodeSession(session).split(".");
+    const tampered = Buffer.from(
+      JSON.stringify({ ...session, adminEmail: "framed@pixelocity.com" }),
+      "utf8",
+    ).toString("base64url");
+    expect(readImpersonation([{ name: "pa_op_imp", value: `${tampered}.${signature}` }])).toBeNull();
+  });
+
+  it("rejects a garbage signature on an otherwise valid payload", () => {
+    const [payload] = encodeSession(session).split(".");
+    expect(readImpersonation([{ name: "pa_op_imp", value: `${payload}.deadbeef` }])).toBeNull();
+    expect(readImpersonation([{ name: "pa_op_imp", value: `${payload}.` }])).toBeNull();
   });
 
   it("still returns an expired session so the operator can exit", () => {

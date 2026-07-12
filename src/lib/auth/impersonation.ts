@@ -12,11 +12,28 @@
  * that in both directions, which is what packStash/unpackStash are for.
  */
 
+import { createHmac, timingSafeEqual } from "node:crypto";
+import { env } from "@/lib/env";
+
 export const IMP_COOKIE = "pa_op_imp";
 export const PREV_COOKIE = "pa_op_prev";
 
 /** Operator sessions expire after an hour so the stashed refresh token can't go stale. */
 export const MAX_IMPERSONATION_MS = 60 * 60 * 1000;
+
+/**
+ * Lifetime of the operator-only cookies (`pa_op_prev.*`, `pa_op_imp`).
+ *
+ * Deliberately LONGER than MAX_IMPERSONATION_MS: isExpired() drives the
+ * banner's expired *state*, but the operator must always retain the ability to
+ * escape. If these were session cookies (the old behaviour) closing the browser
+ * mid-impersonation would strand the operator inside the customer's account,
+ * because the target's Supabase cookie persists for 400 days.
+ */
+export const OPERATOR_COOKIE_MAX_AGE = 8 * 60 * 60;
+
+/** Mirrors @supabase/ssr's DEFAULT_COOKIE_OPTIONS.maxAge so restore doesn't downgrade the login. */
+export const AUTH_COOKIE_MAX_AGE = 400 * 24 * 60 * 60;
 
 /** Stay under the ~4096-byte per-cookie limit with room for name + attributes. */
 const CHUNK_SIZE = 3500;
@@ -80,20 +97,51 @@ export function prevChunkNames(all: CookiePair[]): string[] {
   return all.filter((c) => c.name.startsWith(`${PREV_COOKIE}.`)).map((c) => c.name);
 }
 
+/**
+ * `pa_op_imp` is HMAC-signed with a server-only secret.
+ *
+ * It used to be unsigned on the theory that "forging it only makes a banner
+ * appear". The exit route broke that premise: it reads adminEmail/targetUserId
+ * out of this cookie and writes them into `audit_logs` as the ACTOR, with
+ * service-role privileges, on an intentionally un-gated route. Unsigned, that
+ * let anyone on the internet forge audit rows attributed to a named admin.
+ *
+ * Signing (rather than admin-gating exit) keeps the exit route reachable by the
+ * target-user session, so it introduces no stranding risk.
+ */
+function signPayload(payload: string): string {
+  return createHmac("sha256", env().SUPABASE_SERVICE_ROLE_KEY).update(payload).digest("base64url");
+}
+
+function signatureMatches(payload: string, signature: string): boolean {
+  const expected = Buffer.from(signPayload(payload), "utf8");
+  const actual = Buffer.from(signature, "utf8");
+  if (expected.length !== actual.length) return false;
+  return timingSafeEqual(expected, actual);
+}
+
 export function encodeSession(s: ImpersonationSession): string {
-  return Buffer.from(JSON.stringify(s), "utf8").toString("base64url");
+  const payload = Buffer.from(JSON.stringify(s), "utf8").toString("base64url");
+  return `${payload}.${signPayload(payload)}`;
 }
 
 /**
- * Decodes `pa_op_imp`. Note this cookie is unsigned on purpose: forging it can
- * only make the banner appear, it grants no access. Returns expired sessions
- * too — the operator still needs the Exit button.
+ * Decodes and VERIFIES `pa_op_imp`. A missing, malformed, or badly-signed
+ * cookie is treated as "not impersonating". Returns expired sessions too — the
+ * operator still needs the Exit button.
  */
 export function readImpersonation(all: CookiePair[]): ImpersonationSession | null {
   const raw = all.find((c) => c.name === IMP_COOKIE)?.value;
   if (!raw) return null;
+
+  const sep = raw.lastIndexOf(".");
+  if (sep <= 0) return null; // unsigned cookies are rejected outright
+  const payload = raw.slice(0, sep);
+  const signature = raw.slice(sep + 1);
+  if (!signature || !signatureMatches(payload, signature)) return null;
+
   try {
-    const parsed: unknown = JSON.parse(Buffer.from(raw, "base64url").toString("utf8"));
+    const parsed: unknown = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
     if (!parsed || typeof parsed !== "object") return null;
     const s = parsed as Partial<ImpersonationSession>;
     if (
