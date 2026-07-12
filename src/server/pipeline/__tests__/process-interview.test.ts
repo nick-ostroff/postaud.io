@@ -10,11 +10,17 @@ type Row = Record<string, unknown>;
  *   from(t).select(...).eq(...)            → thenable list
  *   from(t).select(...).eq(...).order(...) → thenable list
  *   from(t).update(patch).eq(...)[.eq(...)] → thenable, mutates in place
+ *   from(t).update(patch).eq(...).eq(...).select(cols) → applies patch, returns matched rows
  */
 function makeDb(seed: Record<string, Row[]>) {
   const tables: Record<string, Row[]> = Object.fromEntries(
     Object.entries(seed).map(([t, rows]) => [t, rows.map((r) => ({ ...r }))]),
   );
+
+  // One-shot hook for the "lost the claim race" test: makes the next
+  // interviews/process_attempts CAS update behave as if a concurrent run's
+  // update landed first — i.e. zero rows affected, no mutation applied.
+  let claimMissOnce = false;
 
   function makeChain(table: string, kind: "select" | "update", patch?: Row) {
     const filters: Array<[string, unknown]> = [];
@@ -33,6 +39,21 @@ function makeDb(seed: Record<string, Row[]>) {
       },
       async maybeSingle() {
         return { data: (match()[0] as Row) ?? null, error: null };
+      },
+      // update(...).eq(...).select(...) — apply patch, return affected rows
+      // (this is the CAS-claim shape: an .eq("process_attempts", n) that
+      // doesn't match anything yields an empty affected-rows array here).
+      select() {
+        if (kind === "update") {
+          if (claimMissOnce && table === "interviews" && patch && "process_attempts" in patch) {
+            claimMissOnce = false;
+            return Promise.resolve({ data: [], error: null });
+          }
+          const rows = match();
+          applyUpdate();
+          return Promise.resolve({ data: rows.map((r) => ({ ...r })), error: null });
+        }
+        return chain;
       },
       then(resolve: (v: { data: Row[] | null; error: null }) => void) {
         if (kind === "update") {
@@ -71,6 +92,10 @@ function makeDb(seed: Record<string, Row[]>) {
           upsert: (rows: Row | Row[]) => writeResult(writeRows(table, rows)),
         };
       },
+    },
+    /** Arms the one-shot CAS-miss hook (see `claimMissOnce` above). */
+    simulateLostClaim() {
+      claimMissOnce = true;
     },
   };
 }
@@ -139,7 +164,10 @@ describe("processInterview", () => {
     const iv = mocks.db.tables.interviews[0];
     expect(iv.status).toBe("completed"); // left for the tick to retry
     expect(iv.process_error).toBe("no_facts");
-    expect(iv.process_attempts).toBe(1);
+    // 1 from the atomic claim at pipeline start + 1 from recordProcessError
+    // on the way out — both are real, independent increments (see comment
+    // on the claim in process-interview.ts).
+    expect(iv.process_attempts).toBe(2);
   });
 
   it("records process_error and increments attempts on extraction failure, then rethrows", async () => {
@@ -151,7 +179,23 @@ describe("processInterview", () => {
     const iv = mocks.db.tables.interviews[0];
     expect(iv.status).toBe("completed");
     expect(iv.process_error).toBe("boom");
-    expect(iv.process_attempts).toBe(1);
+    // 1 from the atomic claim at pipeline start + 1 from recordProcessError.
+    expect(iv.process_attempts).toBe(2);
+  });
+
+  it("loses the claim race: a concurrent run's CAS update wins first, so this run backs off before extracting", async () => {
+    seedDb("completed");
+    mocks.extractKnowledge.mockResolvedValue(emptyExtraction);
+    mocks.db.simulateLostClaim();
+
+    await expect(processInterview(IV)).resolves.toBeUndefined();
+
+    expect(mocks.extractKnowledge).not.toHaveBeenCalled();
+    // The row is untouched by us — the racer that won the claim owns any
+    // further writes.
+    const iv = mocks.db.tables.interviews[0];
+    expect(iv.status).toBe("completed");
+    expect(iv.process_attempts).toBe(0);
   });
 
   it("does not force the fact retry on a trivial transcript (<4 subject turns)", async () => {

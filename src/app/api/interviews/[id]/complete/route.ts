@@ -43,11 +43,15 @@ export async function POST(request: Request, { params }: { params: Params }) {
     });
 
     // Fire-and-forget: never block the user's redirect on the pipeline, and
-    // never let a pipeline error surface as a failed completion. (Placeholder
-    // no-op until Task 12.)
-    void processInterview(id).catch((e) => {
-      console.error(`[complete] processInterview failed for ${id}:`, e);
-    });
+    // never let a pipeline error surface as a failed completion. Only fire on
+    // the transition that actually completed the interview — a retried POST
+    // that finds it already completed must not re-fire the pipeline (that's
+    // how two concurrent runs would otherwise both extract facts).
+    if (!result.alreadyCompleted) {
+      void processInterview(id).catch((e) => {
+        console.error(`[complete] processInterview failed for ${id}:`, e);
+      });
+    }
 
     return NextResponse.json({ recapUrl: result.recapUrl });
   } catch (err) {

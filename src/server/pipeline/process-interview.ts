@@ -25,7 +25,7 @@ class NoFactsError extends Error {
 async function runPipeline(db: Db, interviewId: string): Promise<void> {
   const { data: interview, error: ivErr } = await db
     .from("interviews")
-    .select("id, series_id, status")
+    .select("id, series_id, status, process_attempts")
     .eq("id", interviewId)
     .maybeSingle();
   if (ivErr) throw new Error(ivErr.message);
@@ -36,6 +36,27 @@ async function runPipeline(db: Db, interviewId: string): Promise<void> {
   if (interview.status === "processed") return;
   if (interview.status !== "completed") {
     console.warn(`[process-interview] ${interviewId} is '${interview.status}', skipping`);
+    return;
+  }
+
+  // Atomic claim: two runs can both reach this point for the same interview
+  // (the /complete route's fire-and-forget racing the tick's retry sweep, or
+  // two overlapping tick sweeps). Reuse `process_attempts` as a cheap CAS
+  // token — bump it conditioned on still holding the value we just read; only
+  // one concurrent update can match that `.eq`, so exactly one caller sees
+  // its row affected and proceeds. The error path's own increment
+  // (recordProcessError) reads the current value fresh each time, so it
+  // coexists fine with this claim.
+  const attemptsAtRead = interview.process_attempts ?? 0;
+  const { data: claimed, error: claimErr } = await db
+    .from("interviews")
+    .update({ process_attempts: attemptsAtRead + 1 })
+    .eq("id", interviewId)
+    .eq("process_attempts", attemptsAtRead)
+    .select("id");
+  if (claimErr) throw new Error(claimErr.message);
+  if (!claimed || claimed.length === 0) {
+    console.warn(`[process-interview] ${interviewId}: lost the claim race to a concurrent run, skipping`);
     return;
   }
 
@@ -94,12 +115,16 @@ async function runPipeline(db: Db, interviewId: string): Promise<void> {
   });
 
   // Mark processed, guarded on the still-completed state; clear any stale error.
-  const { error: doneErr } = await db
+  const { data: doneRows, error: doneErr } = await db
     .from("interviews")
     .update({ status: "processed", process_error: null })
     .eq("id", interviewId)
-    .eq("status", "completed");
+    .eq("status", "completed")
+    .select("id");
   if (doneErr) throw new Error(doneErr.message);
+  if (!doneRows || doneRows.length === 0) {
+    console.warn(`[process-interview] ${interviewId}: mark-processed affected 0 rows (lost the status race)`);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -150,9 +175,25 @@ async function persistExtraction(db: Db, args: PersistArgs): Promise<void> {
   for (const t of extraction.suggestedTopics) queueTopic(t.name, t.description, true);
 
   if (newTopicRows.length > 0) {
-    const { data: inserted, error: topErr } = await db.from("topics").insert(newTopicRows).select("id, name");
+    // Concurrent interviews in the same series can both try to create the
+    // same topic name — a plain insert would 23505 on unique(series_id,
+    // name). Upsert with ignoreDuplicates so a racer's row is silently
+    // skipped instead of erroring. Skipped conflict rows aren't returned by
+    // Postgres, so trust nothing from the response — re-fetch the series'
+    // full topic list once and rebuild the name→id map from that.
+    const { error: topErr } = await db
+      .from("topics")
+      .upsert(newTopicRows, { onConflict: "series_id,name", ignoreDuplicates: true })
+      .select("id, name");
     if (topErr) throw new Error(topErr.message);
-    for (const t of inserted ?? []) topicIdByKey.set(t.name.trim().toLowerCase(), t.id);
+
+    const { data: allTopics, error: refetchErr } = await db
+      .from("topics")
+      .select("id, name")
+      .eq("series_id", seriesId);
+    if (refetchErr) throw new Error(refetchErr.message);
+    topicIdByKey.clear();
+    for (const t of allTopics ?? []) topicIdByKey.set(t.name.trim().toLowerCase(), t.id);
   }
 
   // 3) Facts — kept in one function Task 13 wraps with merge/dedupe.
