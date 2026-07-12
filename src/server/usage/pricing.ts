@@ -34,13 +34,14 @@ export const RATES = {
     "claude-sonnet-5": { input: 3.0, output: 15.0, cacheWrite5m: 3.75, cacheRead: 0.3 },
   },
   openai_realtime: {
-    // ⚠️ PLACEHOLDER — confirm against platform.openai.com/pricing; these are
-    // best-effort and may be wrong.
+    // Verified against developers.openai.com/api/docs/pricing on RATES_UPDATED.
+    // The "gpt-realtime" alias resolves to gpt-realtime-2.1; these are its rates.
+    // Re-check if OpenAI revises Realtime pricing.
     "gpt-realtime": {
       audioInput: 32.0,
       audioOutput: 64.0,
       textInput: 4.0,
-      textOutput: 16.0,
+      textOutput: 24.0,
       cachedAudioInput: 0.4,
       cachedTextInput: 0.4,
     },
