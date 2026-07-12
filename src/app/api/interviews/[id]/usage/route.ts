@@ -31,9 +31,17 @@ const bodySchema = z.object({
  * the client posts this during end-of-session teardown, which can race (or
  * land just after) `/complete`.
  *
- * Upserts on (interview_id, provider, phase): only one 'openai_realtime' /
- * 'interview' row exists per interview, so a retried post is idempotent
- * (replaces the row with the same accumulated totals rather than duplicating).
+ * `interview_usage` is otherwise an append-only ledger for the Anthropic
+ * pipeline's rows (migration 0009 — every processing attempt appends, never
+ * replaces, so failed-attempt spend and reprocess spend both stay visible).
+ * Realtime is different: one conversation only ever has one true realtime
+ * usage fact, so a retried POST here should replace, not append. Since the
+ * DB-level unique constraint that used to enforce that is gone, this route
+ * enforces it itself, scoped to *just* this interview's `openai_realtime`
+ * rows: delete any existing row(s) for
+ * (interview_id, provider='openai_realtime'), then insert the fresh one.
+ * This never touches — and never risks deleting — the anthropic ledger rows
+ * for the same interview.
  */
 export async function POST(request: Request, { params }: { params: Params }) {
   const { id } = await params;
@@ -70,11 +78,21 @@ export async function POST(request: Request, { params }: { params: Params }) {
     raw: body.raw as Json,
   };
 
-  const { error } = await authed.svc
+  // Scoped to this authorized interview + provider only — never touches the
+  // anthropic ledger rows for the same interview_id.
+  const { error: deleteError } = await authed.svc
     .from("interview_usage")
-    .upsert(row, { onConflict: "interview_id,provider,phase" });
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    .delete()
+    .eq("interview_id", id)
+    .eq("organization_id", authed.organizationId)
+    .eq("provider", "openai_realtime");
+  if (deleteError) {
+    return NextResponse.json({ error: deleteError.message }, { status: 500 });
+  }
+
+  const { error: insertError } = await authed.svc.from("interview_usage").insert(row);
+  if (insertError) {
+    return NextResponse.json({ error: insertError.message }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });

@@ -24,7 +24,12 @@ class NoFactsError extends Error {
 // Stage 1: load + extract + invariant guard
 // ---------------------------------------------------------------------------
 
-async function runPipeline(db: Db, interviewId: string): Promise<void> {
+async function runPipeline(
+  db: Db,
+  interviewId: string,
+  usageRecords: PipelineUsage[],
+  usageCtx: { organizationId: string | null },
+): Promise<void> {
   const { data: interview, error: ivErr } = await db
     .from("interviews")
     .select("id, series_id, organization_id, status, process_attempts")
@@ -32,6 +37,10 @@ async function runPipeline(db: Db, interviewId: string): Promise<void> {
     .maybeSingle();
   if (ivErr) throw new Error(ivErr.message);
   if (!interview) throw new Error(`interview ${interviewId} not found`);
+  // Set as soon as it's known so the caller's `finally` can persist whatever
+  // usage this run accumulated even if we throw below (e.g. NoFactsError, or
+  // any other failure mid-pipeline) — the org id never changes after this.
+  usageCtx.organizationId = interview.organization_id;
 
   // Idempotency: already processed → no-op. Anything not yet `completed`
   // (in_progress, abandoned) isn't ours to process either.
@@ -94,10 +103,13 @@ async function runPipeline(db: Db, interviewId: string): Promise<void> {
 
   // Collects every real Anthropic call's exact usage across this run
   // (extract's own internal schema-parse retry, the invariant-guard's forced
-  // retry below, and merge) — persisted once, after a successful pipeline
-  // run, by `recordUsage`. Never fabricated: only messages.create calls that
-  // actually returned `usage` push a record here.
-  const usageRecords: PipelineUsage[] = [];
+  // retry below, and merge). `usageRecords` is the caller's array (see
+  // `processInterview`), so it's populated as calls happen regardless of
+  // whether this run ultimately succeeds or throws — the caller's `finally`
+  // persists whatever is in it either way, per the append-only ledger model
+  // (a failed attempt still spent real, billed tokens). Never fabricated:
+  // only messages.create calls that actually returned `usage` push a record
+  // here.
   const onUsage = (u: PipelineUsage) => usageRecords.push(u);
 
   let extraction = await extractKnowledge(extractInput, {}, onUsage);
@@ -153,24 +165,28 @@ async function runPipeline(db: Db, interviewId: string): Promise<void> {
     console.warn(`[process-interview] ${interviewId}: mark-processed affected 0 rows (lost the status race)`);
   }
 
-  // Usage accounting must never break processing — the interview is already
-  // successfully persisted + marked processed above, so any failure here is
-  // logged and swallowed rather than rethrown.
-  try {
-    await recordUsage(db, interviewId, interview.organization_id, usageRecords);
-  } catch (usageErr) {
-    console.error(`[process-interview] ${interviewId}: failed to record usage:`, usageErr);
-  }
+  // Usage persistence itself happens in `processInterview`'s `finally`, not
+  // here — that's what lets a run which throws after this point (or never
+  // reaches this point at all) still have its accumulated `usageRecords`
+  // written. See `recordUsage` below and the entry-point's comment.
 }
 
 /**
- * Persists the run's collected Anthropic usage into `interview_usage`, one
- * row per phase. `extract` can have up to two real API calls in a single run
- * (the schema-parse retry inside extractKnowledge, and/or the invariant
- * guard's forced retry) — those are summed into a single 'extract' row so
- * reprocessing always reflects this interview's true total, not just the
- * last call. Upserts on (interview_id, provider, phase), so a reprocess
- * (Task 13) replaces the prior rows rather than duplicating them.
+ * Appends this run's collected Anthropic usage into `interview_usage` as
+ * brand-new rows, one per phase. `extract` can have up to two real API calls
+ * in a single run (the schema-parse retry inside extractKnowledge, and/or
+ * the invariant guard's forced retry) — those are summed into a single
+ * 'extract' row so one run's total is accurate, but each *run* (i.e. each
+ * `processInterview` call — initial processing, a reprocess, a tick retry
+ * after a prior failure) gets its own fresh row(s). This is a ledger, not a
+ * snapshot: the true cumulative cost for an interview+phase is the SUM over
+ * every row, including rows from attempts that ultimately failed elsewhere
+ * in the pipeline — the API call itself still happened and still cost real
+ * money. Plain insert (no upsert/onConflict): the unique (interview_id,
+ * provider, phase) constraint was dropped in migration 0009 specifically so
+ * multiple rows per run are allowed instead of the newest run silently
+ * replacing (or, worse, a short-circuited merge phase leaving a stale)
+ * prior row.
  */
 async function recordUsage(
   db: Db,
@@ -208,7 +224,7 @@ async function recordUsage(
     });
   }
 
-  const { error } = await db.from("interview_usage").upsert(rows, { onConflict: "interview_id,provider,phase" });
+  const { error } = await db.from("interview_usage").insert(rows);
   if (error) throw new Error(error.message);
 }
 
@@ -468,7 +484,17 @@ async function linkEntities(db: Db, seriesId: string, extraction: Extraction, fa
  * `process_error`.
  *
  * Behavior contract:
- * - Idempotent: an already-`processed` interview is a no-op.
+ * - Idempotent for *state*: an already-`processed` interview is a no-op.
+ * - Append-only ledger for *usage*: every call to this function is one "run"
+ *   (initial processing, a forced reprocess, a tick retry after a prior
+ *   failure). Whatever real Anthropic usage that run accumulated —
+ *   regardless of whether the run ultimately succeeds, soft-fails
+ *   (NoFactsError), or throws for any other reason — is persisted in the
+ *   `finally` below via `recordUsage`, as new rows appended to
+ *   `interview_usage`. A run that spends tokens and then fails must never
+ *   silently drop that spend, and a reprocess must never overwrite/discard a
+ *   prior run's rows: the displayed total is the sum across every row for an
+ *   interview+phase.
  * - Invariant guard (spec §7): a transcript with ≥4 subject turns must yield
  *   at least one fact — one forced retry, then `process_error='no_facts'`
  *   with status left `completed` so the tick can retry.
@@ -477,8 +503,13 @@ async function linkEntities(db: Db, seriesId: string, extraction: Extraction, fa
  */
 export async function processInterview(interviewId: string): Promise<void> {
   const db = serviceClient();
+  // Populated by `runPipeline` (via the `onUsage` sink) as real API calls
+  // happen during this run; read in the `finally` below no matter how the
+  // `try` exits, so a mid-pipeline throw still gets its spend recorded.
+  const usageRecords: PipelineUsage[] = [];
+  const usageCtx: { organizationId: string | null } = { organizationId: null };
   try {
-    await runPipeline(db, interviewId);
+    await runPipeline(db, interviewId, usageRecords, usageCtx);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     await recordProcessError(db, interviewId, message);
@@ -489,6 +520,20 @@ export async function processInterview(interviewId: string): Promise<void> {
       return;
     }
     throw err;
+  } finally {
+    // Exactly one insert attempt per run (this is the only call site), which
+    // runs whether the try above returned normally, returned early from the
+    // catch (NoFactsError soft-fail), or is about to propagate a rethrow —
+    // `finally` always executes exactly once. Usage accounting must never
+    // change or mask the pipeline's real outcome, so any failure here is
+    // logged and swallowed rather than thrown.
+    if (usageCtx.organizationId && usageRecords.length > 0) {
+      try {
+        await recordUsage(db, interviewId, usageCtx.organizationId, usageRecords);
+      } catch (usageErr) {
+        console.error(`[process-interview] ${interviewId}: failed to record usage:`, usageErr);
+      }
+    }
   }
 }
 
