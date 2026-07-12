@@ -295,13 +295,13 @@ export function LiveInterview({
       const batch = batchRef.current;
       if (!batch.hasPending()) return;
       const snapshot = batch.pending();
-      const ok = navigator.sendBeacon(
+      navigator.sendBeacon(
         `/api/interviews/${interviewId}/messages`,
         new Blob([JSON.stringify({ messages: snapshot })], { type: "application/json" }),
       );
-      // Queued-for-delivery is the best guarantee pagehide allows; the
-      // server's unique seq index makes an eventual duplicate harmless.
-      if (ok) batch.markSent(snapshot);
+      // Deliberately NOT marked sent: if the page survives (bfcache) the next
+      // flush re-sends the same seqs and the server's unique index no-ops the
+      // duplicates — strictly safer than trusting queued-for-delivery.
     };
     window.addEventListener("pagehide", beacon);
     return () => window.removeEventListener("pagehide", beacon);
