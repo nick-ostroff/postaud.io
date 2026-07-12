@@ -6,6 +6,7 @@ import type {
   Entity,
   Fact,
   Interview,
+  InterviewMessage,
   InterviewSummary,
   Membership,
   Series,
@@ -230,6 +231,25 @@ export async function getInterviewFacts(
     topicName: f.topics?.name ?? null,
     audioOffsetSec: f.audio_offset_sec,
   }));
+}
+
+/**
+ * All transcript turns for one interview, oldest first (`seq` order) — the
+ * session results page's full transcript. `interview_messages` is
+ * insert-only and RLS-gated the same way as everything else here
+ * (`can_view_series` via the interview's series).
+ */
+export async function getInterviewMessages(
+  sb: SupabaseClient<Database>,
+  interviewId: string,
+): Promise<InterviewMessage[]> {
+  const { data, error } = await sb
+    .from("interview_messages")
+    .select("*")
+    .eq("interview_id", interviewId)
+    .order("seq", { ascending: true });
+  if (error) throw new Error(error.message);
+  return data ?? [];
 }
 
 /**
