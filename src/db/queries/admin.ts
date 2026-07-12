@@ -1,6 +1,6 @@
 import "server-only";
 import { serviceClient } from "@/db/service";
-import type { OrgPlan, SubjectKind } from "@/db/types";
+import type { MemberRole, OrgPlan, SubjectKind } from "@/db/types";
 import { daysSince } from "@/lib/time";
 import { STALE_AFTER_DAYS } from "@/server/series/staleness";
 
@@ -686,4 +686,109 @@ export async function listSeriesRegistry(opts: {
   const total = rows.length;
   const page = rows.slice(offset, offset + limit);
   return { rows: page, total };
+}
+
+// =========================================================================
+// Platform users — every person on the platform, not just account owners.
+// Metadata only (see the invariant note above): emails, names, roles, counts.
+// =========================================================================
+
+export type PlatformUserOrg = { id: string; name: string; role: MemberRole; accepted: boolean };
+
+export type PlatformUserRow = {
+  id: string;
+  email: string;
+  displayName: string | null;
+  orgs: PlatformUserOrg[];
+  subjectOfCount: number;
+  lastActivity: string | null;
+  createdAt: string;
+};
+
+export async function listPlatformUsers(opts: {
+  search?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<{ rows: PlatformUserRow[]; total: number }> {
+  const svc = serviceClient();
+  const limit = opts.limit ?? 50;
+  const offset = opts.offset ?? 0;
+  const search = opts.search?.trim().toLowerCase();
+
+  // Four flat reads joined in memory, mirroring listAccountsConsole. This is a
+  // platform-admin page, not a hot path — consistency with the neighboring
+  // query beats a SQL-side optimization here.
+  const [{ data: users }, { data: memberships }, { data: series }, { data: interviews }] = await Promise.all([
+    svc.from("users").select("id, email, display_name, created_at").limit(2000),
+    svc.from("memberships").select("user_id, organization_id, role, accepted_at, organizations ( name )"),
+    svc.from("series").select("id, title, subject_user_id"),
+    svc.from("interviews").select("organization_id, started_at").order("started_at", { ascending: false }),
+  ]);
+
+  const orgsByUser = new Map<string, PlatformUserOrg[]>();
+  const orgIdsByUser = new Map<string, string[]>();
+  for (const m of memberships ?? []) {
+    const list = orgsByUser.get(m.user_id) ?? [];
+    list.push({
+      id: m.organization_id,
+      name: (m.organizations as { name?: string } | null)?.name ?? "—",
+      role: m.role as MemberRole,
+      accepted: m.accepted_at !== null,
+    });
+    orgsByUser.set(m.user_id, list);
+
+    const ids = orgIdsByUser.get(m.user_id) ?? [];
+    ids.push(m.organization_id);
+    orgIdsByUser.set(m.user_id, ids);
+  }
+
+  const subjectCountByUser = new Map<string, number>();
+  for (const s of series ?? []) {
+    if (!s.subject_user_id) continue;
+    subjectCountByUser.set(s.subject_user_id, (subjectCountByUser.get(s.subject_user_id) ?? 0) + 1);
+  }
+
+  // Pre-sorted desc, so the first hit per org is already the max.
+  const lastActivityByOrg = new Map<string, string>();
+  for (const iv of interviews ?? []) {
+    if (!lastActivityByOrg.has(iv.organization_id)) {
+      lastActivityByOrg.set(iv.organization_id, iv.started_at);
+    }
+  }
+
+  let rows: PlatformUserRow[] = (users ?? []).map((u) => {
+    const orgIds = orgIdsByUser.get(u.id) ?? [];
+    const lastActivity = orgIds.reduce<string | null>((latest, orgId) => {
+      const at = lastActivityByOrg.get(orgId);
+      if (!at) return latest;
+      if (!latest || new Date(at) > new Date(latest)) return at;
+      return latest;
+    }, null);
+
+    return {
+      id: u.id,
+      email: u.email,
+      displayName: u.display_name,
+      orgs: orgsByUser.get(u.id) ?? [],
+      subjectOfCount: subjectCountByUser.get(u.id) ?? 0,
+      lastActivity,
+      createdAt: u.created_at,
+    };
+  });
+
+  if (search) {
+    rows = rows.filter(
+      (r) => r.email.toLowerCase().includes(search) || (r.displayName?.toLowerCase().includes(search) ?? false),
+    );
+  }
+
+  rows.sort((a, b) => {
+    if (!a.lastActivity && !b.lastActivity) return 0;
+    if (!a.lastActivity) return 1;
+    if (!b.lastActivity) return -1;
+    return new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime();
+  });
+
+  const total = rows.length;
+  return { rows: rows.slice(offset, offset + limit), total };
 }
