@@ -32,7 +32,12 @@ export async function POST(request: Request, { params }: { params: Params }) {
 
   let authed;
   try {
-    authed = await authorizeInterview(id, { requireInProgress: true });
+    // Deliberately NOT gated on in_progress: the client's final flush can lose
+    // a race with (or fail before) /complete, and those closing turns must
+    // still be persistable afterward. Appends stay conductor-only and the
+    // unique (interview_id, seq) index keeps retries idempotent — transcripts
+    // remain immutable (no update/delete), which is the actual invariant.
+    authed = await authorizeInterview(id);
   } catch (err) {
     if (err instanceof InterviewAuthError) return NextResponse.json(err.body, { status: err.status });
     throw err;

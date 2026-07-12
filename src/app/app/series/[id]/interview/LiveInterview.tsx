@@ -209,6 +209,18 @@ export function LiveInterview({
         if (audioElRef.current) audioElRef.current.srcObject = event.streams[0];
       };
 
+      // Dead-connection detector: a session that drops mid-interview should
+      // surface the retry card, not an orb frozen on "listening".
+      pc.onconnectionstatechange = () => {
+        if (
+          (pc.connectionState === "failed" || pc.connectionState === "closed") &&
+          !cancelled &&
+          !endingRef.current
+        ) {
+          setSessionError("connect_failed");
+        }
+      };
+
       // 4. Data channel for Realtime events (wired up in a separate handler).
       const dc = pc.createDataChannel("oai-events");
       dcRef.current = dc;
@@ -275,6 +287,25 @@ export function LiveInterview({
     const t = setInterval(() => void flushTranscript(), FLUSH_INTERVAL_MS);
     return () => clearInterval(t);
   }, [connected, flushTranscript]);
+
+  // ---- best-effort flush when the tab is hidden or torn down mid-session ----
+  useEffect(() => {
+    if (!connected) return;
+    const beacon = () => {
+      const batch = batchRef.current;
+      if (!batch.hasPending()) return;
+      const snapshot = batch.pending();
+      const ok = navigator.sendBeacon(
+        `/api/interviews/${interviewId}/messages`,
+        new Blob([JSON.stringify({ messages: snapshot })], { type: "application/json" }),
+      );
+      // Queued-for-delivery is the best guarantee pagehide allows; the
+      // server's unique seq index makes an eventual duplicate harmless.
+      if (ok) batch.markSent(snapshot);
+    };
+    window.addEventListener("pagehide", beacon);
+    return () => window.removeEventListener("pagehide", beacon);
+  }, [connected, interviewId]);
 
   // ---- controls ----
   const togglePause = useCallback(() => {
@@ -367,6 +398,7 @@ export function LiveInterview({
       micStreamRef.current?.getTracks().forEach((t) => t.stop());
 
       await flushTranscript();
+      if (batchRef.current.hasPending()) await flushTranscript(); // one retry — closing words matter most
       if (blob) await uploadAudio(blob);
 
       const res = await fetch(`/api/interviews/${interviewId}/complete`, {
