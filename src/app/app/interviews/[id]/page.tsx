@@ -215,12 +215,12 @@ export default async function InterviewResultsPage({ params }: { params: Params 
 
         <div className="flex flex-col gap-[18px]">
           <Card className="px-[22px] py-5">
-            <h3>Suggested next topics</h3>
+            <h3>Where to go next</h3>
             <p className="mb-1 text-[13px] text-muted">
-              From this session — add them and Anna will bring them up next time.
+              Topics Anna thinks are worth exploring — add them and she&apos;ll bring them up next time.
             </p>
             {suggestedTopics.length === 0 ? (
-              <p className="mt-2 text-[13.5px] text-muted">Nothing new suggested from this session.</p>
+              <p className="mt-2 text-[13.5px] text-muted">Nothing waiting to be explored — the queue is clear.</p>
             ) : (
               <div className="mt-1 mb-3 flex flex-wrap items-center gap-2">
                 {suggestedTopics.map((t) => (

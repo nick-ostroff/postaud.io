@@ -25,9 +25,14 @@ type Params = Promise<{ id: string }>;
 
 type VisibleFact = SeriesKnowledge["facts"][number];
 
-/** Facts worth showing as "saved knowledge" — active + needs_review, never superseded or mid-retell. */
+/**
+ * Facts worth showing as "saved knowledge" — everything not superseded.
+ * needs_review/retell_queued facts still count (saved knowledge, just
+ * flagged) — same rule as getSeriesSummaries/getInterviewFacts, so the hub
+ * and this page always agree on the memory count.
+ */
 function visibleFacts(facts: SeriesKnowledge["facts"]): VisibleFact[] {
-  return facts.filter((f) => f.status === "active" || f.status === "needs_review");
+  return facts.filter((f) => f.status !== "superseded");
 }
 
 function formatOffset(sec: number | null): string | null {
