@@ -77,13 +77,15 @@ export async function GET(request: Request, { params }: { params: Params }) {
   const format = url.searchParams.get("format") === "txt" ? "txt" : "md";
   const scope = parseScope(url.searchParams.get("scope"));
 
-  const [knowledge, sessions] = await Promise.all([
+  const [knowledge, sessionsNewestFirst] = await Promise.all([
     getSeriesKnowledge(supabase, id),
     listInterviewsForSeries(supabase, id),
   ]);
 
-  // `listInterviewsForSeries` already numbers sessions 1-based by
-  // started_at ("Session N") — reuse it rather than re-deriving.
+  // `listInterviewsForSeries` numbers sessions 1-based by started_at but
+  // returns them newest-first (built for the activity feed). A document
+  // that reads as a life story goes start-to-finish — Session 1 first.
+  const sessions = [...sessionsNewestFirst].sort((a, b) => a.sessionNumber - b.sessionNumber);
   const sessionLabelByInterview = new Map(sessions.map((s) => [s.id, `Session ${s.sessionNumber}`] as const));
 
   const summaries = scope.summaries
