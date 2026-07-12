@@ -8,6 +8,7 @@ import {
   getInterviewFacts,
   getInterviewMessages,
   getInterviewSummary,
+  getInterviewUsage,
   getSeries,
   getSeriesKnowledge,
   getViewer,
@@ -16,6 +17,8 @@ import {
 import { pickNewestSuggestedTopic } from "@/server/topics/pick";
 import { PromoteChip } from "../../series/[id]/PromoteChip";
 import { ReprocessButton } from "../../series/[id]/ReprocessButton";
+import { UsageCard } from "./UsageCard";
+import type { InterviewUsage } from "@/db/types";
 
 type Params = Promise<{ id: string }>;
 
@@ -62,12 +65,13 @@ export default async function InterviewResultsPage({ params }: { params: Params 
   const series = await getSeries(supabase, interview.series_id);
   if (!series) notFound();
 
-  const [summary, facts, messages, knowledge, sessions] = await Promise.all([
+  const [summary, facts, messages, knowledge, sessions, usageRows] = await Promise.all([
     getInterviewSummary(supabase, id),
     getInterviewFacts(supabase, id),
     getInterviewMessages(supabase, id),
     getSeriesKnowledge(supabase, series.id),
     listInterviewsForSeries(supabase, series.id),
+    isAdmin ? getInterviewUsage(supabase, id) : Promise.resolve<InterviewUsage[]>([]),
   ]);
 
   const session = sessions.find((s) => s.id === id) ?? null;
@@ -243,6 +247,8 @@ export default async function InterviewResultsPage({ params }: { params: Params 
               </p>
             </Card>
           )}
+
+          {isAdmin && <UsageCard rows={usageRows} creditCharged={interview.credit_charged} />}
         </div>
       </div>
     </div>
