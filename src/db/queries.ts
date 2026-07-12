@@ -330,6 +330,7 @@ export type SessionRow = {
   durationSec: number | null;
   memoriesAdded: number;
   summaryShort: string | null;
+  processError: string | null;
 };
 
 /**
@@ -344,7 +345,7 @@ export async function listInterviewsForSeries(
 ): Promise<SessionRow[]> {
   const { data: interviews, error: interviewsErr } = await sb
     .from("interviews")
-    .select("id, started_at, ended_at, duration_sec")
+    .select("id, started_at, ended_at, duration_sec, process_error")
     .eq("series_id", seriesId)
     .in("status", ["completed", "processed"])
     .order("started_at", { ascending: true });
@@ -375,6 +376,7 @@ export async function listInterviewsForSeries(
       durationSec: i.duration_sec,
       memoriesAdded: factCounts.get(i.id) ?? 0,
       summaryShort: summaryByInterview.get(i.id) ?? null,
+      processError: i.process_error,
     }))
     .reverse();
 }

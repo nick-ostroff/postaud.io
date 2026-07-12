@@ -15,6 +15,7 @@ import {
   listInterviewsForSeries,
 } from "@/db/queries";
 import { PromoteChip } from "./PromoteChip";
+import { ReprocessButton } from "./ReprocessButton";
 
 /** Coverage below this reads as amber — matches the card grid's threshold. */
 const LOW_COVERAGE = 0.4;
@@ -45,7 +46,8 @@ type Params = Promise<{ id: string }>;
 
 export default async function SeriesDetailPage({ params }: { params: Params }) {
   const { id } = await params;
-  const { supabase } = await getViewer();
+  const { supabase, role } = await getViewer();
+  const isAdmin = role === "admin";
 
   const series = await getSeries(supabase, id);
   if (!series) notFound();
@@ -154,6 +156,12 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
                         <Badge>
                           {s.memoriesAdded} new {memoriesWord}
                         </Badge>
+                        {s.processError && isAdmin && (
+                          <>
+                            <Badge tone="amber">processing failed</Badge>
+                            <ReprocessButton interviewId={s.id} />
+                          </>
+                        )}
                       </div>
                       <div className="serif mt-1 text-[14.5px] leading-[1.5] text-ink-soft">
                         {s.summaryShort ?? "Summary pending — check back soon."}

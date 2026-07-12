@@ -3,6 +3,7 @@ import type { Database, EntityKind, InterviewMessage, Topic } from "@/db/types";
 import { serviceClient } from "@/db/service";
 import { extractKnowledge } from "@/server/ai/extract";
 import type { Extraction } from "@/server/ai/extract";
+import { applyMergeDecisions, decideMerges } from "@/server/pipeline/merge";
 
 const MODEL = "claude-sonnet-5";
 
@@ -215,8 +216,12 @@ async function persistExtraction(db: Db, args: PersistArgs): Promise<void> {
 }
 
 /**
- * Direct fact insert — Task 13 replaces/wraps this with merge-aware dedupe.
- * Returns the new fact ids in the same order as `extraction.facts`.
+ * Merge-aware fact insert: compares incoming facts against the series'
+ * existing (non-superseded) knowledge, in-topic only, and applies the
+ * resulting insert / skip_duplicate / supersede decisions (Task 13). Returns
+ * the new fact ids in the same order as `extraction.facts` — skipped
+ * (duplicate) facts leave an empty string in their slot so `linkEntities`
+ * (which treats a falsy id as "nothing to link") skips them cleanly.
  */
 async function insertFacts(
   db: Db,
@@ -232,12 +237,46 @@ async function insertFacts(
   if (extraction.facts.length === 0) return [];
 
   const messageById = new Map(messages.map((m) => [m.id, m]));
-  const rows: Database["public"]["Tables"]["facts"]["Insert"][] = extraction.facts.map((f) => {
+
+  // Reverse of topicIdByKey (name → id) — topicIdByKey already reflects the
+  // series' full current topic set, including any created moments ago for
+  // this same extraction.
+  const topicNameById = new Map<string, string>();
+  for (const [name, id] of topicIdByKey) topicNameById.set(id, name);
+
+  const { data: existingFactRows, error: existingErr } = await db
+    .from("facts")
+    .select("id, statement, status, topic_id")
+    .eq("series_id", seriesId)
+    .neq("status", "superseded");
+  if (existingErr) throw new Error(existingErr.message);
+
+  const existingForMerge = (existingFactRows ?? [])
+    .map((f) => ({
+      id: f.id,
+      statement: f.statement,
+      status: f.status,
+      topic: f.topic_id ? (topicNameById.get(f.topic_id) ?? "") : "",
+    }))
+    .filter((f) => f.topic.length > 0);
+
+  const incomingForMerge = extraction.facts.map((f) => ({ statement: f.statement, topic: f.topic }));
+  const decisions = await decideMerges(existingForMerge, incomingForMerge);
+
+  // Wrap with the original index so the merged, possibly-shorter `toInsert`
+  // list still tells us which slot of `extraction.facts` each row came from.
+  const wrapped = extraction.facts.map((f, index) => ({ f, index }));
+  const { toInsert } = applyMergeDecisions(wrapped, decisions);
+
+  const factIds: string[] = new Array(extraction.facts.length).fill("");
+  if (toInsert.length === 0) return factIds;
+
+  const preparedRows = toInsert.map(({ f, index, supersedesFactId }) => {
     // Validate the model's citation: only ids that exist in this transcript
     // count (a hallucinated id would violate the FK), and the audio offset
     // comes from that message's recorded position.
     const source = f.sourceMessageId ? messageById.get(f.sourceMessageId) : undefined;
-    return {
+    const row: Database["public"]["Tables"]["facts"]["Insert"] = {
       series_id: seriesId,
       topic_id: topicIdByKey.get(f.topic.trim().toLowerCase()) ?? null,
       source_interview_id: interviewId,
@@ -247,13 +286,33 @@ async function insertFacts(
       confidence: clamp01(f.confidence),
       status: "active",
     };
+    return { row, index, supersedesFactId };
   });
 
-  const { data, error } = await db.from("facts").insert(rows).select("id");
+  const { data, error } = await db
+    .from("facts")
+    .insert(preparedRows.map((r) => r.row))
+    .select("id");
   if (error) throw new Error(error.message);
   const ids = (data ?? []).map((r) => r.id);
-  if (ids.length !== rows.length) throw new Error("facts insert returned an unexpected row count");
-  return ids;
+  if (ids.length !== preparedRows.length) throw new Error("facts insert returned an unexpected row count");
+
+  const supersessions: { oldId: string; newId: string }[] = [];
+  preparedRows.forEach((prepared, i) => {
+    const newId = ids[i];
+    factIds[prepared.index] = newId;
+    if (prepared.supersedesFactId) supersessions.push({ oldId: prepared.supersedesFactId, newId });
+  });
+
+  for (const { oldId, newId } of supersessions) {
+    const { error: supersedeErr } = await db
+      .from("facts")
+      .update({ status: "superseded", superseded_by: newId })
+      .eq("id", oldId);
+    if (supersedeErr) throw new Error(supersedeErr.message);
+  }
+
+  return factIds;
 }
 
 /** Upserts entities on (series_id, kind, name) and links them to their facts. */

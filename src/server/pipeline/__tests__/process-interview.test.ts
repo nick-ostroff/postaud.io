@@ -23,15 +23,22 @@ function makeDb(seed: Record<string, Row[]>) {
   let claimMissOnce = false;
 
   function makeChain(table: string, kind: "select" | "update", patch?: Row) {
-    const filters: Array<[string, unknown]> = [];
-    const match = () => (tables[table] ?? []).filter((row) => filters.every(([c, v]) => row[c] === v));
+    const filters: Array<{ col: string; val: unknown; op: "eq" | "neq" }> = [];
+    const match = () =>
+      (tables[table] ?? []).filter((row) =>
+        filters.every(({ col, val, op }) => (op === "eq" ? row[col] === val : row[col] !== val)),
+      );
     const applyUpdate = () => {
       for (const row of match()) Object.assign(row, patch);
     };
 
     const chain = {
       eq(col: string, val: unknown) {
-        filters.push([col, val]);
+        filters.push({ col, val, op: "eq" });
+        return chain;
+      },
+      neq(col: string, val: unknown) {
+        filters.push({ col, val, op: "neq" });
         return chain;
       },
       order() {
@@ -102,11 +109,19 @@ function makeDb(seed: Record<string, Row[]>) {
 
 const mocks = vi.hoisted(() => ({
   extractKnowledge: vi.fn<(...args: unknown[]) => Promise<Extraction>>(),
+  decideMerges: vi.fn(),
   db: null as unknown as ReturnType<typeof makeDb>,
 }));
 
 vi.mock("@/server/ai/extract", () => ({ extractKnowledge: mocks.extractKnowledge }));
 vi.mock("@/db/service", () => ({ serviceClient: () => mocks.db.client }));
+// Partial mock: keep the real (already TDD'd) applyMergeDecisions, replace
+// only decideMerges so these tests control the merge outcome directly
+// without needing a real Anthropic call.
+vi.mock("@/server/pipeline/merge", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../merge")>();
+  return { ...actual, decideMerges: mocks.decideMerges };
+});
 
 import { processInterview } from "../process-interview";
 
@@ -141,6 +156,7 @@ function seedDb(interviewStatus: string, messages: Row[] = conversationMessages(
 
 beforeEach(() => {
   mocks.extractKnowledge.mockReset();
+  mocks.decideMerges.mockReset();
 });
 
 describe("processInterview", () => {
@@ -210,5 +226,116 @@ describe("processInterview", () => {
     // One call, no forced retry; pipeline proceeds and marks processed.
     expect(mocks.extractKnowledge).toHaveBeenCalledTimes(1);
     expect(mocks.db.tables.interviews[0].status).toBe("processed");
+  });
+});
+
+describe("processInterview — fact merging (Task 13)", () => {
+  const twoChildhoodFacts: Extraction = {
+    summary: { short: "s", long: "l", bullets: ["a", "b", "c"] },
+    facts: [
+      { statement: "Grew up on a farm in Rotterdam.", topic: "Childhood", confidence: 0.9, sourceMessageId: null, entities: [] },
+      { statement: "Met Jan on a ferry in 1975.", topic: "Childhood", confidence: 0.85, sourceMessageId: null, entities: [] },
+    ],
+    suggestedTopics: [],
+    coverage: [],
+  };
+
+  function seedWithExistingFact() {
+    mocks.db = makeDb({
+      interviews: [{ id: IV, series_id: SERIES, status: "completed", process_attempts: 0, process_error: null }],
+      series: [{ id: SERIES, goal: "Capture Dad's whole life", subject_name: "Henk" }],
+      topics: [{ id: "t-childhood", series_id: SERIES, name: "Childhood", description: null, suggested: false, position: 0 }],
+      interview_messages: conversationMessages(),
+      facts: [
+        {
+          id: "f-old-1",
+          series_id: SERIES,
+          topic_id: "t-childhood",
+          statement: "Grew up on a farm.",
+          confidence: 0.8,
+          status: "active",
+          source_interview_id: "iv-0",
+          source_message_id: null,
+          audio_offset_sec: null,
+          superseded_by: null,
+        },
+      ],
+    });
+  }
+
+  it("supersedes an existing fact and inserts a genuinely new one from the same batch", async () => {
+    seedWithExistingFact();
+    mocks.extractKnowledge.mockResolvedValue(twoChildhoodFacts);
+    mocks.decideMerges.mockResolvedValue([
+      { index: 0, action: "supersede", supersedesFactId: "f-old-1" },
+      { index: 1, action: "insert" },
+    ]);
+
+    await processInterview(IV);
+
+    // decideMerges only saw the same-topic existing fact, matched case-insensitively.
+    expect(mocks.decideMerges).toHaveBeenCalledTimes(1);
+    const [existingArg, incomingArg] = mocks.decideMerges.mock.calls[0];
+    // Topic names come through the same lowercase-keyed map Task 12 uses for
+    // topic matching (case-insensitive "childhood" == "Childhood").
+    expect(existingArg).toEqual([{ id: "f-old-1", topic: "childhood", statement: "Grew up on a farm.", status: "active" }]);
+    expect(incomingArg).toEqual([
+      { statement: "Grew up on a farm in Rotterdam.", topic: "Childhood" },
+      { statement: "Met Jan on a ferry in 1975.", topic: "Childhood" },
+    ]);
+
+    const facts = mocks.db.tables.facts;
+    expect(facts).toHaveLength(3); // 1 old (now superseded) + 2 new
+
+    const oldFact = facts.find((f) => f.id === "f-old-1")!;
+    expect(oldFact.status).toBe("superseded");
+    expect(oldFact.superseded_by).toBeTruthy();
+
+    const supersedingFact = facts.find((f) => f.id === oldFact.superseded_by)!;
+    expect(supersedingFact.statement).toBe("Grew up on a farm in Rotterdam.");
+    expect(supersedingFact.status).toBe("active");
+
+    const plainNewFact = facts.find((f) => f.statement === "Met Jan on a ferry in 1975.")!;
+    expect(plainNewFact.status).toBe("active");
+
+    expect(mocks.db.tables.interviews[0].status).toBe("processed");
+  });
+
+  it("skip_duplicate drops a restated fact instead of inserting a duplicate row", async () => {
+    seedWithExistingFact();
+    mocks.extractKnowledge.mockResolvedValue(twoChildhoodFacts);
+    mocks.decideMerges.mockResolvedValue([
+      { index: 0, action: "skip_duplicate" },
+      { index: 1, action: "insert" },
+    ]);
+
+    await processInterview(IV);
+
+    const facts = mocks.db.tables.facts;
+    expect(facts).toHaveLength(2); // 1 old (untouched) + 1 new
+    const oldFact = facts.find((f) => f.id === "f-old-1")!;
+    expect(oldFact.status).toBe("active"); // not superseded — just skipped
+    expect(oldFact.superseded_by).toBeNull();
+    expect(facts.some((f) => f.statement === "Grew up on a farm in Rotterdam.")).toBe(false);
+    expect(facts.some((f) => f.statement === "Met Jan on a ferry in 1975.")).toBe(true);
+  });
+
+  it("skips the merge call entirely when the series has no existing facts (all-insert path)", async () => {
+    seedDb("completed");
+    mocks.extractKnowledge.mockResolvedValue(twoChildhoodFacts);
+    // Real decideMerges (not the mock) would short-circuit to all-insert with
+    // zero existing facts — but since this suite replaces decideMerges
+    // entirely, assert it's still called (with an empty existing list) and
+    // wire a normal all-insert response through.
+    mocks.decideMerges.mockResolvedValue([
+      { index: 0, action: "insert" },
+      { index: 1, action: "insert" },
+    ]);
+
+    await processInterview(IV);
+
+    const [existingArg] = mocks.decideMerges.mock.calls[0];
+    expect(existingArg).toEqual([]);
+    expect(mocks.db.tables.facts).toHaveLength(2);
   });
 });
