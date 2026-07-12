@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { getSeries, getViewer } from "@/db/queries";
 import { serviceClient } from "@/db/service";
+import { isPlatformAdmin } from "@/lib/auth/is-platform-admin";
 import { canInterviewSeries } from "@/server/interviews/access";
 import { StartInterviewError, startInterview } from "@/server/interviews/start";
 import { LiveInterview } from "./LiveInterview";
@@ -56,7 +57,15 @@ export default async function InterviewPage({
     interviewId = started.interviewId;
   } catch (err) {
     if (err instanceof StartInterviewError && err.code === "no_credits") {
-      return <OutOfCreditsCard seriesId={series.id} />;
+      return (
+        <OutOfCreditsCard
+          seriesId={series.id}
+          // Platform operators top up from the operator console; Stripe billing
+          // is parked for V1, so everyone else gets an honest "not yet" instead
+          // of a button that goes nowhere.
+          topUpHref={(await isPlatformAdmin()) ? `/admin/accounts/${organization.id}/credits` : null}
+        />
+      );
     }
     throw err;
   }
@@ -72,7 +81,7 @@ export default async function InterviewPage({
   );
 }
 
-function OutOfCreditsCard({ seriesId }: { seriesId: string }) {
+function OutOfCreditsCard({ seriesId, topUpHref }: { seriesId: string; topUpHref: string | null }) {
   return (
     <div className="flex min-h-[70vh] w-full items-center justify-center px-4">
       <Card className="max-w-md px-8 py-9 text-center">
@@ -81,15 +90,25 @@ function OutOfCreditsCard({ seriesId }: { seriesId: string }) {
         </div>
         <h2 className="text-[22px]">Out of interview credits</h2>
         <p className="mt-2 text-[14.5px] leading-relaxed text-muted">
-          You&apos;ve used every interview credit on this workspace. Top up to keep the
-          conversations going — everything Anna has already learned is safe and waiting.
+          You&apos;ve used every interview credit on this workspace.{" "}
+          {topUpHref
+            ? "Top up to keep the conversations going — everything Anna has already learned is safe and waiting."
+            : "Everything Anna has already learned is safe and waiting — get in touch and we'll add more."}
         </p>
         <div className="mt-6 flex flex-col items-center gap-2.5">
-          <Link href="/app/settings">
-            <Button variant="primary" size="big">
-              Top up credits
-            </Button>
-          </Link>
+          {topUpHref ? (
+            <Link href={topUpHref}>
+              <Button variant="primary" size="big">
+                Top up credits
+              </Button>
+            </Link>
+          ) : (
+            <a href="mailto:hello@postaud.io?subject=More%20interview%20credits">
+              <Button variant="primary" size="big">
+                Ask for more credits
+              </Button>
+            </a>
+          )}
           <Link href={`/app/series/${seriesId}`} className="text-[13px] font-medium text-muted">
             Back to the series
           </Link>
