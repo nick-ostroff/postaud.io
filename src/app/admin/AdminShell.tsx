@@ -1,29 +1,27 @@
 import Link from "next/link";
+import { OpNav } from "./OpNav";
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-[#0b0b0c]">
-      <header className="border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#111]">
-        <div className="mx-auto max-w-6xl px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <Link href="/admin" className="font-semibold text-neutral-900 dark:text-white">
-              PostAud.io Admin
-            </Link>
-            <nav className="flex items-center gap-4 text-[14px] font-medium text-neutral-600 dark:text-neutral-400">
-              <Link href="/admin/accounts" className="hover:text-neutral-900 dark:hover:text-white">
-                Accounts
-              </Link>
-            </nav>
-          </div>
-          <Link
-            href="/app"
-            className="text-[13px] font-medium text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
-          >
+      {/* Dark operator header (.op-head in Postaudio Superadmin.dc.html) —
+          deliberately distinct from the warm/light app chrome so it's always
+          obvious an operator is looking at metadata, not their own account. */}
+      <header className="bg-[#211E1A]">
+        <div className="flex w-full items-center gap-5 px-6 py-3.5 md:px-9">
+          <Link href="/admin" className="flex items-center text-[17px] font-serif text-[#F7F5F0]">
+            post<b className="font-semibold text-[#8FE0BE]">aud</b>.io
+          </Link>
+          <span className="rounded px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#211E1A] bg-[#8FE0BE]">
+            Operator
+          </span>
+          <OpNav />
+          <Link href="/app" className="ml-auto text-[13px] font-medium text-white/55 hover:text-[#F7F5F0]">
             ← Back to app
           </Link>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
+      <main className="w-full px-6 pb-14 pt-8 md:px-9">{children}</main>
     </div>
   );
 }

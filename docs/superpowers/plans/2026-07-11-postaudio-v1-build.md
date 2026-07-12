@@ -379,7 +379,7 @@ insert into storage.buckets (id, name, public) values ('interview-audio','interv
 - Create: `src/server/ai/anthropic.ts` (client factory), `src/server/ai/question-plan.ts`, `src/app/api/series/question-plan/route.ts`, `src/server/ai/__tests__/question-plan.test.ts`
 
 **Interfaces:**
-- Produces: `draftQuestionPlan(input: {title, subjectName, subjectRelationship?, goal, openingPrompt?, mustCover: string[], tone}): Promise<string[]>` — Claude `claude-sonnet-5`, forced tool-use JSON `{questions: string[]}` (5–7 questions, warm register, first question follows the opening prompt, no don't-bring-up input needed here). Route: POST `/api/series/question-plan` (same body) → `{questions}` — called by Wizard step 3→4 transition.
+- Produces: `draftQuestionPlan(input: {title, subjectName, subjectRelationship?, goal, openingPrompt?, mustCover: string[], tone}): Promise<string[]>` — Claude `claude-sonnet-5`, forced tool-use JSON `{questions: string[]}` (5–7 questions, warm register, first question follows the opening prompt, no don't-bring-up input needed here). No sampling params — claude-sonnet-5 400s on non-default temperature/top_p/top_k. Route: POST `/api/series/question-plan` (same body) → `{questions}` — called by Wizard step 3→4 transition.
 - Produces: `anthropicClient()` singleton reading `env().ANTHROPIC_API_KEY` (throws a clear error if unset).
 
 - [ ] **Step 1:** Write the failing test — mock the SDK, assert prompt contains goal + subject name and result parses to 5–7 strings:
@@ -397,7 +397,7 @@ it("returns the drafted questions", async () => {
 });
 ```
 
-- [ ] **Step 2:** Run — FAIL (module missing). Implement `question-plan.ts` (tool schema with `questions: array of string`, `tool_choice` forced, temperature 0.7) and the route. Run — PASS.
+- [ ] **Step 2:** Run — FAIL (module missing). Implement `question-plan.ts` (tool schema with `questions: array of string`, `tool_choice` forced, no sampling params) and the route. Run — PASS.
 - [ ] **Step 3:** Wire Wizard: entering step 4 calls the route with steps-1–3 data, rows editable. Build passes. Commit: `feat(ai): Anna drafts the first-session question plan`.
 
 ### Task 7: Workspace home + series detail hub
@@ -514,7 +514,7 @@ type Extraction = {
   coverage: { topic: string; score: number }[];
 };
 ```
-Claude `claude-sonnet-5`, forced tool-use with that JSON schema; transcript lines are numbered by message id so the model returns `sourceMessageId` per fact; temperature 0.2. One retry on schema-parse failure.
+Claude `claude-sonnet-5`, forced tool-use with that JSON schema; transcript lines are numbered by message id so the model returns `sourceMessageId` per fact. NOTE: do NOT pass `temperature`/`top_p`/`top_k` — claude-sonnet-5 rejects non-default sampling params with a 400; precision comes from the prompt + forced tool schema. One retry on schema-parse failure.
 - Produces: `processInterview(interviewId: string): Promise<void>` — service client; idempotent (skips if already `processed`); loads series+topics+messages → `extractKnowledge` → upserts `interview_summaries`, inserts facts (`audio_offset_sec` from the source message's `tOffsetSec`), upserts entities + `fact_entities`, inserts unseen `suggestedTopics` (`suggested: true`), updates `topics.coverage_score` from `coverage` → marks `processed`. On error: `process_error` + `process_attempts + 1`, rethrow-safe (never crashes the caller). Invariant guard: if extraction returns zero facts on a transcript with ≥4 subject turns, retry once with a "you must extract at least one fact" addendum; if still zero, leave status `completed` with `process_error='no_facts'` for the tick to retry.
 
 - [ ] **Step 1:** Failing test for `extractKnowledge` with a mocked SDK returning a canned tool_use payload; assert the zod schema parses, sourceMessageId passthrough works, and a malformed first response triggers exactly one retry.

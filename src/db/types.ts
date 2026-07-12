@@ -6,6 +6,20 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+// =========================================================
+// Enum unions
+// =========================================================
+export type OrgPlan = "free" | "starter" | "growth" | "scale"
+export type OrgStatus = "active" | "suspended"
+export type MemberRole = "admin" | "interviewer" | "viewer"
+export type SeriesStatus = "active" | "paused" | "archived"
+export type SubjectKind = "member" | "self" | "person" | "organization"
+export type SeriesTone = "warm" | "neutral" | "playful"
+export type InterviewStatus = "in_progress" | "completed" | "processed" | "abandoned"
+export type MessageRole = "interviewer" | "subject"
+export type FactStatus = "active" | "needs_review" | "superseded" | "retell_queued"
+export type EntityKind = "person" | "place" | "org" | "event" | "date"
+
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
@@ -14,408 +28,78 @@ export type Database = {
   }
   public: {
     Tables: {
-      audit_logs: {
+      organizations: {
         Row: {
-          action: string
-          actor_email: string | null
-          actor_user_id: string | null
-          at: string
-          id: number
-          ip: unknown
-          meta: Json | null
-          organization_id: string | null
-          target_id: string | null
-          target_type: string | null
+          id: string
+          name: string
+          plan: OrgPlan
+          status: OrgStatus
+          credits_remaining: number
+          stripe_customer_id: string | null
+          created_at: string
         }
         Insert: {
-          action: string
-          actor_email?: string | null
-          actor_user_id?: string | null
-          at?: string
-          id?: number
-          ip?: unknown
-          meta?: Json | null
-          organization_id?: string | null
-          target_id?: string | null
-          target_type?: string | null
+          id?: string
+          name: string
+          plan?: OrgPlan
+          status?: OrgStatus
+          credits_remaining?: number
+          stripe_customer_id?: string | null
+          created_at?: string
         }
         Update: {
-          action?: string
-          actor_email?: string | null
-          actor_user_id?: string | null
-          at?: string
-          id?: number
-          ip?: unknown
-          meta?: Json | null
-          organization_id?: string | null
-          target_id?: string | null
-          target_type?: string | null
+          id?: string
+          name?: string
+          plan?: OrgPlan
+          status?: OrgStatus
+          credits_remaining?: number
+          stripe_customer_id?: string | null
+          created_at?: string
         }
         Relationships: []
       }
-      call_events: {
+      users: {
         Row: {
-          at: string
-          event_type: string
-          id: number
-          payload: Json | null
-          question_id: string | null
-          session_id: string
-        }
-        Insert: {
-          at?: string
-          event_type: string
-          id?: number
-          payload?: Json | null
-          question_id?: string | null
-          session_id: string
-        }
-        Update: {
-          at?: string
-          event_type?: string
-          id?: number
-          payload?: Json | null
-          question_id?: string | null
-          session_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "call_events_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "interview_sessions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      contacts: {
-        Row: {
-          consent_status: Database["public"]["Enums"]["consent_status"]
+          id: string
+          email: string
+          display_name: string | null
           created_at: string
-          email: string | null
-          first_name: string | null
-          id: string
-          last_name: string | null
-          organization_id: string
-          phone_e164: string
         }
         Insert: {
-          consent_status?: Database["public"]["Enums"]["consent_status"]
-          created_at?: string
-          email?: string | null
-          first_name?: string | null
-          id?: string
-          last_name?: string | null
-          organization_id: string
-          phone_e164: string
-        }
-        Update: {
-          consent_status?: Database["public"]["Enums"]["consent_status"]
-          created_at?: string
-          email?: string | null
-          first_name?: string | null
-          id?: string
-          last_name?: string | null
-          organization_id?: string
-          phone_e164?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contacts_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      extracted_answers: {
-        Row: {
-          answer_text: string | null
-          confidence: number | null
-          followup_text: string | null
           id: string
-          question_id: string
-          question_prompt: string
-          session_id: string
-        }
-        Insert: {
-          answer_text?: string | null
-          confidence?: number | null
-          followup_text?: string | null
-          id?: string
-          question_id: string
-          question_prompt: string
-          session_id: string
-        }
-        Update: {
-          answer_text?: string | null
-          confidence?: number | null
-          followup_text?: string | null
-          id?: string
-          question_id?: string
-          question_prompt?: string
-          session_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "extracted_answers_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "interview_sessions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      interview_requests: {
-        Row: {
-          completed_at: string | null
-          contact_id: string
-          dial_code: string
-          expires_at: string
-          id: string
-          organization_id: string
-          phone_assigned: string | null
-          sender_user_id: string | null
-          sent_at: string | null
-          status: Database["public"]["Enums"]["request_status"]
-          template_id: string
-          template_snapshot: Json
-          token: string
-        }
-        Insert: {
-          completed_at?: string | null
-          contact_id: string
-          dial_code: string
-          expires_at?: string
-          id?: string
-          organization_id: string
-          phone_assigned?: string | null
-          sender_user_id?: string | null
-          sent_at?: string | null
-          status?: Database["public"]["Enums"]["request_status"]
-          template_id: string
-          template_snapshot: Json
-          token: string
-        }
-        Update: {
-          completed_at?: string | null
-          contact_id?: string
-          dial_code?: string
-          expires_at?: string
-          id?: string
-          organization_id?: string
-          phone_assigned?: string | null
-          sender_user_id?: string | null
-          sent_at?: string | null
-          status?: Database["public"]["Enums"]["request_status"]
-          template_id?: string
-          template_snapshot?: Json
-          token?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "interview_requests_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "interview_requests_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "interview_requests_sender_user_id_fkey"
-            columns: ["sender_user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "interview_requests_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "interview_templates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      interview_sessions: {
-        Row: {
-          caller_phone: string | null
-          consent_captured: boolean
-          consent_source: string | null
-          duration_sec: number | null
-          ended_at: string | null
-          id: string
-          recording_path: string | null
-          recording_sid: string | null
-          request_id: string
-          started_at: string
-          status: Database["public"]["Enums"]["session_status"]
-          twilio_call_sid: string | null
-        }
-        Insert: {
-          caller_phone?: string | null
-          consent_captured?: boolean
-          consent_source?: string | null
-          duration_sec?: number | null
-          ended_at?: string | null
-          id?: string
-          recording_path?: string | null
-          recording_sid?: string | null
-          request_id: string
-          started_at?: string
-          status?: Database["public"]["Enums"]["session_status"]
-          twilio_call_sid?: string | null
-        }
-        Update: {
-          caller_phone?: string | null
-          consent_captured?: boolean
-          consent_source?: string | null
-          duration_sec?: number | null
-          ended_at?: string | null
-          id?: string
-          recording_path?: string | null
-          recording_sid?: string | null
-          request_id?: string
-          started_at?: string
-          status?: Database["public"]["Enums"]["session_status"]
-          twilio_call_sid?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "interview_sessions_request_id_fkey"
-            columns: ["request_id"]
-            isOneToOne: false
-            referencedRelation: "interview_requests"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      interview_templates: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          id: string
-          intro_message: string | null
-          is_active: boolean
-          name: string
-          organization_id: string
-          output_type: Database["public"]["Enums"]["output_type_enum"]
-          sms_body: string
-          version: number
-          webhook_url: string | null
-        }
-        Insert: {
+          email: string
+          display_name?: string | null
           created_at?: string
-          created_by?: string | null
-          id?: string
-          intro_message?: string | null
-          is_active?: boolean
-          name: string
-          organization_id: string
-          output_type?: Database["public"]["Enums"]["output_type_enum"]
-          sms_body: string
-          version?: number
-          webhook_url?: string | null
         }
         Update: {
-          created_at?: string
-          created_by?: string | null
           id?: string
-          intro_message?: string | null
-          is_active?: boolean
-          name?: string
-          organization_id?: string
-          output_type?: Database["public"]["Enums"]["output_type_enum"]
-          sms_body?: string
-          version?: number
-          webhook_url?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "interview_templates_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "interview_templates_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      jobs: {
-        Row: {
-          attempts: number
-          created_at: string
-          id: string
-          kind: string
-          last_error: string | null
-          ref_id: string | null
-          run_after: string
-          session_id: string | null
-          status: Database["public"]["Enums"]["job_status"]
-        }
-        Insert: {
-          attempts?: number
+          email?: string
+          display_name?: string | null
           created_at?: string
-          id?: string
-          kind: string
-          last_error?: string | null
-          ref_id?: string | null
-          run_after?: string
-          session_id?: string | null
-          status?: Database["public"]["Enums"]["job_status"]
         }
-        Update: {
-          attempts?: number
-          created_at?: string
-          id?: string
-          kind?: string
-          last_error?: string | null
-          ref_id?: string | null
-          run_after?: string
-          session_id?: string | null
-          status?: Database["public"]["Enums"]["job_status"]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "jobs_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "interview_sessions"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       memberships: {
         Row: {
-          created_at: string
-          organization_id: string
-          role: Database["public"]["Enums"]["membership_role"]
           user_id: string
+          organization_id: string
+          role: MemberRole
+          created_at: string
+          accepted_at: string | null
         }
         Insert: {
-          created_at?: string
-          organization_id: string
-          role?: Database["public"]["Enums"]["membership_role"]
           user_id: string
+          organization_id: string
+          role?: MemberRole
+          created_at?: string
+          accepted_at?: string | null
         }
         Update: {
-          created_at?: string
-          organization_id?: string
-          role?: Database["public"]["Enums"]["membership_role"]
           user_id?: string
+          organization_id?: string
+          role?: MemberRole
+          created_at?: string
+          accepted_at?: string | null
         }
         Relationships: [
           {
@@ -434,280 +118,483 @@ export type Database = {
           },
         ]
       }
-      organizations: {
+      audit_logs: {
         Row: {
-          created_at: string
-          credits_remaining: number
-          id: string
-          name: string
-          plan: Database["public"]["Enums"]["org_plan"]
-          status: Database["public"]["Enums"]["org_status"]
-          stripe_customer_id: string | null
+          id: number
+          organization_id: string | null
+          actor_user_id: string | null
+          actor_email: string | null
+          action: string
+          target_type: string | null
+          target_id: string | null
+          ip: unknown
+          at: string
+          meta: Json | null
         }
         Insert: {
-          created_at?: string
-          credits_remaining?: number
-          id?: string
-          name: string
-          plan?: Database["public"]["Enums"]["org_plan"]
-          status?: Database["public"]["Enums"]["org_status"]
-          stripe_customer_id?: string | null
+          id?: number
+          organization_id?: string | null
+          actor_user_id?: string | null
+          actor_email?: string | null
+          action: string
+          target_type?: string | null
+          target_id?: string | null
+          ip?: unknown
+          at?: string
+          meta?: Json | null
         }
         Update: {
-          created_at?: string
-          credits_remaining?: number
-          id?: string
-          name?: string
-          plan?: Database["public"]["Enums"]["org_plan"]
-          status?: Database["public"]["Enums"]["org_status"]
-          stripe_customer_id?: string | null
+          id?: number
+          organization_id?: string | null
+          actor_user_id?: string | null
+          actor_email?: string | null
+          action?: string
+          target_type?: string | null
+          target_id?: string | null
+          ip?: unknown
+          at?: string
+          meta?: Json | null
         }
         Relationships: []
       }
-      output_jobs: {
+      series: {
         Row: {
-          attempts: number
-          created_at: string
-          error: string | null
           id: string
-          output_type: Database["public"]["Enums"]["output_type_enum"]
-          payload: Json | null
-          rendered_text: string | null
-          session_id: string
-          status: Database["public"]["Enums"]["job_status"]
+          organization_id: string
+          title: string
+          subject_kind: SubjectKind
+          subject_user_id: string | null
+          subject_name: string
+          subject_relationship: string | null
+          goal: string
+          opening_prompt: string | null
+          dont_bring_up: Json
+          tone: SeriesTone
+          session_minutes: number
+          status: SeriesStatus
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          title: string
+          subject_kind?: SubjectKind
+          subject_user_id?: string | null
+          subject_name: string
+          subject_relationship?: string | null
+          goal: string
+          opening_prompt?: string | null
+          dont_bring_up?: Json
+          tone?: SeriesTone
+          session_minutes?: number
+          status?: SeriesStatus
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          title?: string
+          subject_kind?: SubjectKind
+          subject_user_id?: string | null
+          subject_name?: string
+          subject_relationship?: string | null
+          goal?: string
+          opening_prompt?: string | null
+          dont_bring_up?: Json
+          tone?: SeriesTone
+          session_minutes?: number
+          status?: SeriesStatus
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "series_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "series_subject_user_id_fkey"
+            columns: ["subject_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "series_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      series_access: {
+        Row: {
+          series_id: string
+          user_id: string
+          can_view: boolean
+          can_interview: boolean
+        }
+        Insert: {
+          series_id: string
+          user_id: string
+          can_view?: boolean
+          can_interview?: boolean
+        }
+        Update: {
+          series_id?: string
+          user_id?: string
+          can_view?: boolean
+          can_interview?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "series_access_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "series"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "series_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interviews: {
+        Row: {
+          id: string
+          series_id: string
+          organization_id: string
+          status: InterviewStatus
+          conducted_by: string | null
+          hand_the_mic: boolean
+          started_at: string
+          ended_at: string | null
+          duration_sec: number | null
+          audio_path: string | null
+          credit_charged: boolean
+          process_error: string | null
+          process_attempts: number
+        }
+        Insert: {
+          id?: string
+          series_id: string
+          organization_id: string
+          status?: InterviewStatus
+          conducted_by?: string | null
+          hand_the_mic?: boolean
+          started_at?: string
+          ended_at?: string | null
+          duration_sec?: number | null
+          audio_path?: string | null
+          credit_charged?: boolean
+          process_error?: string | null
+          process_attempts?: number
+        }
+        Update: {
+          id?: string
+          series_id?: string
+          organization_id?: string
+          status?: InterviewStatus
+          conducted_by?: string | null
+          hand_the_mic?: boolean
+          started_at?: string
+          ended_at?: string | null
+          duration_sec?: number | null
+          audio_path?: string | null
+          credit_charged?: boolean
+          process_error?: string | null
+          process_attempts?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interviews_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "series"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interviews_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interviews_conducted_by_fkey"
+            columns: ["conducted_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interview_messages: {
+        Row: {
+          id: string
+          interview_id: string
+          role: MessageRole
+          text: string
+          t_offset_sec: number | null
+          seq: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          interview_id: string
+          role: MessageRole
+          text: string
+          t_offset_sec?: number | null
+          seq: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          interview_id?: string
+          role?: MessageRole
+          text?: string
+          t_offset_sec?: number | null
+          seq?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_messages_interview_id_fkey"
+            columns: ["interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      topics: {
+        Row: {
+          id: string
+          series_id: string
+          name: string
+          description: string | null
+          coverage_score: number
+          must_cover: boolean
+          suggested: boolean
+          position: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          series_id: string
+          name: string
+          description?: string | null
+          coverage_score?: number
+          must_cover?: boolean
+          suggested?: boolean
+          position?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          series_id?: string
+          name?: string
+          description?: string | null
+          coverage_score?: number
+          must_cover?: boolean
+          suggested?: boolean
+          position?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topics_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "series"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facts: {
+        Row: {
+          id: string
+          series_id: string
+          topic_id: string | null
+          source_interview_id: string | null
+          source_message_id: string | null
+          audio_offset_sec: number | null
+          statement: string
+          confidence: number
+          status: FactStatus
+          superseded_by: string | null
+          created_at: string
           updated_at: string
         }
         Insert: {
-          attempts?: number
-          created_at?: string
-          error?: string | null
           id?: string
-          output_type: Database["public"]["Enums"]["output_type_enum"]
-          payload?: Json | null
-          rendered_text?: string | null
-          session_id: string
-          status?: Database["public"]["Enums"]["job_status"]
+          series_id: string
+          topic_id?: string | null
+          source_interview_id?: string | null
+          source_message_id?: string | null
+          audio_offset_sec?: number | null
+          statement: string
+          confidence?: number
+          status?: FactStatus
+          superseded_by?: string | null
+          created_at?: string
           updated_at?: string
         }
         Update: {
-          attempts?: number
-          created_at?: string
-          error?: string | null
           id?: string
-          output_type?: Database["public"]["Enums"]["output_type_enum"]
-          payload?: Json | null
-          rendered_text?: string | null
-          session_id?: string
-          status?: Database["public"]["Enums"]["job_status"]
+          series_id?: string
+          topic_id?: string | null
+          source_interview_id?: string | null
+          source_message_id?: string | null
+          audio_offset_sec?: number | null
+          statement?: string
+          confidence?: number
+          status?: FactStatus
+          superseded_by?: string | null
+          created_at?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "output_jobs_session_id_fkey"
-            columns: ["session_id"]
+            foreignKeyName: "facts_series_id_fkey"
+            columns: ["series_id"]
             isOneToOne: false
-            referencedRelation: "interview_sessions"
+            referencedRelation: "series"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facts_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facts_source_interview_id_fkey"
+            columns: ["source_interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facts_source_message_id_fkey"
+            columns: ["source_message_id"]
+            isOneToOne: false
+            referencedRelation: "interview_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facts_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "facts"
             referencedColumns: ["id"]
           },
         ]
       }
-      summaries: {
+      entities: {
         Row: {
-          bullets: Json | null
-          created_at: string
           id: string
+          series_id: string
+          kind: EntityKind
+          name: string
+          detail: string | null
+        }
+        Insert: {
+          id?: string
+          series_id: string
+          kind: EntityKind
+          name: string
+          detail?: string | null
+        }
+        Update: {
+          id?: string
+          series_id?: string
+          kind?: EntityKind
+          name?: string
+          detail?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entities_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "series"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fact_entities: {
+        Row: {
+          fact_id: string
+          entity_id: string
+        }
+        Insert: {
+          fact_id: string
+          entity_id: string
+        }
+        Update: {
+          fact_id?: string
+          entity_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fact_entities_fact_id_fkey"
+            columns: ["fact_id"]
+            isOneToOne: false
+            referencedRelation: "facts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fact_entities_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interview_summaries: {
+        Row: {
+          interview_id: string
+          short: string
           long: string | null
+          bullets: Json
           model: string | null
-          prompt_version: string | null
-          session_id: string
-          short: string | null
-        }
-        Insert: {
-          bullets?: Json | null
-          created_at?: string
-          id?: string
-          long?: string | null
-          model?: string | null
-          prompt_version?: string | null
-          session_id: string
-          short?: string | null
-        }
-        Update: {
-          bullets?: Json | null
-          created_at?: string
-          id?: string
-          long?: string | null
-          model?: string | null
-          prompt_version?: string | null
-          session_id?: string
-          short?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "summaries_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: true
-            referencedRelation: "interview_sessions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      template_questions: {
-        Row: {
-          allow_followup: boolean
-          hint: string | null
-          id: string
-          max_seconds: number
-          position: number
-          prompt: string
-          required: boolean
-          template_id: string
-        }
-        Insert: {
-          allow_followup?: boolean
-          hint?: string | null
-          id?: string
-          max_seconds?: number
-          position: number
-          prompt: string
-          required?: boolean
-          template_id: string
-        }
-        Update: {
-          allow_followup?: boolean
-          hint?: string | null
-          id?: string
-          max_seconds?: number
-          position?: number
-          prompt?: string
-          required?: boolean
-          template_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "template_questions_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "interview_templates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      transcripts: {
-        Row: {
-          cleaned_text: string | null
-          completed_at: string | null
-          id: string
-          model: string | null
-          prompt_version: string | null
-          raw: Json
-          session_id: string
-        }
-        Insert: {
-          cleaned_text?: string | null
-          completed_at?: string | null
-          id?: string
-          model?: string | null
-          prompt_version?: string | null
-          raw: Json
-          session_id: string
-        }
-        Update: {
-          cleaned_text?: string | null
-          completed_at?: string | null
-          id?: string
-          model?: string | null
-          prompt_version?: string | null
-          raw?: Json
-          session_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "transcripts_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: true
-            referencedRelation: "interview_sessions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      users: {
-        Row: {
           created_at: string
-          display_name: string | null
-          email: string
-          id: string
         }
         Insert: {
+          interview_id: string
+          short: string
+          long?: string | null
+          bullets?: Json
+          model?: string | null
           created_at?: string
-          display_name?: string | null
-          email: string
-          id: string
         }
         Update: {
+          interview_id?: string
+          short?: string
+          long?: string | null
+          bullets?: Json
+          model?: string | null
           created_at?: string
-          display_name?: string | null
-          email?: string
-          id?: string
-        }
-        Relationships: []
-      }
-      webhook_deliveries: {
-        Row: {
-          attempted_at: string | null
-          attempts: number
-          id: string
-          next_attempt_at: string | null
-          output_job_id: string | null
-          request_body: Json
-          response_body: string | null
-          response_status: number | null
-          session_id: string
-          signature: string
-          status: Database["public"]["Enums"]["delivery_status"]
-          url: string
-        }
-        Insert: {
-          attempted_at?: string | null
-          attempts?: number
-          id?: string
-          next_attempt_at?: string | null
-          output_job_id?: string | null
-          request_body: Json
-          response_body?: string | null
-          response_status?: number | null
-          session_id: string
-          signature: string
-          status?: Database["public"]["Enums"]["delivery_status"]
-          url: string
-        }
-        Update: {
-          attempted_at?: string | null
-          attempts?: number
-          id?: string
-          next_attempt_at?: string | null
-          output_job_id?: string | null
-          request_body?: Json
-          response_body?: string | null
-          response_status?: number | null
-          session_id?: string
-          signature?: string
-          status?: Database["public"]["Enums"]["delivery_status"]
-          url?: string
         }
         Relationships: [
           {
-            foreignKeyName: "webhook_deliveries_output_job_id_fkey"
-            columns: ["output_job_id"]
-            isOneToOne: false
-            referencedRelation: "output_jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "webhook_deliveries_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "interview_sessions"
+            foreignKeyName: "interview_summaries_interview_id_fkey"
+            columns: ["interview_id"]
+            isOneToOne: true
+            referencedRelation: "interviews"
             referencedColumns: ["id"]
           },
         ]
@@ -718,40 +605,21 @@ export type Database = {
     }
     Functions: {
       current_org_id: { Args: never; Returns: string }
+      is_org_admin: { Args: never; Returns: boolean }
+      can_view_series: { Args: { s_id: string }; Returns: boolean }
+      can_interview_series: { Args: { s_id: string }; Returns: boolean }
     }
     Enums: {
-      consent_status:
-        | "unknown"
-        | "implied"
-        | "verbal"
-        | "written_and_verbal"
-        | "revoked"
-      delivery_status: "pending" | "succeeded" | "failed" | "abandoned"
-      job_status: "pending" | "running" | "succeeded" | "failed"
-      membership_role: "owner" | "member"
       org_plan: "free" | "starter" | "growth" | "scale"
       org_status: "active" | "suspended"
-      output_type_enum:
-        | "transcript.plain"
-        | "summary.concise"
-        | "qa.structured"
-        | "blog.draft"
-        | "crm.note"
-        | "webhook.json"
-      request_status:
-        | "draft"
-        | "sent"
-        | "reminded"
-        | "completed"
-        | "expired"
-        | "cancelled"
-      session_status:
-        | "active"
-        | "completed"
-        | "partial"
-        | "failed"
-        | "declined"
-        | "expired"
+      member_role: "admin" | "interviewer" | "viewer"
+      series_status: "active" | "paused" | "archived"
+      subject_kind: "member" | "self" | "person" | "organization"
+      series_tone: "warm" | "neutral" | "playful"
+      interview_status: "in_progress" | "completed" | "processed" | "abandoned"
+      message_role: "interviewer" | "subject"
+      fact_status: "active" | "needs_review" | "superseded" | "retell_queued"
+      entity_kind: "person" | "place" | "org" | "event" | "date"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -879,42 +747,32 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      consent_status: [
-        "unknown",
-        "implied",
-        "verbal",
-        "written_and_verbal",
-        "revoked",
-      ],
-      delivery_status: ["pending", "succeeded", "failed", "abandoned"],
-      job_status: ["pending", "running", "succeeded", "failed"],
-      membership_role: ["owner", "member"],
       org_plan: ["free", "starter", "growth", "scale"],
       org_status: ["active", "suspended"],
-      output_type_enum: [
-        "transcript.plain",
-        "summary.concise",
-        "qa.structured",
-        "blog.draft",
-        "crm.note",
-        "webhook.json",
-      ],
-      request_status: [
-        "draft",
-        "sent",
-        "reminded",
-        "completed",
-        "expired",
-        "cancelled",
-      ],
-      session_status: [
-        "active",
-        "completed",
-        "partial",
-        "failed",
-        "declined",
-        "expired",
-      ],
+      member_role: ["admin", "interviewer", "viewer"],
+      series_status: ["active", "paused", "archived"],
+      subject_kind: ["member", "self", "person", "organization"],
+      series_tone: ["warm", "neutral", "playful"],
+      interview_status: ["in_progress", "completed", "processed", "abandoned"],
+      message_role: ["interviewer", "subject"],
+      fact_status: ["active", "needs_review", "superseded", "retell_queued"],
+      entity_kind: ["person", "place", "org", "event", "date"],
     },
   },
 } as const
+
+// =========================================================
+// Convenience row-type aliases (brief-specified export names)
+// =========================================================
+export type Organization = Tables<"organizations">
+export type UserRow = Tables<"users">
+export type Membership = Tables<"memberships">
+export type Series = Tables<"series">
+export type SeriesAccess = Tables<"series_access">
+export type Interview = Tables<"interviews">
+export type InterviewMessage = Tables<"interview_messages">
+export type Topic = Tables<"topics">
+export type Fact = Tables<"facts">
+export type Entity = Tables<"entities">
+export type FactEntity = Tables<"fact_entities">
+export type InterviewSummary = Tables<"interview_summaries">

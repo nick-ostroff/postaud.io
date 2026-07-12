@@ -1,29 +1,30 @@
+import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/nav/Sidebar";
 import { getViewer } from "@/db/queries";
-
-const PLAN_CREDITS: Record<string, number> = {
-  free: 3, starter: 20, growth: 100, scale: 400,
-};
+import { ROLE_LABELS } from "@/lib/roles";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user, organization } = await getViewer();
+  const { user, organization, role, acceptedAt } = await getViewer();
 
-  const orgName = organization?.name ?? "Workspace";
-  const email = user.email ?? "—";
-  const creditsRemaining = organization?.credits_remaining ?? 0;
-  const creditsTotal = PLAN_CREDITS[organization?.plan ?? "free"] ?? 3;
+  // Invited members must finish the /welcome accept flow (set password, see
+  // role + accessible series, accept) before reaching anything under /app —
+  // enforced centrally here so no individual page/route can be missed.
+  // `/welcome` itself lives outside `/app` (not wrapped by this layout), so
+  // this can't loop.
+  if (organization && !acceptedAt) {
+    redirect("/welcome");
+  }
+
+  const name =
+    (user.user_metadata?.full_name as string | undefined) ||
+    user.email?.split("@")[0] ||
+    "You";
+  const roleLabel = role ? (ROLE_LABELS[role] ?? role) : "Member";
 
   return (
-    <div className="flex min-h-screen bg-[var(--background)]">
-      <Sidebar
-        orgName={orgName}
-        email={email}
-        creditsRemaining={creditsRemaining}
-        creditsTotal={creditsTotal}
-      />
-      <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-6xl px-8 py-8">{children}</div>
-      </main>
+    <div className="flex min-h-screen w-full bg-paper">
+      <Sidebar name={name} role={roleLabel} />
+      <main className="min-w-0 flex-1 px-9 py-[30px] pb-11">{children}</main>
     </div>
   );
 }

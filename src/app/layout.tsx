@@ -1,15 +1,30 @@
 import type { Metadata } from "next";
+import { Newsreader, Instrument_Sans } from "next/font/google";
 import "./globals.css";
 
+const newsreader = Newsreader({
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  variable: "--font-newsreader",
+  display: "swap",
+});
+
+const instrumentSans = Instrument_Sans({
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  variable: "--font-instrument-sans",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "PostAud.io — Interviews, without the interview",
+  title: "PostAud.io — An AI interviewer that builds knowledge through conversation",
   description:
-    "Send a text, get a transcript, a summary, and the exact output you need — from a 3-minute AI-guided phone call your recipient takes whenever they want.",
+    "Voice-first AI interviews that build a living knowledge base — not just a transcript. Export what you learn as Markdown, anytime.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark h-full antialiased">
+    <html lang="en" className={`${newsreader.variable} ${instrumentSans.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

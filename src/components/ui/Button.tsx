@@ -1,0 +1,39 @@
+import type { ButtonHTMLAttributes } from "react";
+
+type ButtonVariant = "primary" | "secondary" | "ghost" | "quiet-danger";
+type ButtonSize = "md" | "big";
+
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+};
+
+const base =
+  "inline-flex items-center gap-2 cursor-pointer font-semibold rounded-pill border transition-colors disabled:cursor-not-allowed disabled:opacity-50";
+
+const variantClasses: Record<ButtonVariant, string> = {
+  secondary: "bg-card border-line-strong text-ink hover:border-ink-soft",
+  primary: "bg-green border-green text-white hover:bg-green-deep hover:border-green-deep",
+  ghost: "border-transparent bg-transparent text-muted hover:text-ink hover:border-transparent hover:no-underline",
+  "quiet-danger": "text-amber border-amber-tint bg-amber-tint",
+};
+
+const sizeClasses: Record<ButtonSize, string> = {
+  md: "text-[13.5px] px-[18px] py-[9px]",
+  big: "text-[15.5px] px-[28px] py-[14px]",
+};
+
+/** Pill-shaped button matching `.btn`/`.btn-primary`/`.btn-ghost`/`.btn-quiet-danger` in postaudio-mockups.css. */
+export function Button({
+  variant = "secondary",
+  size = "md",
+  className = "",
+  ...buttonProps
+}: ButtonProps) {
+  return (
+    <button
+      className={`${base} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      {...buttonProps}
+    />
+  );
+}
