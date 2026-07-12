@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const ITEMS = [
+  { href: "/super", label: "Users" },
   { href: "/super/accounts", label: "Accounts" },
   { href: "/super/series", label: "Series" },
 ];
@@ -14,7 +15,10 @@ export function OpNav() {
   return (
     <nav className="flex items-center gap-1">
       {ITEMS.map((item) => {
-        const active = pathname?.startsWith(item.href);
+        const active =
+          item.href === "/super"
+            ? pathname === "/super" || pathname?.startsWith("/super/users")
+            : pathname?.startsWith(item.href);
         return (
           <Link
             key={item.href}

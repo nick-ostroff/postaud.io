@@ -56,7 +56,7 @@ function networkNote(invited: number, noAccount: number): string {
   return `invited ${invited} · ${acctNote}`;
 }
 
-export default async function AdminUsersPage({ searchParams }: { searchParams: SearchParams }) {
+export default async function SuperAccountsPage({ searchParams }: { searchParams: SearchParams }) {
   const { q, status: statusParam, offset: offsetStr } = await searchParams;
   const status = isActivityStatus(statusParam) ? statusParam : "all";
   const offset = Number.isFinite(Number(offsetStr)) && Number(offsetStr) > 0 ? Number(offsetStr) : 0;
@@ -88,9 +88,9 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
     <div>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="font-serif text-[26px] text-neutral-900 dark:text-white">Users &amp; accounts</h1>
+          <h1 className="font-serif text-[26px] text-neutral-900 dark:text-white">Accounts</h1>
           <p className="mt-1 text-[13.5px] text-neutral-500">
-            Everyone on the platform, and who they&apos;ve brought with them.
+            Every organization on the platform, and how they&apos;re doing.
           </p>
         </div>
         <span className="rounded-full bg-neutral-100 px-3 py-1.5 text-[11.5px] font-medium text-neutral-600 dark:bg-white/5 dark:text-neutral-400">
