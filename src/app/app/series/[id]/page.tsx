@@ -14,6 +14,7 @@ import {
   getViewer,
   listInterviewsForSeries,
 } from "@/db/queries";
+import { ExportCard } from "./ExportCard";
 import { PromoteChip } from "./PromoteChip";
 import { ReprocessButton } from "./ReprocessButton";
 
@@ -302,10 +303,7 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
             <p className="text-[13px] text-muted">
               Take everything Anna has learned with you — nothing is locked in.
             </p>
-            <Button variant="secondary" className="mt-2" disabled title="Export controls arrive soon">
-              ↧ Markdown / text
-            </Button>
-            <div className="mt-1.5 text-xs text-faint">Real export controls are on the way.</div>
+            <ExportCard seriesId={series.id} />
           </Card>
         </div>
       </div>
