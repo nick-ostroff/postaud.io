@@ -1,45 +1,56 @@
-export default function SettingsPage() {
+import { Card } from "@/components/ui/Card";
+import { getViewer } from "@/db/queries";
+import { ROLE_LABELS } from "@/lib/roles";
+
+/**
+ * Minimal read-only profile/org card. There's no editable workspace
+ * settings yet (name/plan changes go through the platform admin console,
+ * not self-serve) — this page just confirms who you are and which
+ * workspace you're in, rather than presenting controls that don't save
+ * anything.
+ */
+export default async function SettingsPage() {
+  const { user, organization, role } = await getViewer();
+  const roleLabel = role ? (ROLE_LABELS[role] ?? role) : "Member";
+
   return (
     <div>
-      <h1 className="text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-50">Settings</h1>
-      <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">Workspace-level preferences.</p>
+      <h1 className="text-[28px]">Settings</h1>
+      <p className="mt-1 text-[13.5px] text-muted">Your profile and workspace.</p>
 
-      <section className="mt-8 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#111] p-5 shadow-sm transition-colors">
-        <h2 className="text-sm font-medium tracking-wide text-neutral-500 dark:text-neutral-400 uppercase">Workspace</h2>
-        <label className="mt-3 block text-xs font-medium text-neutral-600 dark:text-neutral-400">Name</label>
-        <input
-          placeholder="Workspace name"
-          className="mt-1 w-full max-w-md rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-[#1c1c1e] px-3 py-2 text-sm text-neutral-900 dark:text-neutral-100 focus:border-neutral-900 dark:focus:border-neutral-500 focus:outline-none transition-colors"
-        />
-      </section>
+      <Card className="mt-8 px-[22px] py-5">
+        <h3>Profile</h3>
+        <dl className="mt-3 flex flex-col gap-2 text-[13.5px]">
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted">Email</dt>
+            <dd className="font-medium text-ink">{user.email}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted">Role</dt>
+            <dd className="font-medium text-ink">{roleLabel}</dd>
+          </div>
+        </dl>
+      </Card>
 
-      <section className="mt-6 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#111] p-5 shadow-sm transition-colors">
-        <h2 className="text-sm font-medium tracking-wide text-neutral-500 dark:text-neutral-400 uppercase">Recording retention</h2>
-        <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">How long to keep interview recordings before auto-deletion.</p>
-        <div className="mt-3 flex gap-2">
-          {[7, 30, 90].map((d) => (
-            <button
-              key={d}
-              className={
-                "rounded-md border px-4 py-1.5 text-sm transition-colors " +
-                (d === 90
-                  ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900"
-                  : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-[#1c1c1e] dark:text-neutral-300 dark:hover:bg-neutral-800")
-              }
-            >
-              {d} days
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section className="mt-6 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-white dark:bg-[#111] p-5 shadow-sm transition-colors">
-        <h2 className="text-sm font-medium tracking-wide text-rose-600 dark:text-rose-400 uppercase">Danger zone</h2>
-        <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">Permanently delete this workspace and all of its data.</p>
-        <button className="mt-3 rounded-md border border-rose-300 dark:border-rose-800 bg-white dark:bg-[#1c1c1e] px-4 py-1.5 text-sm text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors">
-          Delete workspace
-        </button>
-      </section>
+      {organization && (
+        <Card className="mt-4 px-[22px] py-5">
+          <h3>Workspace</h3>
+          <dl className="mt-3 flex flex-col gap-2 text-[13.5px]">
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted">Name</dt>
+              <dd className="font-medium text-ink">{organization.name}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted">Plan</dt>
+              <dd className="font-medium text-ink capitalize">{organization.plan}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted">Credits remaining</dt>
+              <dd className="font-medium text-ink">{organization.credits_remaining}</dd>
+            </div>
+          </dl>
+        </Card>
+      )}
     </div>
   );
 }

@@ -30,11 +30,11 @@ function formatSessionDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-function formatDurationMMSS(sec: number | null): string | null {
+/** "22 min" style — matches the series hub's session-list duration format. */
+function formatDuration(sec: number | null): string | null {
   if (sec == null) return null;
-  const m = Math.floor(sec / 60);
-  const s = Math.round(sec % 60);
-  return `${m}:${String(s).padStart(2, "0")}`;
+  const mins = Math.round(sec / 60);
+  return `${mins} min`;
 }
 
 function formatOffset(sec: number | null): string | null {
@@ -75,7 +75,7 @@ export default async function InterviewResultsPage({ params }: { params: Params 
 
   const headSub = [
     formatSessionDate(interview.started_at),
-    formatDurationMMSS(interview.duration_sec),
+    formatDuration(interview.duration_sec),
     interview.audio_path ? "audio saved" : null,
   ]
     .filter(Boolean)

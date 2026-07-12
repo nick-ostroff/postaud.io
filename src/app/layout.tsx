@@ -17,9 +17,9 @@ const instrumentSans = Instrument_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "PostAud.io — Interviews, without the interview",
+  title: "PostAud.io — An AI interviewer that builds knowledge through conversation",
   description:
-    "Send a text, get a transcript, a summary, and the exact output you need — from a 3-minute AI-guided phone call your recipient takes whenever they want.",
+    "Voice-first AI interviews that build a living knowledge base — not just a transcript. Export what you learn as Markdown, anytime.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

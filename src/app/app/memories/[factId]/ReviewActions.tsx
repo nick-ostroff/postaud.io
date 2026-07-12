@@ -61,15 +61,17 @@ export function ReviewActions({ factId, initialStatement }: Props) {
 
   return (
     <div className="flex flex-col gap-[11px]">
-      <Button
-        variant="primary"
-        size="big"
-        className="w-full justify-center"
-        disabled={pending !== null}
-        onClick={() => send({ action: "confirm" }, "That's right — saved as is.")}
-      >
-        {pending === "confirm" ? "Saving…" : "That's right"}
-      </Button>
+      {!fixing && (
+        <Button
+          variant="primary"
+          size="big"
+          className="w-full justify-center"
+          disabled={pending !== null}
+          onClick={() => send({ action: "confirm" }, "That's right — saved as is.")}
+        >
+          {pending === "confirm" ? "Saving…" : "That's right"}
+        </Button>
+      )}
 
       {fixing ? (
         <div className="flex flex-col gap-2">

@@ -21,6 +21,9 @@ import { ReprocessButton } from "./ReprocessButton";
 /** Coverage below this reads as amber — matches the card grid's threshold. */
 const LOW_COVERAGE = 0.4;
 
+/** Sessions shown before collapsing the rest into a muted "and N earlier" line. */
+const VISIBLE_SESSIONS = 6;
+
 const navLabel = "text-[10.5px] font-bold uppercase tracking-[0.12em] text-faint";
 
 function formatSessionDate(iso: string): string {
@@ -68,12 +71,25 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
   const suggestedTopics = knowledge.topics.filter((t) => t.suggested);
 
   const people = knowledge.entities.filter((e) => e.kind === "person");
-  // Entities of kind 'date' double as timeline anchors (name = the year/date
-  // label, detail = what happened) — sorted lexicographically, which works
-  // for same-length year strings; take the last 3 for "3 latest".
+
+  // Timeline: date entities joined to their facts via fact_entities (same
+  // approach as the knowledge page) — `detail` on a date entity is never
+  // populated, so the displayed text comes from the linked fact's statement
+  // instead. Sorted lexically by name, which works for same-length year
+  // strings; take the last 3 for "3 latest".
+  const visibleFacts = knowledge.facts.filter((f) => f.status !== "superseded");
+  const factsByDateEntity = new Map<string, string>();
+  for (const f of visibleFacts) {
+    for (const e of f.entities) {
+      if (e.kind !== "date" || factsByDateEntity.has(e.id)) continue;
+      factsByDateEntity.set(e.id, f.statement);
+    }
+  }
   const timeline = knowledge.entities
     .filter((e) => e.kind === "date")
     .sort((a, b) => a.name.localeCompare(b.name))
+    .map((e) => ({ id: e.id, name: e.name, statement: factsByDateEntity.get(e.id) ?? e.detail }))
+    .filter((t) => t.statement)
     .slice(-3);
 
   const subjectSubtitle = series.subject_relationship
@@ -141,7 +157,7 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
               </p>
             ) : (
               <div className="mt-1">
-                {sessions.map((s) => {
+                {sessions.slice(0, VISIBLE_SESSIONS).map((s) => {
                   const duration = formatDuration(s.durationSec);
                   const memoriesWord = s.memoriesAdded === 1 ? "memory" : "memories";
                   return (
@@ -170,6 +186,11 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
                     </div>
                   );
                 })}
+                {sessions.length > VISIBLE_SESSIONS && (
+                  <p className="pt-2.5 text-[12.5px] text-faint">
+                    and {sessions.length - VISIBLE_SESSIONS} earlier sessions
+                  </p>
+                )}
               </div>
             )}
           </Card>
@@ -254,7 +275,7 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
                     <div key={t.id} className="relative pb-[18px] last:pb-1">
                       <div className="absolute -left-[22px] top-[5px] h-[11px] w-[11px] rounded-full border-[2.5px] border-paper bg-green" />
                       <div className="text-[11.5px] font-bold tracking-[0.08em] text-green-deep">{t.name}</div>
-                      <div className="serif text-[15px]">{t.detail}</div>
+                      <div className="serif text-[15px]">{t.statement}</div>
                     </div>
                   ))}
                 </div>

@@ -1,5 +1,7 @@
 # PostAud.io — Product Plan (v2)
 
+> SUPERSEDED by docs/superpowers/specs/2026-07-11-postaudio-v1-product-spec.md — this file describes the abandoned phone/SMS concept.
+
 > Status: planning. No code yet. Updates from session 2026-04-18 folded in (DTMF routing, content/self-interview use case, dedicated-number policy).
 
 ## 1. Product overview
