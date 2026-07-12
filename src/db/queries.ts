@@ -1,7 +1,16 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/db/server";
 import { serviceClient } from "@/db/service";
-import type { Database, Entity, Fact, Interview, Membership, Series, Topic } from "@/db/types";
+import type {
+  Database,
+  Entity,
+  Fact,
+  Interview,
+  InterviewSummary,
+  Membership,
+  Series,
+  Topic,
+} from "@/db/types";
 
 /**
  * Idempotently creates the `public.users` row, a default organization, and an
@@ -170,6 +179,69 @@ export async function getInterview(sb: SupabaseClient<Database>, id: string): Pr
   const { data, error } = await sb.from("interviews").select("*").eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);
   return data;
+}
+
+/**
+ * The pipeline-written summary for one interview, or null pre-Task-12 (or
+ * mid-processing, before the summary row lands) — the recap page uses null
+ * as its signal to render the "still writing this up" placeholder.
+ */
+export async function getInterviewSummary(
+  sb: SupabaseClient<Database>,
+  interviewId: string,
+): Promise<InterviewSummary | null> {
+  const { data, error } = await sb
+    .from("interview_summaries")
+    .select("*")
+    .eq("interview_id", interviewId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export type InterviewFactRow = {
+  id: string;
+  statement: string;
+  topicName: string | null;
+  audioOffsetSec: number | null;
+};
+
+/**
+ * Facts saved directly from one session, oldest first — the recap page's
+ * "Saved today" list. Excludes anything already superseded by a later
+ * correction; pre-Task-12 this is simply empty.
+ */
+export async function getInterviewFacts(
+  sb: SupabaseClient<Database>,
+  interviewId: string,
+): Promise<InterviewFactRow[]> {
+  const { data, error } = await sb
+    .from("facts")
+    .select("id, statement, audio_offset_sec, topics ( name )")
+    .eq("source_interview_id", interviewId)
+    .neq("status", "superseded")
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+
+  type FactTopicRow = { id: string; statement: string; audio_offset_sec: number | null; topics: { name: string } | null };
+  return ((data ?? []) as unknown as FactTopicRow[]).map((f) => ({
+    id: f.id,
+    statement: f.statement,
+    topicName: f.topics?.name ?? null,
+    audioOffsetSec: f.audio_offset_sec,
+  }));
+}
+
+/**
+ * Best-effort display name for a single user id (falling back to email) —
+ * used for warm, personal copy like the interviewee home's "{owner} would
+ * love to hear about …" prompt. Returns null if the row isn't visible under
+ * RLS or has neither a display name nor an email set.
+ */
+export async function getUserDisplayName(sb: SupabaseClient<Database>, userId: string): Promise<string | null> {
+  const { data } = await sb.from("users").select("display_name, email").eq("id", userId).maybeSingle();
+  if (!data) return null;
+  return data.display_name || data.email || null;
 }
 
 export type SeriesSummary = {

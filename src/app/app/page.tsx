@@ -1,9 +1,21 @@
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
 import { SeriesCard } from "@/components/series/SeriesCard";
-import { getSeriesForUser, getSeriesSummaries, getViewer, listMembers } from "@/db/queries";
+import {
+  getSeriesForUser,
+  getSeriesKnowledge,
+  getSeriesSummaries,
+  getUserDisplayName,
+  getViewer,
+  listMembers,
+} from "@/db/queries";
+import { firstNameOf } from "@/lib/names";
+import { pickIntervieweeSeries } from "@/server/interviewee/select-series";
+import { pickPersonalPromptTopic } from "@/server/topics/pick";
+import { IntervieweeHome } from "./IntervieweeHome";
 
 function greeting(now: Date): string {
   const hour = now.getHours();
@@ -30,20 +42,44 @@ export default async function DashboardHome() {
   const memoriesTotal = Object.values(summaries).reduce((sum, s) => sum + s.memoriesCount, 0);
   const sessionsThisMonth = Object.values(summaries).reduce((sum, s) => sum + s.sessionsThisMonth, 0);
 
-  // TODO(Task 11): a non-admin who is the subject of exactly one active
-  // series gets a dedicated one-job "interviewee home" instead of this grid
-  // — built in Task 11. Until then everyone (admins and members alike) sees
-  // the standard grid below, which RLS already scopes to what this viewer
-  // can see, so nothing is exposed early.
-  const soleActiveSubjectSeries = series.filter(
+  // A non-admin who is the subject of at least one active series gets a
+  // dedicated one-job "interviewee home" instead of the workspace grid — if
+  // they're the subject of several, whichever was interviewed most recently
+  // wins. "Not today" dismisses that series for the rest of the day via a
+  // cookie, falling through to the standard grid below (which RLS already
+  // scopes to what this viewer can see, so nothing is exposed early).
+  const intervieweeCandidates = series.filter(
     (s) => s.status === "active" && s.subject_user_id === user.id,
   );
-  const isSoleIntervieweeHome = role !== "admin" && soleActiveSubjectSeries.length === 1;
+  const isInterviewee = role !== "admin" && intervieweeCandidates.length > 0;
+
+  if (isInterviewee) {
+    const chosen = pickIntervieweeSeries(intervieweeCandidates, summaries);
+    if (chosen) {
+      const cookieStore = await cookies();
+      const snoozed = cookieStore.get(`snooze-${chosen.id}`)?.value === "1";
+      if (!snoozed) {
+        const [knowledge, ownerName] = await Promise.all([
+          getSeriesKnowledge(supabase, chosen.id),
+          chosen.created_by ? getUserDisplayName(supabase, chosen.created_by) : Promise.resolve(null),
+        ]);
+        const promptTopic = pickPersonalPromptTopic(knowledge.topics);
+
+        return (
+          <IntervieweeHome
+            name={name}
+            seriesId={chosen.id}
+            ownerFirstName={firstNameOf(ownerName) ?? "Your family"}
+            topicName={promptTopic?.name ?? null}
+            memoriesCount={summaries[chosen.id]?.memoriesCount ?? 0}
+          />
+        );
+      }
+    }
+  }
 
   const storyWord = series.length === 1 ? "story" : "stories";
-  const subtitle = isSoleIntervieweeHome
-    ? "Your story, in progress."
-    : `The ${organization?.name ?? "workspace"} workspace — ${series.length} ${storyWord} in motion.`;
+  const subtitle = `The ${organization?.name ?? "workspace"} workspace — ${series.length} ${storyWord} in motion.`;
 
   return (
     <div>

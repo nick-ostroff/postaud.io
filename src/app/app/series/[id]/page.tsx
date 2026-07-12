@@ -109,6 +109,11 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
           <Link href={`/app/series/${series.id}/access`}>
             <Button variant="ghost">Access</Button>
           </Link>
+          {series.subject_user_id == null && (
+            <Link href={`/app/series/${series.id}/handoff`}>
+              <Button variant="secondary">Hand the mic</Button>
+            </Link>
+          )}
           <Link href={`/app/series/${series.id}/interview`}>
             <Button variant="primary" size="big">
               Start interview
