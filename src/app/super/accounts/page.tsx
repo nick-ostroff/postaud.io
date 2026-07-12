@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getPlatformStats, listAccountsConsole, type ActivityStatus } from "@/db/queries/admin";
 import { relativeTime } from "@/lib/time";
 
-export const metadata = { title: "Users & accounts — Operator — PostAud.io" };
+export const metadata = { title: "Accounts — Operator — PostAud.io" };
 
 type SearchParams = Promise<{ q?: string; status?: string; offset?: string }>;
 
@@ -72,7 +72,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
     if (q) params.set("q", q);
     if (key !== "all") params.set("status", key);
     const qs = params.toString();
-    return qs ? `/admin?${qs}` : "/admin";
+    return qs ? `/super/accounts?${qs}` : "/super/accounts";
   }
 
   function pageHref(nextOffset: number) {
@@ -81,7 +81,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
     if (status !== "all") params.set("status", status);
     if (nextOffset > 0) params.set("offset", String(nextOffset));
     const qs = params.toString();
-    return qs ? `/admin?${qs}` : "/admin";
+    return qs ? `/super/accounts?${qs}` : "/super/accounts";
   }
 
   return (
@@ -158,7 +158,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
               <tr key={r.id} className="hover:bg-neutral-50 dark:hover:bg-[#161616]">
                 <td className="px-4 py-3">
                   <Link
-                    href={`/admin/accounts/${r.id}`}
+                    href={`/super/accounts/${r.id}`}
                     className="font-medium text-neutral-900 hover:text-emerald-700 dark:text-white dark:hover:text-emerald-400"
                   >
                     {r.name}

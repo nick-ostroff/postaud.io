@@ -36,7 +36,7 @@ export default async function SeriesRegistryPage({ searchParams }: { searchParam
     if (q) params.set("q", q);
     if (key !== "all") params.set("type", key);
     const qs = params.toString();
-    return qs ? `/admin/series?${qs}` : "/admin/series";
+    return qs ? `/super/series?${qs}` : "/super/series";
   }
 
   function pageHref(nextOffset: number) {
@@ -45,7 +45,7 @@ export default async function SeriesRegistryPage({ searchParams }: { searchParam
     if (type !== "all") params.set("type", type);
     if (nextOffset > 0) params.set("offset", String(nextOffset));
     const qs = params.toString();
-    return qs ? `/admin/series?${qs}` : "/admin/series";
+    return qs ? `/super/series?${qs}` : "/super/series";
   }
 
   return (
@@ -116,7 +116,7 @@ export default async function SeriesRegistryPage({ searchParams }: { searchParam
               <tr key={r.id} className="hover:bg-neutral-50 dark:hover:bg-[#161616]">
                 <td className="px-4 py-3">
                   <Link
-                    href={`/admin/accounts/${r.organizationId}`}
+                    href={`/super/accounts/${r.organizationId}`}
                     className="text-neutral-700 hover:text-emerald-700 dark:text-neutral-300 dark:hover:text-emerald-400"
                   >
                     {r.organizationName}

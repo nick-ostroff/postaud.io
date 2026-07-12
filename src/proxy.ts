@@ -34,9 +34,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Gate /admin — non-admins get 404, never 403. We return 404 rather than
-  // redirecting so the panel's existence is not disclosed.
-  if (request.nextUrl.pathname.startsWith("/admin")) {
+  // Gate /super — non-admins get 404, never 403. We return 404 rather than
+  // redirecting so the console's existence is not disclosed. /admin no longer
+  // exists and is left to 404 naturally, which leaks nothing about the new path.
+  if (request.nextUrl.pathname.startsWith("/super") || request.nextUrl.pathname.startsWith("/api/super")) {
     // Intentionally NOT using platformAdminEmails() from @/lib/env —
     // middleware runtime can't carry Zod. Keep in sync with src/lib/env.ts.
     const adminEmails = (process.env.PLATFORM_ADMIN_EMAILS ?? "")

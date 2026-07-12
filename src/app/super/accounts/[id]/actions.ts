@@ -21,8 +21,8 @@ export async function adjustCreditsAction(formData: FormData) {
 
   await adjustOrgCredits({ orgId, delta, reason, actorEmail: email });
 
-  revalidatePath(`/admin/accounts/${orgId}`);
-  redirect(`/admin/accounts/${orgId}`);
+  revalidatePath(`/super/accounts/${orgId}`);
+  redirect(`/super/accounts/${orgId}`);
 }
 
 export async function setStatusAction(formData: FormData) {
@@ -38,6 +38,6 @@ export async function setStatusAction(formData: FormData) {
 
   await setOrgStatus({ orgId, status: nextStatus, actorEmail: email });
 
-  revalidatePath(`/admin/accounts/${orgId}`);
-  redirect(`/admin/accounts/${orgId}`);
+  revalidatePath(`/super/accounts/${orgId}`);
+  redirect(`/super/accounts/${orgId}`);
 }

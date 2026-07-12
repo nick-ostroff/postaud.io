@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getOrganizationDetail, type ActivityStatus } from "@/db/queries/admin";
 import { relativeTime } from "@/lib/time";
-import { ImpersonateButton } from "./ImpersonateButton";
 
 type Params = Promise<{ id: string }>;
 
@@ -41,8 +40,8 @@ export default async function AccountDetailPage({ params }: { params: Params }) 
   return (
     <div className="space-y-7">
       <div>
-        <Link href="/admin" className="text-[12.5px] text-neutral-500 hover:text-neutral-900 dark:hover:text-white">
-          Users
+        <Link href="/super/accounts" className="text-[12.5px] text-neutral-500 hover:text-neutral-900 dark:hover:text-white">
+          Accounts
         </Link>
         <span className="mx-1.5 text-[12.5px] text-neutral-400">/</span>
         <span className="text-[12.5px] text-neutral-500">{organization.name}</span>
@@ -80,7 +79,6 @@ export default async function AccountDetailPage({ params }: { params: Params }) 
 
         <div className="flex flex-col items-end gap-2">
           <div className="flex gap-2">
-            <ImpersonateButton orgId={organization.id} />
             {ownerEmail && (
               <a
                 href={`mailto:${ownerEmail}`}
@@ -97,7 +95,7 @@ export default async function AccountDetailPage({ params }: { params: Params }) 
             </span>
           </div>
           <span className="text-[11.5px] text-neutral-400 dark:text-neutral-600">
-            every impersonation is logged &amp; visible to the account owner
+            every impersonation is logged
           </span>
         </div>
       </div>
@@ -122,7 +120,7 @@ export default async function AccountDetailPage({ params }: { params: Params }) 
               ))}
             </dl>
             <Link
-              href={`/admin/accounts/${organization.id}/credits`}
+              href={`/super/accounts/${organization.id}/credits`}
               className="mt-3 inline-block text-[13px] font-medium text-emerald-700 hover:text-emerald-800 dark:text-emerald-400"
             >
               Adjust credits →
