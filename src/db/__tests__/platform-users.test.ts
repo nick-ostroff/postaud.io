@@ -12,12 +12,28 @@ import { listPlatformUsers } from "../queries/admin";
  */
 function makeSvc(tables: Record<string, unknown[]>) {
   const chain = (rows: unknown[]) => {
-    const result = Promise.resolve({ data: rows, error: null });
+    // Sorted lazily on `.order()` so the mock actually constrains the query
+    // the way real Supabase would — a test can only pass if the code under
+    // test requests the right column/direction.
+    let sorted = rows;
+    const resolve = () => Promise.resolve({ data: sorted, error: null });
     const obj: Record<string, unknown> = {
       select: () => obj,
-      order: () => obj,
-      limit: () => result,
-      then: (...a: unknown[]) => (result.then as (...x: unknown[]) => unknown)(...a),
+      order: (column: string, opts?: { ascending?: boolean }) => {
+        const ascending = opts?.ascending ?? true;
+        sorted = [...sorted].sort((a, b) => {
+          const av = (a as Record<string, unknown>)[column];
+          const bv = (b as Record<string, unknown>)[column];
+          if (av === bv) return 0;
+          if (av == null) return 1;
+          if (bv == null) return -1;
+          if (av < bv) return ascending ? -1 : 1;
+          return ascending ? 1 : -1;
+        });
+        return obj;
+      },
+      limit: () => resolve(),
+      then: (...a: unknown[]) => (resolve().then as (...x: unknown[]) => unknown)(...a),
     };
     return obj;
   };
@@ -41,9 +57,13 @@ const SERIES = [
   { id: "s2", title: "Ops handbook", subject_user_id: null },
 ];
 
+// Deliberately NOT pre-sorted descending — listPlatformUsers must request
+// `.order("started_at", { ascending: false })` itself for lastActivity to
+// come out right. (If the mock's `.order()` were a no-op, or the query used
+// ascending order, u1's lastActivity below would be the older interview.)
 const INTERVIEWS = [
-  { organization_id: "o1", started_at: "2026-06-10T00:00:00Z" },
   { organization_id: "o1", started_at: "2026-05-01T00:00:00Z" },
+  { organization_id: "o1", started_at: "2026-06-10T00:00:00Z" },
 ];
 
 beforeEach(() => {
