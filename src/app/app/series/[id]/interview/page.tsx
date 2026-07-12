@@ -1,0 +1,100 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { getSeries, getViewer } from "@/db/queries";
+import { serviceClient } from "@/db/service";
+import { canInterviewSeries } from "@/server/interviews/access";
+import { StartInterviewError, startInterview } from "@/server/interviews/start";
+import { LiveInterview } from "./LiveInterview";
+
+type Params = Promise<{ id: string }>;
+type Search = Promise<{ handoff?: string }>;
+
+/**
+ * The live interview screen. Server component: verifies the caller can
+ * interview this series, creates-or-resumes the in-progress interview row
+ * (reusing Task 9's `startInterview` directly rather than round-tripping the
+ * POST route), and hands the client component a session it can immediately
+ * connect to. The 402 "no credits" case renders a warm top-up card instead of
+ * dropping the user into a session that can't run.
+ */
+export default async function InterviewPage({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams: Search;
+}) {
+  const { id } = await params;
+  const { handoff } = await searchParams;
+  const { user, supabase, organization, role } = await getViewer();
+  if (!organization) notFound();
+
+  const series = await getSeries(supabase, id);
+  if (!series) notFound();
+
+  const canInterview = await canInterviewSeries(supabase, {
+    userId: user.id,
+    role,
+    seriesSubjectUserId: series.subject_user_id,
+    seriesId: series.id,
+  });
+  if (!canInterview) notFound();
+
+  const isHandoff = handoff === "1";
+
+  let interviewId: string;
+  try {
+    const started = await startInterview(serviceClient(), {
+      organizationId: organization.id,
+      seriesId: series.id,
+      conductedBy: user.id,
+      handoff: isHandoff,
+      creditsRemaining: organization.credits_remaining,
+    });
+    interviewId = started.interviewId;
+  } catch (err) {
+    if (err instanceof StartInterviewError && err.code === "no_credits") {
+      return <OutOfCreditsCard seriesId={series.id} />;
+    }
+    throw err;
+  }
+
+  return (
+    <LiveInterview
+      interviewId={interviewId}
+      seriesId={series.id}
+      seriesTitle={series.title}
+      subjectName={series.subject_name}
+      handoff={isHandoff}
+    />
+  );
+}
+
+function OutOfCreditsCard({ seriesId }: { seriesId: string }) {
+  return (
+    <div className="flex min-h-[70vh] w-full items-center justify-center px-4">
+      <Card className="max-w-md px-8 py-9 text-center">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-amber-tint text-2xl">
+          ☕
+        </div>
+        <h2 className="text-[22px]">Out of interview credits</h2>
+        <p className="mt-2 text-[14.5px] leading-relaxed text-muted">
+          You&apos;ve used every interview credit on this workspace. Top up to keep the
+          conversations going — everything Anna has already learned is safe and waiting.
+        </p>
+        <div className="mt-6 flex flex-col items-center gap-2.5">
+          <Link href="/app/settings">
+            <Button variant="primary" size="big">
+              Top up credits
+            </Button>
+          </Link>
+          <Link href={`/app/series/${seriesId}`} className="text-[13px] font-medium text-muted">
+            Back to the series
+          </Link>
+        </div>
+      </Card>
+    </div>
+  );
+}
