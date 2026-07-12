@@ -339,3 +339,95 @@ describe("processInterview — fact merging (Task 13)", () => {
     expect(mocks.db.tables.facts).toHaveLength(2);
   });
 });
+
+describe("processInterview — retell flip (Task 15)", () => {
+  const OTHER_SERIES = "series-2";
+
+  /**
+   * Trivial (<4 subject turns) transcript — deliberately below the
+   * fact-invariant's forced-retry threshold, so an empty extraction sails
+   * through to persisting/flip instead of tripping NoFactsError (same
+   * shape as the "does not force the fact retry" test above).
+   */
+  function trivialMessages(): Row[] {
+    return [
+      { id: "m-1", interview_id: IV, role: "interviewer", text: "q", t_offset_sec: 0, seq: 0 },
+      { id: "m-2", interview_id: IV, role: "subject", text: "a", t_offset_sec: 5, seq: 1 },
+    ];
+  }
+
+  function seedWithRetellQueue(messages: Row[] = trivialMessages()) {
+    mocks.db = makeDb({
+      interviews: [{ id: IV, series_id: SERIES, status: "completed", process_attempts: 0, process_error: null }],
+      series: [{ id: SERIES, goal: "Capture Dad's whole life", subject_name: "Henk" }],
+      topics: [],
+      interview_messages: messages,
+      facts: [
+        {
+          id: "f-retell-1",
+          series_id: SERIES,
+          topic_id: null,
+          statement: "Glossed-over detail Anna asked to hear again.",
+          confidence: 0.8,
+          status: "retell_queued",
+          source_interview_id: "iv-0",
+          source_message_id: null,
+          audio_offset_sec: null,
+          superseded_by: null,
+        },
+        {
+          id: "f-active-1",
+          series_id: SERIES,
+          topic_id: null,
+          statement: "An ordinary already-confirmed fact.",
+          confidence: 0.8,
+          status: "active",
+          source_interview_id: "iv-0",
+          source_message_id: null,
+          audio_offset_sec: null,
+          superseded_by: null,
+        },
+        // A different series' retell_queued fact must never be touched by
+        // this interview's processing — scoping is per-series.
+        {
+          id: "f-retell-other-series",
+          series_id: OTHER_SERIES,
+          topic_id: null,
+          statement: "Someone else's retell request.",
+          confidence: 0.8,
+          status: "retell_queued",
+          source_interview_id: "iv-99",
+          source_message_id: null,
+          audio_offset_sec: null,
+          superseded_by: null,
+        },
+      ],
+    });
+  }
+
+  it("flips every retell_queued fact in the series back to active once this interview is processed", async () => {
+    seedWithRetellQueue();
+    mocks.extractKnowledge.mockResolvedValue(emptyExtraction);
+
+    await processInterview(IV);
+
+    const facts = mocks.db.tables.facts;
+    expect(facts.find((f) => f.id === "f-retell-1")!.status).toBe("active");
+    // Already-active facts are untouched, and another series' retell queue
+    // is left alone.
+    expect(facts.find((f) => f.id === "f-active-1")!.status).toBe("active");
+    expect(facts.find((f) => f.id === "f-retell-other-series")!.status).toBe("retell_queued");
+    expect(mocks.db.tables.interviews[0].status).toBe("processed");
+  });
+
+  it("does not flip anything when the fact-invariant soft-fail short-circuits before persisting", async () => {
+    seedWithRetellQueue(conversationMessages()); // ≥4 subject turns → trips the forced-retry invariant
+    mocks.extractKnowledge.mockResolvedValue(emptyExtraction); // 0 facts every call → forced retry, still 0 → soft-fail
+
+    await expect(processInterview(IV)).resolves.toBeUndefined();
+
+    // Pipeline bailed out (NoFactsError) before ever reaching the flip step.
+    expect(mocks.db.tables.facts.find((f) => f.id === "f-retell-1")!.status).toBe("retell_queued");
+    expect(mocks.db.tables.interviews[0].process_error).toBe("no_facts");
+  });
+});

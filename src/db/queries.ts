@@ -4,7 +4,9 @@ import { serviceClient } from "@/db/service";
 import type {
   Database,
   Entity,
+  EntityKind,
   Fact,
+  FactStatus,
   Interview,
   InterviewMessage,
   InterviewSummary,
@@ -478,4 +480,144 @@ export async function listMembers(sb: SupabaseClient<Database>): Promise<MemberR
     .order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as MemberRow[];
+}
+
+// =========================================================
+// Memories review (Task 15)
+// =========================================================
+
+/**
+ * Series a user is the *subject* of — the interviewee's own memories page
+ * (mockup #1f) aggregates across all of these (usually just one) rather than
+ * being scoped to a single series in the URL. RLS-scoped: `can_view_series`
+ * already grants a subject visibility into their own series, so a plain
+ * request-scoped client is enough here.
+ */
+export async function getSubjectSeries(sb: SupabaseClient<Database>, userId: string): Promise<Series[]> {
+  const { data, error } = await sb
+    .from("series")
+    .select("*")
+    .eq("subject_user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+export type MemoryRow = {
+  id: string;
+  statement: string;
+  status: FactStatus;
+  createdAt: string;
+  seriesId: string;
+  seriesTitle: string;
+  topicName: string | null;
+  hasPerson: boolean;
+  hasPlace: boolean;
+};
+
+type MemoryJoinRow = {
+  id: string;
+  statement: string;
+  status: FactStatus;
+  created_at: string;
+  series_id: string;
+  topics: { name: string } | null;
+  series: { title: string } | null;
+  fact_entities: Array<{ entities: { kind: EntityKind } | null }> | null;
+};
+
+/**
+ * The memories list's rows for a set of series, newest first — excludes
+ * superseded facts the same way every other knowledge-base read does.
+ * `hasPerson`/`hasPlace` power the People/Places filter pills (a fact
+ * "belongs" to a filter if any of its linked entities is that kind).
+ */
+export async function getMemoriesForSeries(
+  sb: SupabaseClient<Database>,
+  seriesIds: string[],
+): Promise<MemoryRow[]> {
+  if (seriesIds.length === 0) return [];
+
+  const { data, error } = await sb
+    .from("facts")
+    .select(
+      "id, statement, status, created_at, series_id, topics ( name ), series ( title ), fact_entities ( entities ( kind ) )",
+    )
+    .in("series_id", seriesIds)
+    .neq("status", "superseded")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+
+  return ((data ?? []) as unknown as MemoryJoinRow[]).map((f) => {
+    const kinds = new Set((f.fact_entities ?? []).map((fe) => fe.entities?.kind).filter(Boolean));
+    return {
+      id: f.id,
+      statement: f.statement,
+      status: f.status,
+      createdAt: f.created_at,
+      seriesId: f.series_id,
+      seriesTitle: f.series?.title ?? "",
+      topicName: f.topics?.name ?? null,
+      hasPerson: kinds.has("person"),
+      hasPlace: kinds.has("place"),
+    };
+  });
+}
+
+export type FactDetail = {
+  id: string;
+  statement: string;
+  status: FactStatus;
+  seriesId: string;
+  seriesTitle: string;
+  topicName: string | null;
+  sourceInterviewId: string | null;
+  audioPath: string | null;
+  audioOffsetSec: number | null;
+};
+
+type FactDetailJoinRow = {
+  id: string;
+  statement: string;
+  status: FactStatus;
+  series_id: string;
+  source_interview_id: string | null;
+  audio_offset_sec: number | null;
+  topics: { name: string } | null;
+  series: { title: string } | null;
+  interviews: { audio_path: string | null } | null;
+};
+
+/**
+ * A single fact for the review-detail page (mockup #1g), joined to its
+ * topic name, series title, and source interview's `audio_path` (needed to
+ * decide whether to render the audio player at all). RLS-scoped via
+ * `can_view_series` — same visibility rule as everything else in this file
+ * — so this returns null for a fact the caller can't see, which the page
+ * treats as `notFound()` rather than distinguishing "doesn't exist" from
+ * "not yours to see".
+ */
+export async function getFactDetail(sb: SupabaseClient<Database>, factId: string): Promise<FactDetail | null> {
+  const { data, error } = await sb
+    .from("facts")
+    .select(
+      "id, statement, status, series_id, source_interview_id, audio_offset_sec, topics ( name ), series ( title ), interviews ( audio_path )",
+    )
+    .eq("id", factId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+
+  const f = data as unknown as FactDetailJoinRow;
+  return {
+    id: f.id,
+    statement: f.statement,
+    status: f.status,
+    seriesId: f.series_id,
+    seriesTitle: f.series?.title ?? "",
+    topicName: f.topics?.name ?? null,
+    sourceInterviewId: f.source_interview_id,
+    audioPath: f.interviews?.audio_path ?? null,
+    audioOffsetSec: f.audio_offset_sec,
+  };
 }

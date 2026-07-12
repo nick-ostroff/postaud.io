@@ -115,6 +115,18 @@ async function runPipeline(db: Db, interviewId: string): Promise<void> {
     messages: (messages ?? []) as Pick<InterviewMessage, "id" | "role" | "text" | "t_offset_sec" | "seq">[],
   });
 
+  // Retell requests (Task 15): every retell_queued fact for this series was
+  // offered to Anna in *this* session's instructions (buildInterviewerInstructions'
+  // RETELL REQUESTS section, fed by the realtime-token route's retellQueue —
+  // it queries every retell_queued fact for the series, not just ones tied to
+  // a particular prior interview). Now that this session has been heard and
+  // processed, the ask has been made — flip them all back to active so they
+  // don't linger in the queue for every future session too. If the subject
+  // did retell it, the merge step above will have superseded the old fact
+  // with a fresh active one anyway; if they didn't get to it, it simply goes
+  // back to being a normal known fact rather than a repeat-forever request.
+  await flipRetellQueuedToActive(db, interview.series_id);
+
   // Mark processed, guarded on the still-completed state; clear any stale error.
   const { data: doneRows, error: doneErr } = await db
     .from("interviews")
@@ -313,6 +325,21 @@ async function insertFacts(
   }
 
   return factIds;
+}
+
+/**
+ * Flips every `retell_queued` fact in a series back to `active` — called
+ * once per successfully processed interview (see the call site's comment in
+ * `runPipeline` for why "all of them" is the correct scope, not just facts
+ * tied to this particular interview).
+ */
+async function flipRetellQueuedToActive(db: Db, seriesId: string): Promise<void> {
+  const { error } = await db
+    .from("facts")
+    .update({ status: "active" })
+    .eq("series_id", seriesId)
+    .eq("status", "retell_queued");
+  if (error) throw new Error(error.message);
 }
 
 /** Upserts entities on (series_id, kind, name) and links them to their facts. */
