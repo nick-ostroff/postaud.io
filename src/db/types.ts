@@ -599,6 +599,84 @@ export type Database = {
           },
         ]
       }
+      interview_usage: {
+        Row: {
+          id: string
+          interview_id: string
+          organization_id: string
+          provider: string
+          phase: string
+          model: string
+          input_tokens: number
+          output_tokens: number
+          total_tokens: number
+          audio_input_tokens: number | null
+          text_input_tokens: number | null
+          cached_input_tokens: number | null
+          audio_output_tokens: number | null
+          text_output_tokens: number | null
+          cache_read_input_tokens: number | null
+          cache_creation_input_tokens: number | null
+          raw: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          interview_id: string
+          organization_id: string
+          provider: string
+          phase: string
+          model: string
+          input_tokens?: number
+          output_tokens?: number
+          total_tokens?: number
+          audio_input_tokens?: number | null
+          text_input_tokens?: number | null
+          cached_input_tokens?: number | null
+          audio_output_tokens?: number | null
+          text_output_tokens?: number | null
+          cache_read_input_tokens?: number | null
+          cache_creation_input_tokens?: number | null
+          raw?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          interview_id?: string
+          organization_id?: string
+          provider?: string
+          phase?: string
+          model?: string
+          input_tokens?: number
+          output_tokens?: number
+          total_tokens?: number
+          audio_input_tokens?: number | null
+          text_input_tokens?: number | null
+          cached_input_tokens?: number | null
+          audio_output_tokens?: number | null
+          text_output_tokens?: number | null
+          cache_read_input_tokens?: number | null
+          cache_creation_input_tokens?: number | null
+          raw?: Json
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_usage_interview_id_fkey"
+            columns: ["interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_usage_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -776,3 +854,4 @@ export type Fact = Tables<"facts">
 export type Entity = Tables<"entities">
 export type FactEntity = Tables<"fact_entities">
 export type InterviewSummary = Tables<"interview_summaries">
+export type InterviewUsage = Tables<"interview_usage">

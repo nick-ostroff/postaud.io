@@ -24,7 +24,62 @@ type RealtimeEvent = {
   type: string;
   transcript?: string;
   delta?: string;
+  response?: { usage?: RealtimeResponseUsage };
 };
+
+/**
+ * `event.response.usage` on a `response.done` event (verified against
+ * openai@6.34.0's `RealtimeResponseUsage` in
+ * node_modules/openai/resources/realtime/realtime.d.ts). Every field is
+ * optional per the SDK types — a response can omit usage entirely, or omit
+ * individual detail sub-fields — so accumulation must treat missing as 0
+ * rather than guessing a value.
+ */
+type RealtimeResponseUsage = {
+  input_tokens?: number;
+  output_tokens?: number;
+  total_tokens?: number;
+  input_token_details?: {
+    audio_tokens?: number;
+    text_tokens?: number;
+    cached_tokens?: number;
+  };
+  output_token_details?: {
+    audio_tokens?: number;
+    text_tokens?: number;
+  };
+};
+
+/** Running sum of every `response.done` usage payload seen this session. */
+type RealtimeUsageAccumulator = {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  audioInputTokens: number;
+  textInputTokens: number;
+  cachedInputTokens: number;
+  audioOutputTokens: number;
+  textOutputTokens: number;
+  /** Count of `response.done` events that actually carried a `usage` object — 0 means "post nothing". */
+  responseCount: number;
+  /** Every raw usage payload as received, kept verbatim for the audit trail. */
+  rawUsages: RealtimeResponseUsage[];
+};
+
+function emptyUsageAccumulator(): RealtimeUsageAccumulator {
+  return {
+    inputTokens: 0,
+    outputTokens: 0,
+    totalTokens: 0,
+    audioInputTokens: 0,
+    textInputTokens: 0,
+    cachedInputTokens: 0,
+    audioOutputTokens: 0,
+    textOutputTokens: 0,
+    responseCount: 0,
+    rawUsages: [],
+  };
+}
 
 function formatElapsed(totalSec: number): string {
   const m = Math.floor(totalSec / 60);
@@ -73,6 +128,8 @@ export function LiveInterview({
   const startedAtRef = useRef<number>(0);
   const pausedRef = useRef(false);
   const endingRef = useRef(false);
+  const usageRef = useRef<RealtimeUsageAccumulator>(emptyUsageAccumulator());
+  const realtimeModelRef = useRef<string | null>(null);
 
   /** Flush unsent transcript turns to the messages route (at-least-once). */
   const flushTranscript = useCallback(async () => {
@@ -110,6 +167,8 @@ export function LiveInterview({
    * - response.output_audio_transcript.done → Anna's finished line (.transcript)
    * - input_audio_buffer.speech_started / speech_stopped → listening/thinking
    * - output_audio_buffer.started / stopped → speaking/listening
+   * - response.done → accumulates event.response.usage (exact token counts,
+   *   never estimated — see RealtimeUsageAccumulator)
    */
   const attachDataChannel = useCallback(
     (dc: RTCDataChannel) => {
@@ -146,6 +205,26 @@ export function LiveInterview({
           case "output_audio_buffer.stopped":
             if (!pausedRef.current) setOrbState("listening");
             break;
+          case "response.done": {
+            // Sum only what the event actually reports — missing fields add 0,
+            // never a guessed value. `usage` itself can be absent (e.g. a
+            // cancelled response), in which case we add nothing at all.
+            const usage = event.response?.usage;
+            if (usage) {
+              const acc = usageRef.current;
+              acc.inputTokens += usage.input_tokens ?? 0;
+              acc.outputTokens += usage.output_tokens ?? 0;
+              acc.totalTokens += usage.total_tokens ?? 0;
+              acc.audioInputTokens += usage.input_token_details?.audio_tokens ?? 0;
+              acc.textInputTokens += usage.input_token_details?.text_tokens ?? 0;
+              acc.cachedInputTokens += usage.input_token_details?.cached_tokens ?? 0;
+              acc.audioOutputTokens += usage.output_token_details?.audio_tokens ?? 0;
+              acc.textOutputTokens += usage.output_token_details?.text_tokens ?? 0;
+              acc.responseCount += 1;
+              acc.rawUsages.push(usage);
+            }
+            break;
+          }
         }
       };
     },
@@ -236,6 +315,7 @@ export function LiveInterview({
           clientSecret: string;
           model: string;
         };
+        realtimeModelRef.current = model;
 
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
@@ -360,6 +440,40 @@ export function LiveInterview({
     });
   }, []);
 
+  /**
+   * Post the session's accumulated Realtime usage before /complete. Skipped
+   * entirely if no `response.done` event ever carried a `usage` object — we
+   * genuinely saw nothing, so there is nothing true to report (posting
+   * fabricated zeros would misrepresent that as "zero tokens used"). Best
+   * effort: usage accounting must never block the end-of-session flow.
+   */
+  const postUsage = useCallback(async () => {
+    const acc = usageRef.current;
+    if (acc.responseCount === 0) return;
+    try {
+      await fetch(`/api/interviews/${interviewId}/usage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider: "openai_realtime",
+          phase: "interview",
+          model: realtimeModelRef.current ?? "gpt-realtime",
+          inputTokens: acc.inputTokens,
+          outputTokens: acc.outputTokens,
+          totalTokens: acc.totalTokens,
+          audioInputTokens: acc.audioInputTokens,
+          textInputTokens: acc.textInputTokens,
+          cachedInputTokens: acc.cachedInputTokens,
+          audioOutputTokens: acc.audioOutputTokens,
+          textOutputTokens: acc.textOutputTokens,
+          raw: { responseCount: acc.responseCount, responses: acc.rawUsages },
+        }),
+      });
+    } catch {
+      // Network hiccup — usage is best-effort, never block ending the session.
+    }
+  }, [interviewId]);
+
   const uploadAudio = useCallback(
     async (blob: Blob): Promise<void> => {
       const post = () =>
@@ -400,6 +514,7 @@ export function LiveInterview({
       await flushTranscript();
       if (batchRef.current.hasPending()) await flushTranscript(); // one retry — closing words matter most
       if (blob) await uploadAudio(blob);
+      await postUsage();
 
       const res = await fetch(`/api/interviews/${interviewId}/complete`, {
         method: "POST",
@@ -414,7 +529,7 @@ export function LiveInterview({
       setIsEnding(false);
       setEndError("We couldn't wrap up just now. Your words are safe — try again.");
     }
-  }, [flushTranscript, interviewId, router, stopRecorder, uploadAudio]);
+  }, [flushTranscript, interviewId, postUsage, router, stopRecorder, uploadAudio]);
 
   // ---- error cards ----
   if (sessionError === "mic_denied") {

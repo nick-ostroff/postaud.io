@@ -1,8 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, EntityKind, InterviewMessage, Topic } from "@/db/types";
+import type { Database, EntityKind, InterviewMessage, Json, Topic } from "@/db/types";
 import { serviceClient } from "@/db/service";
 import { extractKnowledge } from "@/server/ai/extract";
 import type { Extraction } from "@/server/ai/extract";
+import type { PipelineUsage } from "@/server/ai/pipeline-usage";
 import { applyMergeDecisions, decideMerges } from "@/server/pipeline/merge";
 
 const MODEL = "claude-sonnet-5";
@@ -26,7 +27,7 @@ class NoFactsError extends Error {
 async function runPipeline(db: Db, interviewId: string): Promise<void> {
   const { data: interview, error: ivErr } = await db
     .from("interviews")
-    .select("id, series_id, status, process_attempts")
+    .select("id, series_id, organization_id, status, process_attempts")
     .eq("id", interviewId)
     .maybeSingle();
   if (ivErr) throw new Error(ivErr.message);
@@ -91,7 +92,15 @@ async function runPipeline(db: Db, interviewId: string): Promise<void> {
     transcript,
   };
 
-  let extraction = await extractKnowledge(extractInput);
+  // Collects every real Anthropic call's exact usage across this run
+  // (extract's own internal schema-parse retry, the invariant-guard's forced
+  // retry below, and merge) — persisted once, after a successful pipeline
+  // run, by `recordUsage`. Never fabricated: only messages.create calls that
+  // actually returned `usage` push a record here.
+  const usageRecords: PipelineUsage[] = [];
+  const onUsage = (u: PipelineUsage) => usageRecords.push(u);
+
+  let extraction = await extractKnowledge(extractInput, {}, onUsage);
 
   // Invariant guard (spec §7 "every session must add facts"): a real
   // conversation (≥4 subject turns) that yields zero facts gets one forced
@@ -99,11 +108,15 @@ async function runPipeline(db: Db, interviewId: string): Promise<void> {
   // `completed` for the tick to retry later.
   const subjectTurns = transcript.filter((m) => m.role === "subject").length;
   if (extraction.facts.length === 0 && subjectTurns >= MIN_SUBJECT_TURNS_FOR_FACT_INVARIANT) {
-    extraction = await extractKnowledge(extractInput, {
-      extraInstruction:
-        "You must extract at least one fact from this transcript. The subject spoke at length — there is " +
-        "always at least one concrete, atomic claim or event in what they said. Find it.",
-    });
+    extraction = await extractKnowledge(
+      extractInput,
+      {
+        extraInstruction:
+          "You must extract at least one fact from this transcript. The subject spoke at length — there is " +
+          "always at least one concrete, atomic claim or event in what they said. Find it.",
+      },
+      onUsage,
+    );
     if (extraction.facts.length === 0) throw new NoFactsError();
   }
 
@@ -113,6 +126,7 @@ async function runPipeline(db: Db, interviewId: string): Promise<void> {
     extraction,
     existingTopics: (topics ?? []) as Topic[],
     messages: (messages ?? []) as Pick<InterviewMessage, "id" | "role" | "text" | "t_offset_sec" | "seq">[],
+    onUsage,
   });
 
   // Retell requests (Task 15): every retell_queued fact for this series was
@@ -138,6 +152,64 @@ async function runPipeline(db: Db, interviewId: string): Promise<void> {
   if (!doneRows || doneRows.length === 0) {
     console.warn(`[process-interview] ${interviewId}: mark-processed affected 0 rows (lost the status race)`);
   }
+
+  // Usage accounting must never break processing — the interview is already
+  // successfully persisted + marked processed above, so any failure here is
+  // logged and swallowed rather than rethrown.
+  try {
+    await recordUsage(db, interviewId, interview.organization_id, usageRecords);
+  } catch (usageErr) {
+    console.error(`[process-interview] ${interviewId}: failed to record usage:`, usageErr);
+  }
+}
+
+/**
+ * Persists the run's collected Anthropic usage into `interview_usage`, one
+ * row per phase. `extract` can have up to two real API calls in a single run
+ * (the schema-parse retry inside extractKnowledge, and/or the invariant
+ * guard's forced retry) — those are summed into a single 'extract' row so
+ * reprocessing always reflects this interview's true total, not just the
+ * last call. Upserts on (interview_id, provider, phase), so a reprocess
+ * (Task 13) replaces the prior rows rather than duplicating them.
+ */
+async function recordUsage(
+  db: Db,
+  interviewId: string,
+  organizationId: string,
+  records: PipelineUsage[],
+): Promise<void> {
+  if (records.length === 0) return;
+
+  const byPhase = new Map<PipelineUsage["phase"], PipelineUsage[]>();
+  for (const r of records) {
+    const list = byPhase.get(r.phase) ?? [];
+    list.push(r);
+    byPhase.set(r.phase, list);
+  }
+
+  const rows: Database["public"]["Tables"]["interview_usage"]["Insert"][] = [];
+  for (const [phase, group] of byPhase) {
+    const inputTokens = group.reduce((sum, r) => sum + r.input_tokens, 0);
+    const outputTokens = group.reduce((sum, r) => sum + r.output_tokens, 0);
+    const cacheRead = group.reduce((sum, r) => sum + (r.cache_read_input_tokens ?? 0), 0);
+    const cacheCreation = group.reduce((sum, r) => sum + (r.cache_creation_input_tokens ?? 0), 0);
+    rows.push({
+      interview_id: interviewId,
+      organization_id: organizationId,
+      provider: "anthropic",
+      phase,
+      model: group[group.length - 1].model,
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      total_tokens: inputTokens + outputTokens,
+      cache_read_input_tokens: cacheRead,
+      cache_creation_input_tokens: cacheCreation,
+      raw: (group.length === 1 ? group[0].raw : { calls: group.map((r) => r.raw) }) as Json,
+    });
+  }
+
+  const { error } = await db.from("interview_usage").upsert(rows, { onConflict: "interview_id,provider,phase" });
+  if (error) throw new Error(error.message);
 }
 
 // ---------------------------------------------------------------------------
@@ -152,10 +224,11 @@ type PersistArgs = {
   extraction: Extraction;
   existingTopics: Topic[];
   messages: Pick<InterviewMessage, "id" | "role" | "text" | "t_offset_sec" | "seq">[];
+  onUsage?: (u: PipelineUsage) => void;
 };
 
 async function persistExtraction(db: Db, args: PersistArgs): Promise<void> {
-  const { interviewId, seriesId, extraction, existingTopics, messages } = args;
+  const { interviewId, seriesId, extraction, existingTopics, messages, onUsage } = args;
 
   // 1) Summary first — it's what the recap page polls for, so it lands ASAP.
   const { error: sumErr } = await db.from("interview_summaries").upsert(
@@ -210,7 +283,7 @@ async function persistExtraction(db: Db, args: PersistArgs): Promise<void> {
   }
 
   // 3) Facts — kept in one function Task 13 wraps with merge/dedupe.
-  const factIds = await insertFacts(db, { interviewId, seriesId, extraction, topicIdByKey, messages });
+  const factIds = await insertFacts(db, { interviewId, seriesId, extraction, topicIdByKey, messages, onUsage });
 
   // 4) Entities + fact_entities links.
   await linkEntities(db, seriesId, extraction, factIds);
@@ -243,9 +316,10 @@ async function insertFacts(
     extraction: Extraction;
     topicIdByKey: Map<string, string>;
     messages: PersistArgs["messages"];
+    onUsage?: (u: PipelineUsage) => void;
   },
 ): Promise<string[]> {
-  const { interviewId, seriesId, extraction, topicIdByKey, messages } = args;
+  const { interviewId, seriesId, extraction, topicIdByKey, messages, onUsage } = args;
   if (extraction.facts.length === 0) return [];
 
   const messageById = new Map(messages.map((m) => [m.id, m]));
@@ -273,7 +347,7 @@ async function insertFacts(
     .filter((f) => f.topic.length > 0);
 
   const incomingForMerge = extraction.facts.map((f) => ({ statement: f.statement, topic: f.topic }));
-  const decisions = await decideMerges(existingForMerge, incomingForMerge);
+  const decisions = await decideMerges(existingForMerge, incomingForMerge, onUsage);
 
   // Wrap with the original index so the merged, possibly-shorter `toInsert`
   // list still tells us which slot of `extraction.facts` each row came from.

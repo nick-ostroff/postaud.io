@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type Anthropic from "@anthropic-ai/sdk";
 import { anthropicClient } from "@/server/ai/anthropic";
+import type { OnPipelineUsage } from "@/server/ai/pipeline-usage";
 
 const MODEL = "claude-sonnet-5";
 const TOOL_NAME = "submit_merge_decisions";
@@ -104,10 +105,16 @@ function buildPrompt(existing: ExistingFactForMerge[], incoming: IncomingFactFor
  *
  * Fails open on any unparseable model response: returns all-insert rather
  * than risk silently dropping knowledge.
+ *
+ * `onUsage`, when given and the LLM call is actually made, is called once
+ * with that call's exact `message.usage` — see `PipelineUsage`. Not called at
+ * all when the LLM call is skipped (no candidate existing facts), since there
+ * is no real usage to report.
  */
 export async function decideMerges(
   existing: ExistingFactForMerge[],
   incoming: IncomingFactForMerge[],
+  onUsage?: OnPipelineUsage,
 ): Promise<MergeDecision[]> {
   if (incoming.length === 0) return [];
 
@@ -132,6 +139,18 @@ export async function decideMerges(
     tool_choice: { type: "tool", name: TOOL_NAME },
     messages: [{ role: "user", content: buildPrompt(candidateExisting, incoming) }],
   });
+
+  if (response.usage && onUsage) {
+    onUsage({
+      model: MODEL,
+      phase: "merge",
+      input_tokens: response.usage.input_tokens,
+      output_tokens: response.usage.output_tokens,
+      cache_read_input_tokens: response.usage.cache_read_input_tokens,
+      cache_creation_input_tokens: response.usage.cache_creation_input_tokens,
+      raw: response.usage,
+    });
+  }
 
   const toolUse = response.content.find(
     (block): block is Extract<typeof block, { type: "tool_use" }> => block.type === "tool_use",

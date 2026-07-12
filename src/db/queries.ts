@@ -10,6 +10,7 @@ import type {
   Interview,
   InterviewMessage,
   InterviewSummary,
+  InterviewUsage,
   Membership,
   Series,
   Topic,
@@ -233,6 +234,24 @@ export async function getInterviewFacts(
     topicName: f.topics?.name ?? null,
     audioOffsetSec: f.audio_offset_sec,
   }));
+}
+
+/**
+ * Exact per-provider/per-phase API token usage rows for one interview
+ * (realtime session + anthropic extract/merge), oldest first. Every number
+ * here is the verbatim value the provider reported — nothing estimated.
+ */
+export async function getInterviewUsage(
+  sb: SupabaseClient<Database>,
+  interviewId: string,
+): Promise<InterviewUsage[]> {
+  const { data, error } = await sb
+    .from("interview_usage")
+    .select("*")
+    .eq("interview_id", interviewId)
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return data ?? [];
 }
 
 /**

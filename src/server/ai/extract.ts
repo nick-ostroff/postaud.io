@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type Anthropic from "@anthropic-ai/sdk";
 import { anthropicClient } from "./anthropic";
+import type { OnPipelineUsage } from "./pipeline-usage";
 
 const MODEL = "claude-sonnet-5";
 const TOOL_NAME = "submit_knowledge_extraction";
@@ -213,7 +214,7 @@ function buildPrompt(input: ExtractKnowledgeInput, extraNotes: string[]): string
   ].join("\n");
 }
 
-async function callModel(prompt: string): Promise<unknown> {
+async function callModel(prompt: string, onUsage?: OnPipelineUsage): Promise<unknown> {
   const client = anthropicClient();
   const response = await client.messages.create({
     model: MODEL,
@@ -231,6 +232,21 @@ async function callModel(prompt: string): Promise<unknown> {
     messages: [{ role: "user", content: prompt }],
   });
 
+  // Report the exact usage this call reported, verbatim — including a
+  // schema-parse retry's own call, since that's a second real API call with
+  // its own real token cost.
+  if (response.usage && onUsage) {
+    onUsage({
+      model: MODEL,
+      phase: "extract",
+      input_tokens: response.usage.input_tokens,
+      output_tokens: response.usage.output_tokens,
+      cache_read_input_tokens: response.usage.cache_read_input_tokens,
+      cache_creation_input_tokens: response.usage.cache_creation_input_tokens,
+      raw: response.usage,
+    });
+  }
+
   const toolUse = response.content.find(
     (block): block is Extract<typeof block, { type: "tool_use" }> => block.type === "tool_use",
   );
@@ -245,14 +261,19 @@ async function callModel(prompt: string): Promise<unknown> {
  * `opts.extraInstruction` lets callers (the invariant guard in
  * `processInterview`) append a one-off instruction, e.g. to force at least
  * one fact out of a transcript that clearly has content.
+ *
+ * `onUsage`, when given, is called once per real `messages.create` call (so
+ * up to twice: the schema-parse retry above is a second genuine API call)
+ * with that call's exact `message.usage` — see `PipelineUsage`.
  */
 export async function extractKnowledge(
   input: ExtractKnowledgeInput,
   opts: ExtractKnowledgeOpts = {},
+  onUsage?: OnPipelineUsage,
 ): Promise<Extraction> {
   const baseNotes = opts.extraInstruction ? [opts.extraInstruction] : [];
 
-  const first = await callModel(buildPrompt(input, baseNotes));
+  const first = await callModel(buildPrompt(input, baseNotes), onUsage);
   const firstParsed = extractionSchema.safeParse(first);
   if (firstParsed.success) return firstParsed.data;
 
@@ -261,7 +282,7 @@ export async function extractKnowledge(
     "Your previous response did not match the required tool schema exactly. Re-read the schema carefully " +
       "and call the tool again with strictly valid input — every required field present and correctly typed.",
   ];
-  const second = await callModel(buildPrompt(input, retryNotes));
+  const second = await callModel(buildPrompt(input, retryNotes), onUsage);
   const secondParsed = extractionSchema.safeParse(second);
   if (secondParsed.success) return secondParsed.data;
 
