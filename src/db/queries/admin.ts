@@ -2,10 +2,14 @@ import "server-only";
 import { serviceClient } from "@/db/service";
 import type { OrgPlan, SubjectKind } from "@/db/types";
 import { daysSince } from "@/lib/time";
+import { STALE_AFTER_DAYS } from "@/server/series/staleness";
 
 // Operator console thresholds (spec §7.5 / task-17 brief).
 const DORMANT_DAYS = 42; // account-level: no interview in this many days -> "dormant"
-const STALE_DAYS = 21; // series-level: no session in this many days -> "going stale"
+// Series-level "going stale" threshold reuses the owner-facing helper's
+// constant (src/server/series/staleness.ts) so operator and owner views
+// always agree on when a series is stale. Only the constant is shared —
+// the console renders its own label copy ("going stale" / "Stale — …").
 
 export type OrgListRow = {
   id: string;
@@ -235,7 +239,7 @@ export async function getOrganizationDetail(orgId: string): Promise<OrgDetail | 
   const seriesRows: OrgDetail["seriesRows"] = (seriesRaw ?? []).map((s) => {
     const lastActivity = lastActivityBySeries.get(s.id) ?? null;
     const reference = lastActivity ?? s.created_at;
-    const stale = daysSince(reference) > STALE_DAYS;
+    const stale = daysSince(reference) > STALE_AFTER_DAYS;
     if (s.subject_user_id) {
       const list = subjectOfBySeriesUser.get(s.subject_user_id) ?? [];
       list.push(s.title);
@@ -313,13 +317,18 @@ export async function getOrganizationDetail(orgId: string): Promise<OrgDetail | 
     },
     seriesRows,
     network: {
-      members: memberRows.map((m) => ({
-        userId: m.user_id,
-        email: m.email,
-        role: m.role,
-        accepted: m.accepted_at !== null,
-        subjectOf: subjectOfBySeriesUser.get(m.user_id) ?? [],
-      })),
+      // Exclude the owner (see above) — the panel caption reads "Who
+      // {owner} has brought onto the platform," so the owner isn't a
+      // member of their own network.
+      members: memberRows
+        .filter((m) => m.user_id !== owner?.user_id)
+        .map((m) => ({
+          userId: m.user_id,
+          email: m.email,
+          role: m.role,
+          accepted: m.accepted_at !== null,
+          subjectOf: subjectOfBySeriesUser.get(m.user_id) ?? [],
+        })),
       subjectsWithoutAccount: seriesRows
         .filter((s) => s.subjectDisplay === "No-account")
         .map((s) => ({ seriesId: s.id, title: s.title, subjectName: s.subjectName })),
@@ -657,7 +666,7 @@ export async function listSeriesRegistry(opts: {
       facts: factsBySeries.get(s.id) ?? 0,
       membersWithAccess: accessBySeries.get(s.id) ?? 0,
       lastActivity,
-      stale: daysSince(reference) > STALE_DAYS,
+      stale: daysSince(reference) > STALE_AFTER_DAYS,
     };
   });
 

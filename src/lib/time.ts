@@ -25,12 +25,3 @@ export function relativeTime(iso: string | null): string {
 export function daysSince(iso: string): number {
   return (Date.now() - new Date(iso).getTime()) / 86_400_000;
 }
-
-export function weeksLabel(days: number): string {
-  const wks = Math.max(1, Math.round(days / 7));
-  return `${wks} wk${wks === 1 ? "" : "s"}`;
-}
-
-export function pluralize(n: number, noun: string, plural = `${noun}s`): string {
-  return `${n} ${n === 1 ? noun : plural}`;
-}

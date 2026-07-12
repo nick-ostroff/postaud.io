@@ -1,4 +1,6 @@
-const STALE_AFTER_DAYS = 14;
+// Exported so other staleness checks (e.g. the operator console, see
+// src/db/queries/admin.ts) can reuse the same threshold instead of drifting.
+export const STALE_AFTER_DAYS = 14;
 const MS_PER_DAY = 86_400_000;
 
 export type Staleness = { stale: boolean; label: string };

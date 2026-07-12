@@ -9,9 +9,11 @@ import { serviceClient } from "@/db/service";
  * scope for V1.
  */
 export async function POST(req: NextRequest) {
+  // Admin surfaces 404, never 403/401, so their existence isn't disclosed
+  // to non-admins (see src/proxy.ts's /admin gate for the same convention).
   const email = await platformAdminEmail();
   if (!email) {
-    return NextResponse.json({ ok: false, error: "Not authorized" }, { status: 403 });
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
   const body = await req.json().catch(() => null);
