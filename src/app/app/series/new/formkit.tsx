@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { KeyboardEvent } from "react";
+import { inputClasses } from "@/components/ui/Input";
 
 /** A pickable subject/access-list candidate — the org roster, pre-shaped for this UI. */
 export type MemberOption = {
@@ -11,8 +12,7 @@ export type MemberOption = {
   pending: boolean;
 };
 
-export const inputClasses =
-  "w-full rounded-sm border border-line-strong bg-card px-[13px] py-2.5 text-[14px] text-ink placeholder:text-faint focus:border-green focus:outline focus:outline-2 focus:-outline-offset-1 focus:outline-green";
+export { inputClasses };
 
 export const textareaClasses = `${inputClasses} min-h-[92px] resize-y`;
 
