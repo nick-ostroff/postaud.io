@@ -792,3 +792,79 @@ export async function listPlatformUsers(opts: {
   const total = rows.length;
   return { rows: rows.slice(offset, offset + limit), total };
 }
+
+export type PlatformUserDetail = {
+  user: { id: string; email: string; displayName: string | null; createdAt: string };
+  orgs: PlatformUserOrg[];
+  seriesOwned: Array<{ id: string; title: string; organizationId: string }>;
+  seriesSubjectOf: Array<{ id: string; title: string; organizationId: string }>;
+  interviewCount: number;
+  factCount: number;
+  auditLog: Array<{ id: number; at: string; action: string; actorEmail: string | null }>;
+};
+
+export async function getPlatformUserDetail(userId: string): Promise<PlatformUserDetail | null> {
+  const svc = serviceClient();
+
+  const { data: user } = await svc
+    .from("users")
+    .select("id, email, display_name, created_at")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!user) return null;
+
+  const [{ data: memberships }, { data: series }, { count: interviewCount }, { data: audit }] = await Promise.all([
+    svc
+      .from("memberships")
+      .select("organization_id, role, accepted_at, organizations ( name )")
+      .eq("user_id", userId),
+    // Titles only — never transcript or fact content.
+    svc
+      .from("series")
+      .select("id, title, organization_id, created_by, subject_user_id")
+      .or(`created_by.eq.${userId},subject_user_id.eq.${userId}`),
+    // `conducted_by` is the interviews table's per-user column (0001_init.sql).
+    svc.from("interviews").select("id", { count: "exact", head: true }).eq("conducted_by", userId),
+    svc
+      .from("audit_logs")
+      .select("id, at, action, actor_email")
+      .or(`actor_user_id.eq.${userId},target_id.eq.${userId}`)
+      .order("at", { ascending: false })
+      .limit(25),
+  ]);
+
+  const seriesIds = (series ?? []).map((s) => s.id);
+  // Counting only — never select `statement`.
+  const { count: factCount } = seriesIds.length
+    ? await svc.from("facts").select("id", { count: "exact", head: true }).in("series_id", seriesIds)
+    : { count: 0 };
+
+  return {
+    user: {
+      id: user.id,
+      email: user.email,
+      displayName: user.display_name,
+      createdAt: user.created_at,
+    },
+    orgs: (memberships ?? []).map((m) => ({
+      id: m.organization_id,
+      name: (m.organizations as { name?: string } | null)?.name ?? "—",
+      role: m.role as MemberRole,
+      accepted: m.accepted_at !== null,
+    })),
+    seriesOwned: (series ?? [])
+      .filter((s) => s.created_by === userId)
+      .map((s) => ({ id: s.id, title: s.title, organizationId: s.organization_id })),
+    seriesSubjectOf: (series ?? [])
+      .filter((s) => s.subject_user_id === userId)
+      .map((s) => ({ id: s.id, title: s.title, organizationId: s.organization_id })),
+    interviewCount: interviewCount ?? 0,
+    factCount: factCount ?? 0,
+    auditLog: (audit ?? []).map((a) => ({
+      id: a.id,
+      at: a.at,
+      action: a.action,
+      actorEmail: a.actor_email,
+    })),
+  };
+}

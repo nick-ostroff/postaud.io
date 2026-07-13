@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getPlatformStats, listPlatformUsers } from "@/db/queries/admin";
 import { relativeTime } from "@/lib/time";
+import { ImpersonateButton } from "@/components/super/ImpersonateButton";
 
 export const metadata = { title: "Users — Operator — PostAud.io" };
 
@@ -75,12 +76,13 @@ export default async function SuperUsersPage({ searchParams }: { searchParams: S
               <th className="px-4 py-3 font-medium">Subject of</th>
               <th className="px-4 py-3 font-medium">Last activity</th>
               <th className="px-4 py-3 font-medium">Joined</th>
+              <th className="px-4 py-3 font-medium"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
             {rows.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-12 text-center text-neutral-500">
+                <td colSpan={6} className="px-4 py-12 text-center text-neutral-500">
                   No users match.
                 </td>
               </tr>
@@ -125,6 +127,9 @@ export default async function SuperUsersPage({ searchParams }: { searchParams: S
                 <td className="px-4 py-3 text-neutral-500">{relativeTime(u.lastActivity)}</td>
                 <td className="px-4 py-3 text-neutral-500">
                   {new Date(u.createdAt).toLocaleDateString(undefined, { month: "short", year: "numeric" })}
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <ImpersonateButton userId={u.id} label="⚿ Log in as" />
                 </td>
               </tr>
             ))}
