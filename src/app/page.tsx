@@ -4,6 +4,12 @@ import { Nav } from "./(marketing)/Nav";
 import { Hero } from "./(marketing)/Hero";
 import { Stakes } from "./(marketing)/Stakes";
 import { HowItWorks } from "./(marketing)/HowItWorks";
+import { ProductMoment } from "./(marketing)/ProductMoment";
+import { Benefits } from "./(marketing)/Benefits";
+import { WhoItsFor } from "./(marketing)/WhoItsFor";
+import { Faq } from "./(marketing)/Faq";
+import { ClosingCta } from "./(marketing)/ClosingCta";
+import { Footer } from "./(marketing)/Footer";
 import { SITE_URL } from "./(marketing)/content";
 
 const title = "PostAud.io — An AI interviewer that builds knowledge through conversation";
@@ -27,7 +33,13 @@ export default function MarketingHome() {
         <Hero />
         <Stakes />
         <HowItWorks />
+        <ProductMoment />
+        <Benefits />
+        <WhoItsFor />
+        <Faq />
+        <ClosingCta />
       </main>
+      <Footer />
     </div>
   );
 }
