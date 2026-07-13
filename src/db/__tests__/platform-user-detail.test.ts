@@ -8,17 +8,33 @@ import { getPlatformUserDetail } from "../queries/admin";
 /**
  * getPlatformUserDetail reads one user (maybeSingle) plus several filtered
  * lists. Head-count queries resolve to { count }, list queries to { data }.
+ *
+ * Every `.eq()` / `.in()` / `.or()` call is recorded into `calls` (table +
+ * method + args) so tests can assert WHICH COLUMN each query filters on, not
+ * just that the mapping from canned rows to output is correct. Without this,
+ * swapping e.g. `.eq("conducted_by", userId)` for `.eq("organization_id",
+ * userId)` in production code would silently pass every test — see commit
+ * 4770251 and the Task 5 impersonate-mock hardening for prior instances of
+ * this exact blind spot.
  */
-function makeSvc(tables: Record<string, unknown>) {
-  const chain = (value: unknown) => {
+type RecordedCall = { table: string; method: "eq" | "in" | "or"; args: unknown[] };
+
+function makeSvc(tables: Record<string, unknown>, calls: RecordedCall[]) {
+  const chain = (table: string, value: unknown) => {
     const result = Promise.resolve(
       typeof value === "number" ? { count: value, error: null } : { data: value, error: null },
     );
+    const record =
+      (method: RecordedCall["method"]) =>
+      (...args: unknown[]) => {
+        calls.push({ table, method, args });
+        return obj;
+      };
     const obj: Record<string, unknown> = {
       select: () => obj,
-      eq: () => obj,
-      in: () => obj,
-      or: () => obj,
+      eq: record("eq"),
+      in: record("in"),
+      or: record("or"),
       order: () => obj,
       limit: () => result,
       maybeSingle: () => Promise.resolve({ data: value, error: null }),
@@ -31,8 +47,12 @@ function makeSvc(tables: Record<string, unknown>) {
   // forwarded as-is instead of being swallowed by the default.
   return {
     from: (t: string) =>
-      chain(t in tables ? tables[t] : t === "interviews" || t === "facts" ? 0 : []),
+      chain(t, t in tables ? tables[t] : t === "interviews" || t === "facts" ? 0 : []),
   };
+}
+
+function callsFor(calls: RecordedCall[], table: string, method: RecordedCall["method"]) {
+  return calls.filter((c) => c.table === table && c.method === method);
 }
 
 const BASE = {
@@ -51,7 +71,12 @@ const BASE = {
   ],
 };
 
-beforeEach(() => mocks.serviceClient.mockReturnValue(makeSvc(BASE)));
+let calls: RecordedCall[] = [];
+
+beforeEach(() => {
+  calls = [];
+  mocks.serviceClient.mockReturnValue(makeSvc(BASE, calls));
+});
 
 describe("getPlatformUserDetail", () => {
   it("returns the user profile", async () => {
@@ -88,7 +113,47 @@ describe("getPlatformUserDetail", () => {
   });
 
   it("returns null for an unknown user", async () => {
-    mocks.serviceClient.mockReturnValue(makeSvc({ ...BASE, users: null }));
+    mocks.serviceClient.mockReturnValue(makeSvc({ ...BASE, users: null }, calls));
     await expect(getPlatformUserDetail("nope")).resolves.toBeNull();
+  });
+
+  it("filters every query on the requested user, not an unscoped or wrong column", async () => {
+    await getPlatformUserDetail("u1");
+
+    // users lookup: WHERE id = userId (not e.g. some other identity column)
+    const userEq = callsFor(calls, "users", "eq");
+    expect(userEq).toHaveLength(1);
+    expect(userEq[0].args).toEqual(["id", "u1"]);
+
+    // memberships lookup: WHERE user_id = userId (not organization_id)
+    const membershipEq = callsFor(calls, "memberships", "eq");
+    expect(membershipEq).toHaveLength(1);
+    expect(membershipEq[0].args).toEqual(["user_id", "u1"]);
+
+    // interview COUNT: WHERE conducted_by = userId. This is the column that
+    // must stay scoped to "interviews this user personally conducted" — if
+    // it were swapped for organization_id, interviewCount would silently
+    // become an org-wide count and every other assertion in this file would
+    // still pass.
+    const interviewEq = callsFor(calls, "interviews", "eq");
+    expect(interviewEq).toHaveLength(1);
+    expect(interviewEq[0].args).toEqual(["conducted_by", "u1"]);
+
+    // facts COUNT: scoped via .in("series_id", [ids of this user's own series]),
+    // never an unscoped count of every fact.
+    const factsIn = callsFor(calls, "facts", "in");
+    expect(factsIn).toHaveLength(1);
+    expect(factsIn[0].args[0]).toBe("series_id");
+    expect(factsIn[0].args[1]).toEqual(["s1", "s2"]);
+
+    // series list: .or() must reference the requested userId in both clauses
+    const seriesOr = callsFor(calls, "series", "or");
+    expect(seriesOr).toHaveLength(1);
+    expect(seriesOr[0].args[0]).toBe("created_by.eq.u1,subject_user_id.eq.u1");
+
+    // audit log: .or() must reference the requested userId in both clauses
+    const auditOr = callsFor(calls, "audit_logs", "or");
+    expect(auditOr).toHaveLength(1);
+    expect(auditOr[0].args[0]).toBe("actor_user_id.eq.u1,target_id.eq.u1");
   });
 });
