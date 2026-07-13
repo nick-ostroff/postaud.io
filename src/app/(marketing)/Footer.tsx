@@ -14,7 +14,7 @@ export function Footer() {
 
         <div className="flex gap-16">
           <div>
-            <div className="text-[11.5px] font-semibold tracking-[0.1em] text-faint uppercase">
+            <div className="text-[11.5px] font-semibold tracking-[0.1em] text-muted uppercase">
               Product
             </div>
             <ul className="mt-3.5 space-y-2.5 text-[13.5px] text-muted">
@@ -26,7 +26,7 @@ export function Footer() {
         </div>
       </div>
 
-      <div className="mx-auto mt-12 w-full max-w-6xl border-t border-line pt-6 text-[12.5px] text-faint">
+      <div className="mx-auto mt-12 w-full max-w-6xl border-t border-line pt-6 text-[12.5px] text-muted">
         © {new Date().getFullYear()} PostAud.io
       </div>
     </footer>

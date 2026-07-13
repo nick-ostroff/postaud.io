@@ -52,7 +52,7 @@ export function ProductMoment() {
 
           {/* What that exchange produced, with no effort from anyone. */}
           <div>
-            <div className="text-[11.5px] font-semibold tracking-[0.1em] text-faint uppercase">
+            <div className="text-[11.5px] font-semibold tracking-[0.1em] text-muted uppercase">
               Added to the knowledge base
             </div>
 
@@ -68,7 +68,7 @@ export function ProductMoment() {
               ))}
             </div>
 
-            <p className="mt-5 text-[13px] leading-[1.6] text-faint">
+            <p className="mt-5 text-[13px] leading-[1.6] text-muted">
               Nobody tagged anything. Nobody filled out a form. Someone just told a story.
             </p>
           </div>
