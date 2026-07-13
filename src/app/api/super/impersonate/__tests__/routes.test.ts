@@ -128,6 +128,25 @@ describe("POST /api/super/impersonate/exit — IMPORTANT 1: leftover target cook
     expect(got.get("sb-x-auth-token.1")).toBe("OP1");
   });
 
+  it("restores only genuine sb-*-auth-token names, never an attacker's arbitrary cookie", async () => {
+    // The stash is caller-controlled; a forged pa_op_prev could carry a
+    // non-auth cookie. Restore must ignore it and set only the auth cookies.
+    const cookies: Cookie[] = [
+      { name: "sb-x-auth-token", value: "TARGET_SESSION" },
+      { name: IMP_COOKIE, value: encodeSession(SESSION) },
+      ...packStash([
+        { name: "sb-x-auth-token", value: "OP" },
+        { name: "evil", value: "injected" },
+      ]),
+    ];
+
+    const res = await exitPOST(req(cookies));
+    const got = resultingCookies(res);
+
+    expect(got.get("sb-x-auth-token")).toBe("OP"); // real auth cookie restored
+    expect(got.has("evil")).toBe(false); // forged cookie never set
+  });
+
   it("restores auth cookies with Supabase's own attributes (MINOR 4)", async () => {
     const cookies: Cookie[] = [
       { name: "sb-x-auth-token", value: "TARGET" },

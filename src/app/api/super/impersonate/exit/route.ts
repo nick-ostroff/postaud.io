@@ -75,7 +75,13 @@ export async function POST(req: NextRequest) {
   // the exact values the browser held before. Replay Supabase's own attributes
   // (@supabase/ssr DEFAULT_COOKIE_OPTIONS) so the persistent login isn't
   // downgraded to a session cookie and createBrowserClient can still read them.
-  for (const pair of stashed) {
+  //
+  // Restore ONLY genuine `sb-*-auth-token` names. The stash is caller-controlled
+  // (a forged `pa_op_prev` sets whatever it decodes to), and while restoring an
+  // arbitrary non-httpOnly cookie onto the caller's own browser grants nothing
+  // they couldn't already do via document.cookie, constraining it here removes
+  // the primitive entirely rather than reasoning about its harmlessness.
+  for (const pair of collectAuthCookies(stashed)) {
     response.cookies.set(pair.name, pair.value, {
       httpOnly: false,
       secure,
