@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Wordmark } from "./Nav";
+import { Wordmark } from "@/components/ui/Wordmark";
 
 export function Footer() {
   return (
@@ -21,6 +21,16 @@ export function Footer() {
               <li><a href="#how-it-works" className="hover:text-ink">How it works</a></li>
               <li><a href="#faq" className="hover:text-ink">FAQ</a></li>
               <li><Link href="/sign-in" className="hover:text-ink">Sign in</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <div className="text-[11.5px] font-semibold tracking-[0.1em] text-muted uppercase">
+              Legal
+            </div>
+            <ul className="mt-3.5 space-y-2.5 text-[13.5px] text-muted">
+              <li><Link href="/privacy" className="hover:text-ink">Privacy</Link></li>
+              <li><Link href="/terms" className="hover:text-ink">Terms</Link></li>
             </ul>
           </div>
         </div>

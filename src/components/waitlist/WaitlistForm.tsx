@@ -68,6 +68,8 @@ export function WaitlistForm({
           {result.error}
         </p>
       )}
+
+      <p className="mt-2 text-[12px] text-muted">We&rsquo;ll only email you about PostAud.io.</p>
     </form>
   );
 }

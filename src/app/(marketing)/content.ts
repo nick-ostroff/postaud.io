@@ -101,5 +101,6 @@ export function softwareJsonLd() {
     operatingSystem: "Web",
     description:
       "A voice-first AI interviewer that turns conversation into a living knowledge base — not just a transcript.",
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
   };
 }

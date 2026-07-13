@@ -1,13 +1,6 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/Button";
-
-export function Wordmark({ className = "" }: { className?: string }) {
-  return (
-    <span className={`serif ${className}`}>
-      post<b className="font-semibold text-green-deep">aud</b>.io
-    </span>
-  );
-}
+import { buttonClasses } from "@/components/ui/Button";
+import { Wordmark } from "@/components/ui/Wordmark";
 
 export function Nav() {
   return (
@@ -23,8 +16,8 @@ export function Nav() {
             <a href="#why" className="hover:text-ink">Why</a>
             <a href="#faq" className="hover:text-ink">FAQ</a>
           </div>
-          <Link href="/sign-in">
-            <Button variant="secondary">Sign in</Button>
+          <Link href="/sign-in" className={buttonClasses({ variant: "secondary" })}>
+            Sign in
           </Link>
         </div>
       </div>

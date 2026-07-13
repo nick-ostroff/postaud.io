@@ -17,7 +17,7 @@ const description =
   "Voice-first AI interviews that build a living knowledge base — not just a transcript. Capture what only one person knows, and export it as Markdown any time.";
 
 export const metadata: Metadata = {
-  title,
+  title: { absolute: title },
   description,
   alternates: { canonical: SITE_URL },
   openGraph: { title, description, url: SITE_URL, siteName: "PostAud.io", type: "website" },

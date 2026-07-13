@@ -22,14 +22,14 @@ export function ProductMoment() {
 
         <div className="mt-16 grid grid-cols-1 items-start gap-8 lg:grid-cols-[1.35fr_1fr]">
           {/* The live-interview surface — the same dark session UI the product uses. */}
-          <div className="rounded-card bg-dark p-8 shadow-pop md:p-10">
+          <div className="dark-session rounded-card p-8 shadow-pop md:p-10">
             <div className="flex items-center gap-2 text-[11.5px] font-semibold tracking-[0.1em] text-dark-muted uppercase">
               <span className="h-1.5 w-1.5 rounded-pill bg-mint" />
               Session 4 · live
             </div>
 
             <div className="mt-8 space-y-7">
-              <p className="serif text-[19px] leading-[1.55] text-paper md:text-[21px]">
+              <p className="spoken text-[19px] leading-[1.55] md:text-[21px]">
                 &raquo;Tell me about the ferry.&laquo;
               </p>
 
@@ -39,7 +39,7 @@ export function ProductMoment() {
                 That was two weeks before the water came.
               </p>
 
-              <p className="serif text-[19px] leading-[1.55] text-paper md:text-[21px]">
+              <p className="spoken text-[19px] leading-[1.55] md:text-[21px]">
                 &raquo;Two weeks before the water came. You mean the flood?&laquo;
               </p>
             </div>
