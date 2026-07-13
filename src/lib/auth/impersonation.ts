@@ -12,6 +12,7 @@
  * that in both directions, which is what packStash/unpackStash are for.
  */
 
+import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { env } from "@/lib/env";
 

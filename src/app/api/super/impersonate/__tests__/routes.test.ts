@@ -165,7 +165,11 @@ describe("POST /api/super/impersonate/exit — IMPORTANT 2: audit-log forgery", 
     expect(mocks.logImpersonationEnd).not.toHaveBeenCalled();
   });
 
-  it("rejects a tampered signature (attacker swaps the admin email)", async () => {
+  it("still restores the session on a tampered signature but writes no audit row (attacker swaps the admin email)", async () => {
+    // The signature only guards the AUDIT WRITE now (MINOR 1). Restore is
+    // gated on possession of a real stash, which an attacker forging
+    // pa_op_imp does not have — but a legitimate operator whose signing key
+    // rotated mid-session does. They must still be able to escape.
     const signed = encodeSession(SESSION);
     const [, sig] = signed.split(".");
     const evil = Buffer.from(
@@ -175,11 +179,14 @@ describe("POST /api/super/impersonate/exit — IMPORTANT 2: audit-log forgery", 
 
     const res = await exitPOST(
       req([
+        { name: "sb-x-auth-token", value: "TARGET" },
         { name: IMP_COOKIE, value: `${evil}.${sig}` },
         ...packStash([{ name: "sb-x-auth-token", value: "OP" }]),
       ]),
     );
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(200);
+    const got = resultingCookies(res);
+    expect(got.get("sb-x-auth-token")).toBe("OP");
     expect(mocks.logImpersonationEnd).not.toHaveBeenCalled();
   });
 
@@ -207,6 +214,64 @@ describe("POST /api/super/impersonate/exit — IMPORTANT 2: audit-log forgery", 
     const got = resultingCookies(res);
     expect(got.get("sb-x-auth-token")).toBeNull();
     expect(got.get("sb-x-auth-token.0")).toBe("OP0");
+  });
+});
+
+describe("POST /api/super/impersonate/exit — MINOR 1: exit must survive key rotation", () => {
+  it("restores the operator's session and clears the target's cookies when pa_op_imp is unsigned/invalid, and writes NO audit row", async () => {
+    // Simulates SUPABASE_SERVICE_ROLE_KEY rotating mid-impersonation: pa_op_imp
+    // was signed with the OLD key, so it fails HMAC verification today. The
+    // stash itself is untouched by key rotation — it's just cookies the
+    // operator already possessed. Restore must not depend on the signature.
+    const staleSignedElsewhere = Buffer.from(JSON.stringify(SESSION), "utf8").toString("base64url") + ".stale-signature-from-old-key";
+
+    const res = await exitPOST(
+      req([
+        { name: "sb-x-auth-token", value: "TARGET_SESSION" },
+        { name: IMP_COOKIE, value: staleSignedElsewhere },
+        ...packStash([{ name: "sb-x-auth-token", value: "OPERATOR_SESSION" }]),
+      ]),
+    );
+
+    expect(res.status).toBe(200);
+    const got = resultingCookies(res);
+    expect(got.get("sb-x-auth-token")).toBe("OPERATOR_SESSION"); // operator restored
+    expect(got.get(IMP_COOKIE)).toBeNull();
+    expect(got.get(`${PREV_COOKIE}.0`)).toBeNull();
+    expect(mocks.logImpersonationEnd).not.toHaveBeenCalled(); // no verified actor -> no audit row
+  });
+
+  it("redirects to /super (not /super/users/<id>) when there is no verified session to read the target id from", async () => {
+    const res = await exitPOST(
+      req([
+        { name: IMP_COOKIE, value: "garbage.notasignature" },
+        ...packStash([{ name: "sb-x-auth-token", value: "OPERATOR_SESSION" }]),
+      ]),
+    );
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.redirect).toBe("/super");
+  });
+
+  it("still 400s and writes no audit row when the stash is absent entirely (forged pa_op_imp, no real prior session)", async () => {
+    const res = await exitPOST(req([{ name: IMP_COOKIE, value: encodeSession(SESSION) }]));
+    expect(res.status).toBe(400);
+    expect(mocks.logImpersonationEnd).not.toHaveBeenCalled();
+    const got = resultingCookies(res);
+    expect(got.size).toBe(0); // nothing restored, nothing cleared
+  });
+
+  it("still 400s, no audit, no restore, for a stash that decodes to an empty array (truthy-but-empty)", async () => {
+    const res = await exitPOST(
+      req([
+        { name: IMP_COOKIE, value: encodeSession(SESSION) },
+        { name: `${PREV_COOKIE}.0`, value: "W10" }, // base64url of "[]"
+      ]),
+    );
+    expect(res.status).toBe(400);
+    expect(mocks.logImpersonationEnd).not.toHaveBeenCalled();
+    const got = resultingCookies(res);
+    expect(got.size).toBe(0);
   });
 });
 
