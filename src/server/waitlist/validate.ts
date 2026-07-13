@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const emailSchema = z.string().email();
+const emailSchema = z.email().max(254);
 
 /**
  * Trimmed + lowercased email, or null if the input isn't a usable address.

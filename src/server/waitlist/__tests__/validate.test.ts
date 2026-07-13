@@ -24,4 +24,20 @@ describe("normalizeEmail", () => {
     expect(normalizeEmail(undefined)).toBeNull();
     expect(normalizeEmail(42)).toBeNull();
   });
+
+  it("accepts valid email at the 254-character RFC limit", () => {
+    // 246 'a's + '@' + 'test.co' = 254 characters
+    const localPart = "a".repeat(246);
+    const validEmail = `${localPart}@test.co`;
+    expect(validEmail).toHaveLength(254);
+    expect(normalizeEmail(validEmail)).toBe(validEmail);
+  });
+
+  it("rejects email exceeding 254-character RFC limit", () => {
+    // 247 'a's + '@' + 'test.co' = 255 characters (over the limit)
+    const localPart = "a".repeat(247);
+    const oversizedEmail = `${localPart}@test.co`;
+    expect(oversizedEmail).toHaveLength(255);
+    expect(normalizeEmail(oversizedEmail)).toBeNull();
+  });
 });
