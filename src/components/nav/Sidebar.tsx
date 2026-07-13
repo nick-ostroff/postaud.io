@@ -15,6 +15,7 @@ const youItems = [{ href: "/app/settings", label: "Settings", icon: "⚙" }];
 type Props = {
   name: string;
   role: string;
+  isPlatformAdmin?: boolean;
 };
 
 function NavItem({ href, label, icon }: { href: string; label: string; icon: string }) {
@@ -36,7 +37,7 @@ function NavItem({ href, label, icon }: { href: string; label: string; icon: str
   );
 }
 
-export function Sidebar({ name, role }: Props) {
+export function Sidebar({ name, role, isPlatformAdmin = false }: Props) {
   return (
     <aside className="flex w-[232px] shrink-0 flex-col gap-1 border-r border-line bg-paper-2 py-[22px] px-3.5">
       <div className="serif px-2.5 pb-[18px] text-[19px]">
@@ -56,6 +57,15 @@ export function Sidebar({ name, role }: Props) {
       {youItems.map((item) => (
         <NavItem key={item.href} {...item} />
       ))}
+
+      {isPlatformAdmin && (
+        <>
+          <div className="px-2.5 pb-1.5 pt-3.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-faint">
+            Platform
+          </div>
+          <NavItem href="/super" label="Operator console" icon="⚿" />
+        </>
+      )}
 
       <div className="flex-1" />
 

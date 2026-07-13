@@ -13,5 +13,12 @@ export default defineConfig({
       ANTHROPIC_API_KEY: "test-anthropic-key",
     },
   },
-  resolve: { alias: { "@": new URL("./src", import.meta.url).pathname } },
+  resolve: {
+    alias: {
+      "@": new URL("./src", import.meta.url).pathname,
+      // The real `server-only` package throws outside Next's RSC bundler —
+      // see src/test/stubs/server-only.ts for why this is stubbed.
+      "server-only": new URL("./src/test/stubs/server-only.ts", import.meta.url).pathname,
+    },
+  },
 });

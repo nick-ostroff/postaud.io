@@ -13,7 +13,7 @@ export default async function CreditAdjustPage({ params }: { params: Params }) {
   return (
     <div className="max-w-lg">
       <Link
-        href={`/admin/accounts/${id}`}
+        href={`/super/accounts/${id}`}
         className="text-[13px] text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
       >
         ← {detail.organization.name}
