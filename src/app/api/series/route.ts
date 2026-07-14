@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getViewer } from "@/db/queries";
+import { VOICE_IDS, DEFAULT_VOICE, DEFAULT_INTERVIEWER_NAME } from "@/lib/voices";
 import { CreateSeriesError, createSeries } from "@/server/series/create";
 
 const accessEntrySchema = z.object({
@@ -9,9 +10,9 @@ const accessEntrySchema = z.object({
   canInterview: z.boolean(),
 });
 
-const createSeriesSchema = z.object({
+export const createSeriesSchema = z.object({
   title: z.string().trim().min(1, "Give the series a title."),
-  goal: z.string().trim().min(1, "Say what Anna should learn."),
+  goal: z.string().trim().min(1, "Say what the interviewer should learn."),
   subjectKind: z.enum(["member", "self", "person", "organization"]),
   subjectUserId: z.string().uuid().optional(),
   subjectName: z.string().trim().min(1, "This series needs a subject name."),
@@ -21,6 +22,12 @@ const createSeriesSchema = z.object({
   dontBringUp: z.array(z.string().trim().min(1)).default([]),
   tone: z.enum(["warm", "neutral", "playful"]),
   sessionMinutes: z.union([z.literal(10), z.literal(20), z.literal(45)]),
+  voice: z.enum(VOICE_IDS).default(DEFAULT_VOICE),
+  // Accepted for symmetry with the wizard's payload, but never trusted —
+  // createSeries() re-derives the name from the voice so the two can't disagree.
+  interviewerName: z.string().trim().min(1).default(DEFAULT_INTERVIEWER_NAME),
+  depth: z.enum(["light", "balanced", "deep"]).default("balanced"),
+  plannedSessions: z.number().int().min(1).max(50).nullable().default(null),
   access: z.array(accessEntrySchema).default([]),
   inviteSubjectEmail: z.string().email().optional(),
   questionPlan: z.array(z.string().trim().min(1)).optional(),

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getViewer } from "@/db/queries";
 import type { TablesUpdate } from "@/db/types";
+import { personaFor, VOICE_IDS } from "@/lib/voices";
 
 const updateSeriesSchema = z.object({
   title: z.string().trim().min(1).optional(),
@@ -11,6 +12,9 @@ const updateSeriesSchema = z.object({
   dontBringUp: z.array(z.string().trim().min(1)).optional(),
   tone: z.enum(["warm", "neutral", "playful"]).optional(),
   sessionMinutes: z.union([z.literal(10), z.literal(20), z.literal(45)]).optional(),
+  voice: z.enum(VOICE_IDS).optional(),
+  depth: z.enum(["light", "balanced", "deep"]).optional(),
+  plannedSessions: z.number().int().min(1).max(50).nullable().optional(),
 });
 
 type Params = Promise<{ id: string }>;
@@ -31,7 +35,8 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  const { title, goal, subjectRelationship, openingPrompt, dontBringUp, tone, sessionMinutes } = parsed.data;
+  const { title, goal, subjectRelationship, openingPrompt, dontBringUp, tone, sessionMinutes, voice, depth, plannedSessions } =
+    parsed.data;
   const update: TablesUpdate<"series"> = {};
   if (title !== undefined) update.title = title;
   if (goal !== undefined) update.goal = goal;
@@ -40,6 +45,14 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
   if (dontBringUp !== undefined) update.dont_bring_up = dontBringUp;
   if (tone !== undefined) update.tone = tone;
   if (sessionMinutes !== undefined) update.session_minutes = sessionMinutes;
+  // Changing the voice re-derives the name with it — the two never drift apart.
+  if (voice !== undefined) {
+    const persona = personaFor(voice);
+    update.voice = persona.id;
+    update.interviewer_name = persona.name;
+  }
+  if (depth !== undefined) update.depth = depth;
+  if (plannedSessions !== undefined) update.planned_sessions = plannedSessions;
 
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: "No fields to update." }, { status: 400 });

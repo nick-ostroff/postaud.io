@@ -1,7 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { listMembers } from "@/db/queries";
 import { serviceClient } from "@/db/service";
-import type { Database, SeriesTone, SubjectKind } from "@/db/types";
+import type { Database, SeriesDepth, SeriesTone, SubjectKind } from "@/db/types";
+import { personaFor, DEFAULT_VOICE } from "@/lib/voices";
 import { InviteMemberError, inviteMember } from "@/server/members/invite";
 
 export type CreateSeriesInput = {
@@ -16,6 +17,9 @@ export type CreateSeriesInput = {
   dontBringUp: string[];
   tone: SeriesTone;
   sessionMinutes: 10 | 20 | 45;
+  voice?: string;
+  depth?: SeriesDepth;
+  plannedSessions?: number | null;
   access: { userId: string; canView: boolean; canInterview: boolean }[];
   inviteSubjectEmail?: string;
   questionPlan?: string[];
@@ -136,6 +140,11 @@ export async function createSeries(
   // 'person' | 'organization': subjectUserId stays null; subjectName is the
   // free-text name — they're handed the mic in person later (Task 10).
 
+  // The persona registry is the source of truth: the name always follows the
+  // voice, so a hand-rolled API call can't create a series whose male voice
+  // introduces itself as Anna.
+  const persona = personaFor(input.voice ?? DEFAULT_VOICE);
+
   const { data: series, error: seriesErr } = await supabase
     .from("series")
     .insert({
@@ -150,6 +159,10 @@ export async function createSeries(
       dont_bring_up: input.dontBringUp,
       tone: input.tone,
       session_minutes: input.sessionMinutes,
+      voice: persona.id,
+      interviewer_name: persona.name,
+      depth: input.depth ?? "balanced",
+      planned_sessions: input.plannedSessions ?? null,
       created_by: createdBy,
     })
     .select("id")
