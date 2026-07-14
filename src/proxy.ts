@@ -61,7 +61,10 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Skip static assets and favicon.
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Skip static assets and favicon. `sw.js` and `manifest.webmanifest` are
+    // public PWA files fetched by the browser itself, not by a signed-in user:
+    // refreshing a session cookie on them buys nothing and would let a
+    // Set-Cookie ride along on the service worker script.
+    "/((?!_next/static|_next/image|favicon.ico|sw\\.js|manifest\\.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import { AppTopNav } from "@/components/nav/AppTopNav";
 import { Sidebar } from "@/components/nav/Sidebar";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { getViewer } from "@/db/queries";
 import { isPlatformAdmin } from "@/lib/auth/is-platform-admin";
 import { resolveImpersonationBanner } from "@/lib/auth/impersonation-banner";
@@ -44,7 +45,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           {/* Below `lg` the sidebar is hidden and this carries the nav instead. */}
           <AppTopNav name={name} />
           {/* The bottom padding clears the floating story bar on mobile. */}
-          <main className="min-w-0 flex-1 px-5 py-6 pb-28 lg:px-9 lg:py-[30px] lg:pb-11">{children}</main>
+          <main className="min-w-0 flex-1 px-5 py-6 pb-28 lg:px-9 lg:py-[30px] lg:pb-11">
+            <InstallPrompt />
+            {children}
+          </main>
         </div>
       </div>
     </div>

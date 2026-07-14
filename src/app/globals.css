@@ -192,3 +192,30 @@ a:hover { text-decoration: underline; }
 @media (prefers-reduced-motion: reduce) {
   .orb, .orb::after { animation: none; }
 }
+
+/* ---------- installed app / touch ---------- */
+
+/* iOS zooms the whole page whenever a focused field's text is under 16px, and
+   never zooms back out — which wrecks the layout in a standalone PWA. Our UI
+   type is 14.5px, so bump *only* the fields, and only on touch devices, so the
+   desktop density is untouched. */
+@media (pointer: coarse) {
+  input, select, textarea { font-size: 16px; }
+}
+
+/* Standalone = launched from the home screen: there's no browser chrome to
+   fall back on, so kill the affordances that assume it. */
+@media (display-mode: standalone) {
+  /* No rubber-band scroll past the ends of a page — that bounce reveals bare
+     white behind the app and instantly reads as "website in a shell". */
+  html, body { overscroll-behavior-y: none; }
+  /* Grey flash on every tap is a browser convention, not an app one. */
+  body { -webkit-tap-highlight-color: transparent; }
+  /* Long-press on the chrome should not offer to select/copy it. Inputs and
+     transcript text opt back in below. */
+  body { -webkit-user-select: none; user-select: none; }
+  input, textarea, [contenteditable], p, .spoken, .selectable {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}
