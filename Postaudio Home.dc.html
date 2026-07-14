@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#EFECE6;font-family:'Instrument Sans',system-ui,sans-serif}
+a{color:oklch(0.52 0.06 165)}a:hover{color:oklch(0.42 0.06 165)}
+.dv-turn{padding:40px 44px 32px;scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 8px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 'Instrument Sans',sans-serif;color:#1a1a1a}
+.dv-note{margin:0 0 24px;max-width:760px;font:400 12px/1.6 'Instrument Sans',sans-serif;color:rgba(0,0,0,.55)}
+.dv-flow{display:flex;flex-wrap:nowrap;gap:0;align-items:flex-start}
+.dv-step{flex:none;display:flex;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;width:320px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 'Instrument Sans',sans-serif;color:rgba(0,0,0,.55)}
+.dv-arrow{flex:none;align-self:center;width:44px;display:flex;flex-direction:column;align-items:center;gap:5px}
+.dv-arrow .l{font:500 9.5px 'Instrument Sans',sans-serif;color:#8A857C;text-align:center;white-space:nowrap}
+.ph{width:320px;height:680px;border-radius:36px;background:#211E1A;padding:9px;box-sizing:border-box;box-shadow:0 8px 26px rgba(0,0,0,.16)}
+.scr{width:100%;height:100%;border-radius:28px;overflow:hidden;position:relative;display:flex;flex-direction:column;box-sizing:border-box}
+.rail{display:flex;gap:15px;padding:16px 0 4px;align-items:flex-start;overflow:hidden}
+.rc{display:flex;flex-direction:column;align-items:center;gap:5px;flex:none}
+.rc .av{width:52px;height:52px;border-radius:99px;display:grid;place-items:center;font-size:16px;font-weight:600;position:relative}
+.rc .lb{font-size:10.5px;max-width:56px;text-align:center;line-height:1.2}
+.fbar{position:absolute;left:0;right:0;bottom:22px;display:flex;justify-content:center}
+.fbar .in{display:flex;align-items:center;gap:3px;background:#211E1A;border-radius:999px;padding:5px 6px;box-shadow:0 10px 26px rgba(33,30,26,0.3)}
+.fbar .talk{display:flex;align-items:center;gap:6px;background:oklch(0.52 0.06 165);border-radius:999px;padding:9px 15px;color:#fff}
+.fbar .ico{width:38px;height:38px;border-radius:99px;display:grid;place-items:center;color:rgba(240,237,230,0.75)}
+.thead{display:flex;align-items:center;gap:7px}
+.tmark{width:22px;height:22px;border-radius:6px;background:oklch(0.52 0.06 165);display:flex;align-items:center;justify-content:center;gap:1.5px;flex:none}
+.tmark i{display:block;width:2px;border-radius:1px}
+.rec{margin-left:auto;display:flex;align-items:center;gap:6px;flex:none;font:500 11.5px ui-monospace,Menlo,monospace;color:oklch(0.72 0.08 165)}
+.wave{display:flex;align-items:center;justify-content:center;gap:4px;height:26px}
+.wave span{width:3px;border-radius:2px;background:oklch(0.72 0.08 165)}
+
+</style>
+</helmet>
+
+<section class="dv-turn" id="t5" style="border-bottom:1px solid rgba(0,0,0,.08)">
+<div class="dv-thd"><a class="dv-tid" href="#t5">5</a><span class="dv-tname">The Talk flow (what "Talk" opens)</span></div>
+<p class="dv-note">Tapping <b>Talk</b> from any story opens this, scoped to that story. <a class="dv-oid" href="#5a">5a</a> connecting → <a class="dv-oid" href="#5b">5b</a> the assistant asks → <a class="dv-oid" href="#5c">5c</a> you answer (live) → <a class="dv-oid" href="#5d">5d</a> follow-up, fact saved → <a class="dv-oid" href="#5e">5e</a> pause → <a class="dv-oid" href="#5f">5f</a> a natural stop, into the recap. Dark &amp; immersive on purpose.</p>
+<div class="dv-flow">
+
+<!-- 1a Connecting -->
+<div class="dv-step">
+<div class="dv-opt" id="5a">
+<div class="dv-olabel"><a class="dv-oid" href="#5a">5a</a>Connecting — a soft breath before the first question.</div>
+<div class="ph"><div class="scr" style="background:#211E1A;color:#F0EDE6;padding:26px 24px 30px">
+  <div style="position:absolute;top:-120px;left:50%;transform:translateX(-50%);width:380px;height:380px;border-radius:999px;background:radial-gradient(circle, oklch(0.52 0.06 165 / 0.22) 0%, transparent 68%)"></div>
+  <div class="thead" style="position:relative">
+    <div class="tmark"><i style="height:6px;background:rgba(255,255,255,0.55)"></i><i style="height:11px;background:rgba(255,255,255,0.8)"></i><i style="height:8px;background:rgba(255,255,255,0.8)"></i><i style="height:11px;width:4px;background:#fff;margin-left:1px"></i></div>
+    <div style="font-size:12.5px;color:rgba(240,237,230,0.55)">Mum's stories</div>
+    <div style="margin-left:auto;font-size:12.5px;color:rgba(240,237,230,0.4)">✕</div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;text-align:center;position:relative">
+    <div style="width:76px;height:76px;border-radius:999px;background:oklch(0.52 0.06 165);opacity:0.9;box-shadow:0 0 0 14px oklch(0.52 0.06 165 / 0.12), 0 0 0 30px oklch(0.52 0.06 165 / 0.05)"></div>
+    <div style="font:400 20px/1.45 'Newsreader',serif;color:rgba(240,237,230,0.85)">Getting comfortable…<br>Sam's assistant is here with you.</div>
+  </div>
+  <div style="text-align:center;font-size:12.5px;color:rgba(240,237,230,0.4);position:relative">Speak naturally — take your time</div>
+</div></div>
+</div>
+</div>
+
+<div class="dv-arrow"><div class="l">first question</div><svg width="24" height="14" viewBox="0 0 26 14" fill="none"><path d="M1 7h22m0 0l-6-5m6 5l-6 5" stroke="#B4AEA2" stroke-width="1.6"/></svg></div>
+
+<!-- 1b Assistant asks -->
+<div class="dv-step">
+<div class="dv-opt" id="5b">
+<div class="dv-olabel"><a class="dv-oid" href="#5b">5b</a>The assistant asks — one question fills the screen.</div>
+<div class="ph"><div class="scr" style="background:#211E1A;color:#F0EDE6;padding:26px 24px 30px">
+  <div style="position:absolute;top:-120px;left:50%;transform:translateX(-50%);width:380px;height:380px;border-radius:999px;background:radial-gradient(circle, oklch(0.52 0.06 165 / 0.22) 0%, transparent 68%)"></div>
+  <div class="thead" style="position:relative">
+    <div class="tmark"><i style="height:6px;background:rgba(255,255,255,0.55)"></i><i style="height:11px;background:rgba(255,255,255,0.8)"></i><i style="height:8px;background:rgba(255,255,255,0.8)"></i><i style="height:11px;width:4px;background:#fff;margin-left:1px"></i></div>
+    <div style="font-size:12.5px;color:rgba(240,237,230,0.55)">Sam's assistant</div>
+    <div class="rec"><div style="width:6px;height:6px;border-radius:99px;background:oklch(0.62 0.16 25);flex:none"></div>REC 00:14</div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;text-align:center;position:relative">
+    <div style="width:52px;height:52px;border-radius:999px;background:oklch(0.52 0.06 165);box-shadow:0 0 0 11px oklch(0.52 0.06 165 / 0.15), 0 0 0 24px oklch(0.52 0.06 165 / 0.06)"></div>
+    <div style="font:400 26px/1.4 'Newsreader',serif">What do you remember about the first time you saw him on that ferry?</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:11px;position:relative">
+    <div style="text-align:center;font-size:12.5px;color:rgba(240,237,230,0.45)">Tap to answer, or just start speaking</div>
+    <div style="display:flex;gap:10px">
+      <div style="flex:1;text-align:center;font-size:14px;color:rgba(240,237,230,0.8);border:1px solid rgba(240,237,230,0.25);border-radius:999px;padding:14px 0">Skip</div>
+      <div style="flex:1;text-align:center;font-size:14px;color:rgba(240,237,230,0.8);border:1px solid rgba(240,237,230,0.25);border-radius:999px;padding:14px 0">Repeat</div>
+    </div>
+  </div>
+</div></div>
+</div>
+</div>
+
+<div class="dv-arrow"><div class="l">you speak</div><svg width="24" height="14" viewBox="0 0 26 14" fill="none"><path d="M1 7h22m0 0l-6-5m6 5l-6 5" stroke="#B4AEA2" stroke-width="1.6"/></svg></div>
+
+<!-- 1c You answer -->
+<div class="dv-step">
+<div class="dv-opt" id="5c">
+<div class="dv-olabel"><a class="dv-oid" href="#5c">5c</a>You answer — live transcription, mic active.</div>
+<div class="ph"><div class="scr" style="background:#211E1A;color:#F0EDE6;padding:26px 24px 30px">
+  <div style="position:absolute;top:-120px;left:50%;transform:translateX(-50%);width:380px;height:380px;border-radius:999px;background:radial-gradient(circle, oklch(0.6 0.07 165 / 0.28) 0%, transparent 68%)"></div>
+  <div class="thead" style="position:relative">
+    <div class="tmark"><i style="height:6px;background:rgba(255,255,255,0.55)"></i><i style="height:11px;background:rgba(255,255,255,0.8)"></i><i style="height:8px;background:rgba(255,255,255,0.8)"></i><i style="height:11px;width:4px;background:#fff;margin-left:1px"></i></div>
+    <div style="font-size:12.5px;color:oklch(0.72 0.08 165)">Listening…</div>
+    <div class="rec"><div style="width:6px;height:6px;border-radius:99px;background:oklch(0.62 0.16 25);flex:none"></div>REC 00:52</div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:22px;position:relative">
+    <div style="font:400 15px/1.4 'Newsreader',serif;font-style:italic;color:rgba(240,237,230,0.45)">"…what do you remember about the ferry?"</div>
+    <div style="font:400 22px/1.55 'Newsreader',serif">"Oh, it was so windy that day. Everyone stayed inside, but I wanted the air. He came over and offered me his coat…"</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:14px;position:relative">
+    <div class="wave"><span style="height:10px"></span><span style="height:22px"></span><span style="height:14px"></span><span style="height:26px"></span><span style="height:12px"></span><span style="height:20px"></span><span style="height:9px"></span><span style="height:18px"></span><span style="height:13px"></span></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:11px">
+      <div style="width:56px;height:56px;border-radius:999px;background:oklch(0.52 0.06 165);display:grid;place-items:center;box-shadow:0 0 0 8px oklch(0.52 0.06 165 / 0.16)"><div style="display:flex;gap:2px"><div style="width:3px;height:14px;border-radius:2px;background:#fff"></div><div style="width:3px;height:20px;border-radius:2px;background:#fff"></div><div style="width:3px;height:11px;border-radius:2px;background:#fff"></div></div></div>
+    </div>
+    <div style="text-align:center;font-size:12.5px;color:rgba(240,237,230,0.45)">Tap the mic when you're done</div>
+  </div>
+</div></div>
+</div>
+</div>
+
+<div class="dv-arrow"><div class="l">follow-up</div><svg width="24" height="14" viewBox="0 0 26 14" fill="none"><path d="M1 7h22m0 0l-6-5m6 5l-6 5" stroke="#B4AEA2" stroke-width="1.6"/></svg></div>
+
+<!-- 1d Follow-up + fact saved -->
+<div class="dv-step">
+<div class="dv-opt" id="5d">
+<div class="dv-olabel"><a class="dv-oid" href="#5d">5d</a>Follow-up — it heard you, saved a fact, digs deeper.</div>
+<div class="ph"><div class="scr" style="background:#211E1A;color:#F0EDE6;padding:26px 24px 30px">
+  <div style="position:absolute;top:-120px;left:50%;transform:translateX(-50%);width:380px;height:380px;border-radius:999px;background:radial-gradient(circle, oklch(0.52 0.06 165 / 0.22) 0%, transparent 68%)"></div>
+  <div class="thead" style="position:relative">
+    <div class="tmark"><i style="height:6px;background:rgba(255,255,255,0.55)"></i><i style="height:11px;background:rgba(255,255,255,0.8)"></i><i style="height:8px;background:rgba(255,255,255,0.8)"></i><i style="height:11px;width:4px;background:#fff;margin-left:1px"></i></div>
+    <div style="font-size:12.5px;color:rgba(240,237,230,0.55)">Sam's assistant</div>
+    <div class="rec"><div style="width:6px;height:6px;border-radius:99px;background:oklch(0.62 0.16 25);flex:none"></div>REC 01:38</div>
+  </div>
+  <div style="position:relative;display:flex;align-items:center;gap:9px;background:oklch(0.52 0.06 165 / 0.18);border:1px solid oklch(0.52 0.06 165 / 0.4);border-radius:12px;padding:10px 13px;margin-top:12px">
+    <div style="width:20px;height:20px;border-radius:99px;background:oklch(0.52 0.06 165);display:grid;place-items:center;flex:none;color:#fff;font-size:11px">✓</div>
+    <div style="font-size:12.5px;color:#F0EDE6">Saved · <span style="font-family:'Newsreader',serif">He offered you his coat on the deck</span></div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;text-align:center;position:relative">
+    <div style="width:52px;height:52px;border-radius:999px;background:oklch(0.52 0.06 165);box-shadow:0 0 0 11px oklch(0.52 0.06 165 / 0.15), 0 0 0 24px oklch(0.52 0.06 165 / 0.06)"></div>
+    <div style="font:italic 400 15px 'Newsreader',serif;color:rgba(240,237,230,0.55)">That's such a lovely detail —</div>
+    <div style="font:400 25px/1.4 'Newsreader',serif">Did you keep the coat on the whole way, or give it back?</div>
+  </div>
+  <div style="display:flex;gap:10px;position:relative">
+    <div style="flex:1;text-align:center;font-size:14px;color:rgba(240,237,230,0.8);border:1px solid rgba(240,237,230,0.25);border-radius:999px;padding:14px 0">Skip</div>
+    <div style="flex:1;text-align:center;font-size:14px;color:rgba(240,237,230,0.8);border:1px solid rgba(240,237,230,0.25);border-radius:999px;padding:14px 0">Pause</div>
+  </div>
+</div></div>
+</div>
+</div>
+
+<div class="dv-arrow"><div class="l">pause</div><svg width="24" height="14" viewBox="0 0 26 14" fill="none"><path d="M1 7h22m0 0l-6-5m6 5l-6 5" stroke="#B4AEA2" stroke-width="1.6"/></svg></div>
+
+<!-- 1e Pause -->
+<div class="dv-step">
+<div class="dv-opt" id="5e">
+<div class="dv-olabel"><a class="dv-oid" href="#5e">5e</a>Pause — resume, skip the topic, or stop for today.</div>
+<div class="ph"><div class="scr" style="background:#211E1A;color:#F0EDE6;justify-content:flex-end">
+  <div style="position:absolute;inset:0;background:rgba(10,8,6,0.55)"></div>
+  <div style="position:absolute;top:26px;left:24px;right:24px;display:flex;align-items:center;gap:7px;opacity:0.5">
+    <div class="tmark"><i style="height:6px;background:rgba(255,255,255,0.55)"></i><i style="height:11px;background:rgba(255,255,255,0.8)"></i><i style="height:8px;background:rgba(255,255,255,0.8)"></i><i style="height:11px;width:4px;background:#fff;margin-left:1px"></i></div>
+    <div style="font-size:12.5px;color:rgba(240,237,230,0.55)">Paused · 01:38</div>
+  </div>
+  <div style="position:relative;background:#2A2620;border-radius:24px 24px 27px 27px;padding:22px 22px 28px;display:flex;flex-direction:column;gap:12px">
+    <div style="width:38px;height:4px;border-radius:99px;background:rgba(240,237,230,0.2);align-self:center;margin-bottom:4px"></div>
+    <div style="font:400 21px 'Newsreader',serif;text-align:center;padding-bottom:6px">Taking a break?</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:10px;background:oklch(0.52 0.06 165);color:#fff;border-radius:999px;padding:15px 0;font-size:16px;font-weight:600"><div style="width:0;height:0;border-left:11px solid #fff;border-top:7px solid transparent;border-bottom:7px solid transparent;margin-left:3px"></div>Resume</div>
+    <div style="text-align:center;font-size:15px;color:rgba(240,237,230,0.85);border:1px solid rgba(240,237,230,0.25);border-radius:999px;padding:14px 0">Skip this topic</div>
+    <div style="text-align:center;font-size:15px;color:rgba(240,237,230,0.85);border:1px solid rgba(240,237,230,0.25);border-radius:999px;padding:14px 0">I'm done for today</div>
+    <div style="text-align:center;font-size:12px;color:rgba(240,237,230,0.4);padding-top:2px">Everything so far is already saved</div>
+  </div>
+</div></div>
+</div>
+</div>
+
+<div class="dv-arrow"><div class="l">done</div><svg width="24" height="14" viewBox="0 0 26 14" fill="none"><path d="M1 7h22m0 0l-6-5m6 5l-6 5" stroke="#B4AEA2" stroke-width="1.6"/></svg></div>
+
+<!-- 1f Wrap -->
+<div class="dv-step">
+<div class="dv-opt" id="5f">
+<div class="dv-olabel"><a class="dv-oid" href="#5f">5f</a>A natural stop — leads into the recap.</div>
+<div class="ph"><div class="scr" style="background:#211E1A;color:#F0EDE6;padding:26px 24px 30px">
+  <div style="position:absolute;top:-120px;left:50%;transform:translateX(-50%);width:380px;height:380px;border-radius:999px;background:radial-gradient(circle, oklch(0.52 0.06 165 / 0.22) 0%, transparent 68%)"></div>
+  <div class="thead" style="position:relative">
+    <div class="tmark"><i style="height:6px;background:rgba(255,255,255,0.55)"></i><i style="height:11px;background:rgba(255,255,255,0.8)"></i><i style="height:8px;background:rgba(255,255,255,0.8)"></i><i style="height:11px;width:4px;background:#fff;margin-left:1px"></i></div>
+    <div style="font-size:12.5px;color:rgba(240,237,230,0.55)">Mum's stories</div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;text-align:center;position:relative">
+    <div style="width:56px;height:56px;border-radius:999px;background:oklch(0.72 0.08 165);display:grid;place-items:center;color:#211E1A;font-size:22px">✓</div>
+    <div style="font:400 27px/1.4 'Newsreader',serif">That's a beautiful place to pause.</div>
+    <div style="font-size:14.5px;line-height:1.6;color:rgba(240,237,230,0.6)">9 minutes · 6 new memories saved to Mum's stories.</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:11px;position:relative">
+    <div style="text-align:center;font-size:16px;font-weight:600;color:#211E1A;background:oklch(0.72 0.08 165);border-radius:999px;padding:16px 0">See what we saved</div>
+    <div style="text-align:center;font-size:13.5px;color:rgba(240,237,230,0.6)">Keep going — one more question</div>
+  </div>
+</div></div>
+</div>
+</div>
+
+</div>
+</section>
+
+<section class="dv-turn" id="t3" style="border-bottom:1px solid rgba(0,0,0,.08)">
+<div class="dv-thd"><a class="dv-tid" href="#t3">3</a><span class="dv-tname">Add a series (the "+ New" in the rail)</span></div>
+<p class="dv-note">Tapping <b>+ New</b> in the story rail opens a subject-friendly create flow — the mobile take on the desktop wizard. <a class="dv-oid" href="#3a">3a</a> basics (who it's about, title, goal) → <a class="dv-oid" href="#3c">3c</a> guide (must-cover topics, off-limits, tone, length) → <a class="dv-oid" href="#3d">3d</a> review the AI's proposed first questions → <a class="dv-oid" href="#3b">3b</a> share. Steps 3c–3d are optional — "Create &amp; share" from basics skips straight ahead.</p>
+<div class="dv-flow">
+
+<!-- 3a Create -->
+<div class="dv-step">
+<div class="dv-opt" id="3a">
+<div class="dv-olabel"><a class="dv-oid" href="#3a">3a</a>New series — who it's about, one goal, done.</div>
+<div class="ph"><div class="scr" style="background:#F7F5F0;color:#211E1A;padding:26px 22px 0">
+  <div style="margin:-26px -22px 0;padding:26px 22px 12px;background:rgba(247,245,240,0.92);border-bottom:1px solid rgba(33,30,26,0.1);box-shadow:0 1px 8px rgba(33,30,26,0.04);display:flex;align-items:center;gap:8px">
+    <div style="font-size:14px;color:#6E675C">Cancel</div>
+    <div style="width:24px;height:24px;border-radius:6px;background:oklch(0.52 0.06 165);display:flex;align-items:center;justify-content:center;gap:1.5px;flex:none;margin-left:6px"><div style="width:2px;height:6px;border-radius:1px;background:rgba(255,255,255,0.55)"></div><div style="width:2px;height:11px;border-radius:1px;background:rgba(255,255,255,0.8)"></div><div style="width:2px;height:8px;border-radius:1px;background:rgba(255,255,255,0.8)"></div><div style="width:4px;height:11px;border-radius:1px;background:#fff;margin-left:1px"></div></div>
+    <div style="font:600 14px 'Instrument Sans',sans-serif;letter-spacing:-0.02em">postaud<span style="color:oklch(0.52 0.06 165)">.io</span></div>
+  </div>
+  <div style="padding:16px 0 4px"><div style="font:400 23px 'Newsreader',serif">New series</div></div>
+  <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;gap:16px;padding-top:6px">
+    <div style="display:flex;flex-direction:column;gap:7px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6E675C">Who is it about?</div>
+      <div style="display:flex;gap:8px">
+        <div style="flex:1;text-align:center;font-size:13px;font-weight:500;color:#fff;background:#211E1A;padding:11px 0;border-radius:9px">Myself</div>
+        <div style="flex:1;text-align:center;font-size:13px;color:#3A362F;background:#FFFFFF;border:1px solid rgba(33,30,26,0.14);padding:11px 0;border-radius:9px">Someone else</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:7px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6E675C">Title</div>
+      <div style="background:#FFFFFF;border:1px solid rgba(33,30,26,0.14);border-radius:10px;padding:13px 15px;font:400 16px 'Newsreader',serif">My Life</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:7px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6E675C">What do you want to capture?</div>
+      <div style="background:#FFFFFF;border:1px solid rgba(33,30,26,0.14);border-radius:10px;padding:13px 15px;font-size:14px;line-height:1.55;color:#3A362F;min-height:52px">The years before my kids were born — my twenties in Utrecht.</div>
+    </div>
+    <div style="background:oklch(0.52 0.06 165 / 0.07);border:1px solid oklch(0.52 0.06 165 / 0.2);border-radius:12px;padding:13px 15px;font-size:12.5px;line-height:1.6;color:#3A362F">The assistant builds its own follow-up questions from your goal — you don't have to write any.</div>
+  </div>
+  <div style="padding-bottom:24px"><div style="text-align:center;font-size:16px;font-weight:600;color:#fff;background:oklch(0.52 0.06 165);border-radius:999px;padding:15px 0">Create &amp; choose who to share</div></div>
+</div></div>
+</div>
+</div>
+
+<div class="dv-arrow"><div class="l">guide</div><svg width="26" height="14" viewBox="0 0 26 14" fill="none"><path d="M1 7h22m0 0l-6-5m6 5l-6 5" stroke="#B4AEA2" stroke-width="1.6"/></svg></div>
+
+<!-- 3c Guide -->
+<div class="dv-step">
+<div class="dv-opt" id="3c">
+<div class="dv-olabel"><a class="dv-oid" href="#3c">3c</a>Guide — steer the questions; set what's off-limits.</div>
+<div class="ph"><div class="scr" style="background:#F7F5F0;color:#211E1A;padding:26px 22px 0">
+  <div style="margin:-26px -22px 0;padding:26px 22px 12px;background:rgba(247,245,240,0.92);border-bottom:1px solid rgba(33,30,26,0.1);box-shadow:0 1px 8px rgba(33,30,26,0.04);display:flex;align-items:center;gap:8px">
+    <div style="font-size:20px;color:#6E675C">‹</div>
+    <div style="width:24px;height:24px;border-radius:6px;background:oklch(0.52 0.06 165);display:flex;align-items:center;justify-content:center;gap:1.5px;flex:none"><div style="width:2px;height:6px;border-radius:1px;background:rgba(255,255,255,0.55)"></div><div style="width:2px;height:11px;border-radius:1px;background:rgba(255,255,255,0.8)"></div><div style="width:2px;height:8px;border-radius:1px;background:rgba(255,255,255,0.8)"></div><div style="width:4px;height:11px;border-radius:1px;background:#fff;margin-left:1px"></div></div>
+    <div style="font:600 14px 'Instrument Sans',sans-serif;letter-spacing:-0.02em">postaud<span style="color:oklch(0.52 0.06 165)">.io</span></div>
+    <div style="margin-left:auto;font-size:11px;color:#9B9488">2 of 3</div>
+  </div>
+  <div style="padding:16px 0 4px"><div style="font:400 23px 'Newsreader',serif">Guide the questions</div><div style="font-size:12.5px;color:#6E675C;margin-top:3px">Optional — the assistant does fine without this.</div></div>
+  <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;gap:15px;padding-top:6px">
+    <div style="display:flex;flex-direction:column;gap:7px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6E675C">Must cover, eventually</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <div style="font-size:12.5px;background:#FFFFFF;border:1px solid rgba(33,30,26,0.12);padding:6px 12px;border-radius:999px">Utrecht years ✕</div>
+        <div style="font-size:12.5px;background:#FFFFFF;border:1px solid rgba(33,30,26,0.12);padding:6px 12px;border-radius:999px">First job ✕</div>
+        <div style="font-size:12.5px;background:#FFFFFF;border:1px solid rgba(33,30,26,0.12);padding:6px 12px;border-radius:999px">Meeting Jan ✕</div>
+        <div style="font-size:12.5px;color:#6E675C;border:1.5px dashed rgba(33,30,26,0.2);padding:6px 12px;border-radius:999px">+ Add</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:7px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.5 0.1 50)">Don't bring up</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <div style="font-size:12.5px;background:#FFFFFF;border:1px solid oklch(0.5 0.1 50 / 0.35);color:oklch(0.45 0.1 50);padding:6px 12px;border-radius:999px">The divorce ✕</div>
+        <div style="font-size:12.5px;color:#6E675C;border:1.5px dashed rgba(33,30,26,0.2);padding:6px 12px;border-radius:999px">+ Add</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:7px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6E675C">Tone</div>
+      <div style="display:flex;gap:6px">
+        <div style="flex:1;text-align:center;font-size:12.5px;font-weight:500;color:#fff;background:#211E1A;padding:9px 0;border-radius:8px">Warm</div>
+        <div style="flex:1;text-align:center;font-size:12.5px;color:#3A362F;background:#FFFFFF;border:1px solid rgba(33,30,26,0.14);padding:9px 0;border-radius:8px;box-sizing:border-box">Neutral</div>
+        <div style="flex:1;text-align:center;font-size:12.5px;color:#3A362F;background:#FFFFFF;border:1px solid rgba(33,30,26,0.14);padding:9px 0;border-radius:8px;box-sizing:border-box">Playful</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:7px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6E675C">Session length</div>
+      <div style="display:flex;gap:6px">
+        <div style="flex:1;text-align:center;font-size:12.5px;color:#3A362F;background:#FFFFFF;border:1px solid rgba(33,30,26,0.14);padding:9px 0;border-radius:8px;box-sizing:border-box">10 min</div>
+        <div style="flex:1;text-align:center;font-size:12.5px;font-weight:500;color:#fff;background:#211E1A;padding:9px 0;border-radius:8px">20 min</div>
+        <div style="flex:1;text-align:center;font-size:12.5px;color:#3A362F;background:#FFFFFF;border:1px solid rgba(33,30,26,0.14);padding:9px 0;border-radius:8px;box-sizing:border-box">45 min</div>
+      </div>
+    </div>
+  </div>
+  <div style="padding-bottom:24px"><div style="text-align:center;font-size:16px;font-weight:600;color:#fff;background:#211E1A;border-radius:999px;padding:15px 0">Review first questions</div></div>
+</div></div>
+</div>
+</div>
+
+<div class="dv-arrow"><div class="l">review</div><svg width="26" height="14" viewBox="0 0 26 14" fill="none"><path d="M1 7h22m0 0l-6-5m6 5l-6 5" stroke="#B4AEA2" stroke-width="1.6"/></svg></div>
+
+<!-- 3d Review -->
+<div class="dv-step">
+<div class="dv-opt" id="3d">
+<div class="dv-olabel"><a class="dv-oid" href="#3d">3d</a>Review — the AI's first questions, editable before you start.</div>
+<div class="ph"><div class="scr" style="background:#F7F5F0;color:#211E1A;padding:26px 22px 0">
+  <div style="margin:-26px -22px 0;padding:26px 22px 12px;background:rgba(247,245,240,0.92);border-bottom:1px solid rgba(33,30,26,0.1);box-shadow:0 1px 8px rgba(33,30,26,0.04);display:flex;align-items:center;gap:8px">
+    <div style="font-size:20px;color:#6E675C">‹</div>
+    <div style="width:24px;height:24px;border-radius:6px;background:oklch(0.52 0.06 165);display:flex;align-items:center;justify-content:center;gap:1.5px;flex:none"><div style="width:2px;height:6px;border-radius:1px;background:rgba(255,255,255,0.55)"></div><div style="width:2px;height:11px;border-radius:1px;background:rgba(255,255,255,0.8)"></div><div style="width:2px;height:8px;border-radius:1px;background:rgba(255,255,255,0.8)"></div><div style="width:4px;height:11px;border-radius:1px;background:#fff;margin-left:1px"></div></div>
+    <div style="font:600 14px 'Instrument Sans',sans-serif;letter-spacing:-0.02em">postaud<span style="color:oklch(0.52 0.06 165)">.io</span></div>
+    <div style="margin-left:auto;font-size:11px;color:#9B9488">3 of 3</div>
+  </div>
+  <div style="padding:16px 0 4px"><div style="font:400 23px 'Newsreader',serif">First questions</div><div style="font-size:12.5px;color:#6E675C;margin-top:3px">Edit or remove any — follow-ups come on their own.</div></div>
+  <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;gap:9px;padding-top:6px">
+    <div style="display:flex;align-items:center;gap:11px;background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:12px;padding:13px 15px"><div style="font:600 10px ui-monospace,Menlo,monospace;color:#6E675C;flex:none">01</div><div style="flex:1;font:400 14px/1.45 'Newsreader',serif">What made you leave Kraków for Utrecht?</div><div style="font-size:11.5px;color:#6E675C">Edit</div></div>
+    <div style="display:flex;align-items:center;gap:11px;background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:12px;padding:13px 15px"><div style="font:600 10px ui-monospace,Menlo,monospace;color:#6E675C;flex:none">02</div><div style="flex:1;font:400 14px/1.45 'Newsreader',serif">Where did you live when you first arrived?</div><div style="font-size:11.5px;color:#6E675C">Edit</div></div>
+    <div style="display:flex;align-items:center;gap:11px;background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:12px;padding:13px 15px"><div style="font:600 10px ui-monospace,Menlo,monospace;color:#6E675C;flex:none">03</div><div style="flex:1;font:400 14px/1.45 'Newsreader',serif">What was your first job there?</div><div style="font-size:11.5px;color:#6E675C">Edit</div></div>
+    <div style="display:flex;align-items:center;gap:11px;padding:11px 15px;color:#6E675C;font-size:13px">+ Add a question</div>
+  </div>
+  <div style="padding-bottom:24px;display:flex;flex-direction:column;gap:9px">
+    <div style="text-align:center;font-size:16px;font-weight:600;color:#fff;background:oklch(0.52 0.06 165);border-radius:999px;padding:15px 0">Create &amp; start talking</div>
+    <div style="text-align:center;font-size:13px;color:#6E675C">Create only · share later</div>
+  </div>
+</div></div>
+</div>
+</div>
+
+<div class="dv-arrow"><div class="l">share</div><svg width="26" height="14" viewBox="0 0 26 14" fill="none"><path d="M1 7h22m0 0l-6-5m6 5l-6 5" stroke="#B4AEA2" stroke-width="1.6"/></svg></div>
+
+<!-- 3b Share -->
+<div class="dv-step">
+<div class="dv-opt" id="3b">
+<div class="dv-olabel"><a class="dv-oid" href="#3b">3b</a>Share — invite family to listen, or help interview.</div>
+<div class="ph"><div class="scr" style="background:#211E1A;color:#F0EDE6;justify-content:flex-end">
+  <div style="position:absolute;top:26px;left:22px;right:22px;display:flex;align-items:center;gap:8px;z-index:2"><div style="width:24px;height:24px;border-radius:6px;background:oklch(0.52 0.06 165);display:flex;align-items:center;justify-content:center;gap:1.5px;flex:none"><div style="width:2px;height:6px;border-radius:1px;background:rgba(255,255,255,0.55)"></div><div style="width:2px;height:11px;border-radius:1px;background:rgba(255,255,255,0.8)"></div><div style="width:2px;height:8px;border-radius:1px;background:rgba(255,255,255,0.8)"></div><div style="width:4px;height:11px;border-radius:1px;background:#fff;margin-left:1px"></div></div><div style="font:600 14px 'Instrument Sans',sans-serif;letter-spacing:-0.02em;color:#F0EDE6">postaud<span style="color:oklch(0.72 0.08 165)">.io</span></div></div>
+  <div style="position:absolute;inset:0;background:rgba(12,10,8,0.5)"></div>
+  <div style="position:relative;background:#F7F5F0;color:#211E1A;border-radius:24px 24px 27px 27px;padding:22px 22px 28px;display:flex;flex-direction:column;gap:14px">
+    <div style="width:38px;height:4px;border-radius:99px;background:rgba(33,30,26,0.18);align-self:center"></div>
+    <div style="display:flex;flex-direction:column;gap:5px">
+      <div style="font:400 21px 'Newsreader',serif">Share "My Life"</div>
+      <div style="font-size:13px;color:#6E675C;line-height:1.5">Invite people to listen, or to help ask questions.</div>
+    </div>
+    <div style="background:#FFFFFF;border:1px solid rgba(33,30,26,0.14);border-radius:10px;padding:12px 15px;font-size:14px;color:#9B9488">Email or name…</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:center;gap:11px;background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:12px;padding:11px 14px">
+        <div style="width:30px;height:30px;border-radius:99px;background:oklch(0.52 0.06 50 / 0.18);color:oklch(0.4 0.06 50);display:grid;place-items:center;font-size:11px;font-weight:600;flex:none">E</div>
+        <div style="flex:1"><div style="font-size:14px;font-weight:500">Ewa (sister)</div><div style="font-size:11.5px;color:#6E675C">ewa@gmail.com</div></div>
+        <div style="font-size:12px;color:#3A362F;border:1px solid rgba(33,30,26,0.14);padding:5px 11px;border-radius:999px">Can listen ▾</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:11px;background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:12px;padding:11px 14px">
+        <div style="width:30px;height:30px;border-radius:99px;background:oklch(0.52 0.06 165 / 0.16);color:oklch(0.4 0.06 165);display:grid;place-items:center;font-size:11px;font-weight:600;flex:none">S</div>
+        <div style="flex:1"><div style="font-size:14px;font-weight:500">Sam</div><div style="font-size:11.5px;color:#6E675C">sam@pixelocity.com</div></div>
+        <div style="font-size:12px;color:#3A362F;border:1px solid rgba(33,30,26,0.14);padding:5px 11px;border-radius:999px">Can ask ▾</div>
+      </div>
+    </div>
+    <div style="text-align:center;font-size:16px;font-weight:600;color:#fff;background:#211E1A;border-radius:999px;padding:15px 0">Send invites</div>
+    <div style="text-align:center;font-size:12.5px;color:#6E675C">Or share a private link anyone can listen with</div>
+  </div>
+</div></div>
+</div>
+</div>
+
+</div>
+</section>
+
+<section class="dv-turn" id="t2" style="border-bottom:1px solid rgba(0,0,0,.08)">
+<div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Profile — the account view (tap the avatar)</span></div>
+<p class="dv-note">Profile is account-level, reached from the avatar in the top nav — global, not tied to a story, so no floating story bar. <a class="dv-oid" href="#2a">2a</a> profile: your details, totals across all stories, settings. <a class="dv-oid" href="#2b">2b</a> privacy &amp; sharing controls.</p>
+<div class="dv-flow">
+
+<!-- 2a Profile -->
+<div class="dv-step">
+<div class="dv-opt" id="2a">
+<div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>Profile — details, totals, settings.</div>
+<div class="ph"><div class="scr" style="background:#F7F5F0;color:#211E1A;padding:26px 22px 0">
+  <div style="margin:-26px -22px 0;padding:26px 22px 12px;background:rgba(247,245,240,0.92);border-bottom:1px solid rgba(33,30,26,0.1);box-shadow:0 1px 8px rgba(33,30,26,0.04);display:flex;align-items:center;gap:8px">
+    <div style="font-size:20px;color:#6E675C">‹</div>
+    <div style="width:24px;height:24px;border-radius:6px;background:oklch(0.52 0.06 165);display:flex;align-items:center;justify-content:center;gap:1.5px;flex:none"><div style="width:2px;height:6px;border-radius:1px;background:rgba(255,255,255,0.55)"></div><div style="width:2px;height:11px;border-radius:1px;background:rgba(255,255,255,0.8)"></div><div style="width:2px;height:8px;border-radius:1px;background:rgba(255,255,255,0.8)"></div><div style="width:4px;height:11px;border-radius:1px;background:#fff;margin-left:1px"></div></div>
+    <div style="font:600 14px 'Instrument Sans',sans-serif;letter-spacing:-0.02em">postaud<span style="color:oklch(0.52 0.06 165)">.io</span></div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:9px;padding-top:2px">
+      <div style="width:64px;height:64px;border-radius:99px;background:oklch(0.52 0.06 50 / 0.18);color:oklch(0.4 0.06 50);display:grid;place-items:center;font:400 24px 'Newsreader',serif">M</div>
+      <div style="text-align:center"><div style="font:400 20px 'Newsreader',serif">Marta Kowalski</div><div style="font-size:12px;color:#6E675C;margin-top:1px">marta.k@gmail.com</div></div>
+      <div style="font-size:12.5px;font-weight:500;color:#3A362F;border:1px solid rgba(33,30,26,0.15);padding:6px 15px;border-radius:999px">Edit profile</div>
+    </div>
+    <div style="display:flex;gap:9px">
+      <div style="flex:1;background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:12px;padding:11px 12px;text-align:center"><div style="font:400 19px 'Newsreader',serif">3</div><div style="font-size:10.5px;color:#6E675C;margin-top:1px">stories</div></div>
+      <div style="flex:1;background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:12px;padding:11px 12px;text-align:center"><div style="font:400 19px 'Newsreader',serif">84</div><div style="font-size:10.5px;color:#6E675C;margin-top:1px">memories</div></div>
+      <div style="flex:1;background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:12px;padding:11px 12px;text-align:center"><div style="font:400 19px 'Newsreader',serif">3</div><div style="font-size:10.5px;color:#6E675C;margin-top:1px">shared</div></div>
+    </div>
+    <div style="background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:12px;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(33,30,26,0.06)"><div style="width:20px;height:20px;border-radius:6px;background:oklch(0.52 0.06 165 / 0.15);flex:none"></div><div style="flex:1;font-size:13.5px">Notifications</div><div style="color:#C4BEB4">›</div></div>
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(33,30,26,0.06)"><div style="width:20px;height:20px;border-radius:6px;background:oklch(0.52 0.06 165 / 0.15);flex:none"></div><div style="flex:1;font-size:13.5px">Privacy &amp; sharing</div><div style="color:#C4BEB4">›</div></div>
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 16px"><div style="width:20px;height:20px;border-radius:6px;background:oklch(0.52 0.06 165 / 0.15);flex:none"></div><div style="flex:1;font-size:13.5px">Export your stories</div><div style="color:#C4BEB4">›</div></div>
+    </div>
+    <div style="text-align:center;font-size:13.5px;color:#6E675C">Sign out</div>
+  </div>
+  <div style="padding-bottom:24px"></div>
+</div></div>
+</div>
+</div>
+
+<div class="dv-arrow"><div class="l">privacy</div><svg width="26" height="14" viewBox="0 0 26 14" fill="none"><path d="M1 7h22m0 0l-6-5m6 5l-6 5" stroke="#B4AEA2" stroke-width="1.6"/></svg></div>
+
+<!-- 2b Privacy -->
+<div class="dv-step">
+<div class="dv-opt" id="2b">
+<div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a>Privacy &amp; sharing — plain-language controls.</div>
+<div class="ph"><div class="scr" style="background:#F7F5F0;color:#211E1A;padding:26px 22px 26px;gap:16px">
+  <div style="margin:-26px -22px 0;padding:26px 22px 12px;background:rgba(247,245,240,0.92);border-bottom:1px solid rgba(33,30,26,0.1);box-shadow:0 1px 8px rgba(33,30,26,0.04);display:flex;align-items:center;gap:8px">
+    <div style="font-size:20px;color:#6E675C">‹</div>
+    <div style="width:24px;height:24px;border-radius:6px;background:oklch(0.52 0.06 165);display:flex;align-items:center;justify-content:center;gap:1.5px;flex:none"><div style="width:2px;height:6px;border-radius:1px;background:rgba(255,255,255,0.55)"></div><div style="width:2px;height:11px;border-radius:1px;background:rgba(255,255,255,0.8)"></div><div style="width:2px;height:8px;border-radius:1px;background:rgba(255,255,255,0.8)"></div><div style="width:4px;height:11px;border-radius:1px;background:#fff;margin-left:1px"></div></div>
+    <div style="font:600 14px 'Instrument Sans',sans-serif;letter-spacing:-0.02em">postaud<span style="color:oklch(0.52 0.06 165)">.io</span></div>
+  </div>
+  <div style="font:400 21px 'Newsreader',serif">Privacy &amp; sharing</div>
+  <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;gap:12px">
+    <div style="background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:12px;padding:15px 16px;display:flex;align-items:center;gap:12px">
+      <div style="flex:1"><div style="font-size:14.5px;font-weight:500">Keep my recordings</div><div style="font-size:12px;color:#6E675C;margin-top:2px">Your voice is saved with each memory</div></div>
+      <div style="width:42px;height:25px;border-radius:99px;background:oklch(0.52 0.06 165);position:relative;flex:none"><div style="position:absolute;top:2.5px;right:2.5px;width:20px;height:20px;border-radius:99px;background:#fff"></div></div>
+    </div>
+    <div style="background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:12px;padding:15px 16px;display:flex;align-items:center;gap:12px">
+      <div style="flex:1"><div style="font-size:14.5px;font-weight:500">Let family suggest topics</div><div style="font-size:12px;color:#6E675C;margin-top:2px">People you share with can add questions</div></div>
+      <div style="width:42px;height:25px;border-radius:99px;background:oklch(0.52 0.06 165);position:relative;flex:none"><div style="position:absolute;top:2.5px;right:2.5px;width:20px;height:20px;border-radius:99px;background:#fff"></div></div>
+    </div>
+    <div style="background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:12px;padding:15px 16px;display:flex;align-items:center;gap:12px">
+      <div style="flex:1"><div style="font-size:14.5px;font-weight:500">Public listen link</div><div style="font-size:12px;color:#6E675C;margin-top:2px">Off — only invited people can listen</div></div>
+      <div style="width:42px;height:25px;border-radius:99px;background:rgba(33,30,26,0.15);position:relative;flex:none"><div style="position:absolute;top:2.5px;left:2.5px;width:20px;height:20px;border-radius:99px;background:#fff"></div></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;padding-top:4px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6E675C">Your data</div>
+      <div style="background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:12px;overflow:hidden">
+        <div style="display:flex;align-items:center;padding:13px 16px;border-bottom:1px solid rgba(33,30,26,0.06);font-size:14px"><div style="flex:1">Download everything</div><div style="color:#C4BEB4">›</div></div>
+        <div style="display:flex;align-items:center;padding:13px 16px;font-size:14px;color:oklch(0.5 0.12 25)"><div style="flex:1">Delete my account</div><div style="color:#C4BEB4">›</div></div>
+      </div>
+    </div>
+  </div>
+</div></div>
+</div>
+</div>
+
+</div>
+</section>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">postaud.io — Home (avatar-rail switcher)</span></div>
+<p class="dv-note">The home dashboard built on the <b>7a</b> pattern: top nav (logo · avatar), an always-visible story rail to switch, then the selected story's continue card, coverage and recent memories, with the floating <b>Talk · Insights · Settings</b> bar. <a class="dv-oid" href="#1a">1a</a> Mum's stories selected · <a class="dv-oid" href="#1b">1b</a> tapping My Life switches the whole dash. Full explorations: <b>Postaudio Experience Mobile</b>.</p>
+<div class="dv-flow">
+
+<!-- 1a Mum's selected -->
+<div class="dv-step">
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Home — Mum's stories active in the rail.</div>
+<div class="ph"><div class="scr" style="background:#F7F5F0;color:#211E1A;padding:26px 22px 0">
+  <div style="margin:-26px -22px 0;padding:26px 22px 12px;background:rgba(247,245,240,0.92);border-bottom:1px solid rgba(33,30,26,0.1);box-shadow:0 1px 8px rgba(33,30,26,0.04);display:flex;align-items:center;gap:9px">
+    <div style="width:24px;height:24px;border-radius:6px;background:oklch(0.52 0.06 165);display:flex;align-items:center;justify-content:center;gap:1.5px;flex:none"><div style="width:2px;height:6px;border-radius:1px;background:rgba(255,255,255,0.55)"></div><div style="width:2px;height:11px;border-radius:1px;background:rgba(255,255,255,0.8)"></div><div style="width:2px;height:8px;border-radius:1px;background:rgba(255,255,255,0.8)"></div><div style="width:4px;height:11px;border-radius:1px;background:#fff;margin-left:1px"></div></div>
+    <div style="font:600 14px 'Instrument Sans',sans-serif;letter-spacing:-0.02em">postaud<span style="color:oklch(0.52 0.06 165)">.io</span></div>
+    <div style="margin-left:auto;width:32px;height:32px;border-radius:99px;background:oklch(0.52 0.06 50 / 0.18);color:oklch(0.4 0.06 50);display:grid;place-items:center;font-size:12px;font-weight:600">M</div>
+  </div>
+  <div class="rail">
+    <div class="rc"><div class="av" style="background:oklch(0.52 0.06 165 / 0.16);color:oklch(0.4 0.06 165);box-shadow:0 0 0 2.5px #F7F5F0, 0 0 0 4.5px oklch(0.52 0.06 165)">S<div style="position:absolute;top:-1px;right:-1px;width:12px;height:12px;border-radius:99px;background:oklch(0.62 0.16 25);border:2px solid #F7F5F0"></div></div><div class="lb" style="font-weight:600">Mum's</div></div>
+    <div class="rc"><div class="av" style="background:oklch(0.52 0.06 165 / 0.16);color:oklch(0.4 0.06 165)">M</div><div class="lb" style="color:#6E675C">My Life</div></div>
+    <div class="rc"><div class="av" style="background:oklch(0.52 0.06 280 / 0.15);color:oklch(0.4 0.06 280)">Z</div><div class="lb" style="color:#6E675C">Zofia's</div></div>
+    <div class="rc"><div class="av" style="border:1.5px dashed rgba(33,30,26,0.25);box-sizing:border-box;color:#9B9488;font-size:20px;font-weight:400">+</div><div class="lb" style="color:#6E675C">New</div></div>
+  </div>
+  <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;gap:14px;padding:14px 0 0;border-top:1px solid rgba(33,30,26,0.08);margin-top:12px">
+    <div><div style="font:400 23px 'Newsreader',serif">Mum's stories</div><div style="font-size:12px;color:#6E675C;margin-top:2px">about Marta · by Sam</div></div>
+    <div style="background:oklch(0.52 0.06 165 / 0.08);border:1px solid oklch(0.52 0.06 165 / 0.2);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:11px">
+      <div style="font-size:12px;color:#3A362F">Next up · the ferry story</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:10px;background:oklch(0.52 0.06 165);color:#fff;border-radius:999px;padding:13px 0;font-size:15px;font-weight:600"><div style="width:10px;height:10px;border-radius:3px;background:#fff"></div>Continue talking</div>
+    </div>
+    <div style="display:flex;gap:9px">
+      <div style="flex:1;background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:12px;padding:12px 13px;text-align:center"><div style="font:400 19px 'Newsreader',serif">64</div><div style="font-size:10.5px;color:#6E675C;margin-top:1px">memories</div></div>
+      <div style="flex:1;background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:12px;padding:12px 13px;text-align:center"><div style="font:400 19px 'Newsreader',serif">58%</div><div style="font-size:10.5px;color:#6E675C;margin-top:1px">covered</div></div>
+      <div style="flex:1;background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:12px;padding:12px 13px;text-align:center"><div style="font:400 19px 'Newsreader',serif">3</div><div style="font-size:10.5px;color:#6E675C;margin-top:1px">shared</div></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6E675C">Recent memories</div>
+      <div style="background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:12px;padding:12px 15px;font:400 14px/1.5 'Newsreader',serif">Met Jan on the ferry, spring 1975</div>
+    </div>
+  </div>
+  <div class="fbar"><div class="in">
+    <div class="talk"><div style="display:flex;align-items:center;gap:1.5px"><div style="width:2px;height:8px;border-radius:1px;background:#fff"></div><div style="width:2px;height:12px;border-radius:1px;background:#fff"></div><div style="width:2px;height:7px;border-radius:1px;background:#fff"></div></div><div style="font-size:12.5px;font-weight:600">Talk</div></div>
+    <div class="ico" style="font-size:15px;line-height:1">✦</div>
+    <div class="ico"><div style="width:15px;height:15px;border-radius:99px;border:1.6px solid rgba(240,237,230,0.7);box-sizing:border-box"></div></div>
+  </div></div>
+</div></div>
+</div>
+</div>
+
+<div class="dv-arrow"><div class="l">tap My Life</div><svg width="26" height="14" viewBox="0 0 26 14" fill="none"><path d="M1 7h22m0 0l-6-5m6 5l-6 5" stroke="#B4AEA2" stroke-width="1.6"/></svg></div>
+
+<!-- 1b My Life selected -->
+<div class="dv-step">
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Switched — My Life active; the whole dash follows.</div>
+<div class="ph"><div class="scr" style="background:#F7F5F0;color:#211E1A;padding:26px 22px 0">
+  <div style="margin:-26px -22px 0;padding:26px 22px 12px;background:rgba(247,245,240,0.92);border-bottom:1px solid rgba(33,30,26,0.1);box-shadow:0 1px 8px rgba(33,30,26,0.04);display:flex;align-items:center;gap:9px">
+    <div style="width:24px;height:24px;border-radius:6px;background:oklch(0.52 0.06 165);display:flex;align-items:center;justify-content:center;gap:1.5px;flex:none"><div style="width:2px;height:6px;border-radius:1px;background:rgba(255,255,255,0.55)"></div><div style="width:2px;height:11px;border-radius:1px;background:rgba(255,255,255,0.8)"></div><div style="width:2px;height:8px;border-radius:1px;background:rgba(255,255,255,0.8)"></div><div style="width:4px;height:11px;border-radius:1px;background:#fff;margin-left:1px"></div></div>
+    <div style="font:600 14px 'Instrument Sans',sans-serif;letter-spacing:-0.02em">postaud<span style="color:oklch(0.52 0.06 165)">.io</span></div>
+    <div style="margin-left:auto;width:32px;height:32px;border-radius:99px;background:oklch(0.52 0.06 50 / 0.18);color:oklch(0.4 0.06 50);display:grid;place-items:center;font-size:12px;font-weight:600">M</div>
+  </div>
+  <div class="rail">
+    <div class="rc"><div class="av" style="background:oklch(0.52 0.06 165 / 0.16);color:oklch(0.4 0.06 165)">S<div style="position:absolute;top:-1px;right:-1px;width:12px;height:12px;border-radius:99px;background:oklch(0.62 0.16 25);border:2px solid #F7F5F0"></div></div><div class="lb" style="color:#6E675C">Mum's</div></div>
+    <div class="rc"><div class="av" style="background:oklch(0.52 0.06 165 / 0.16);color:oklch(0.4 0.06 165);box-shadow:0 0 0 2.5px #F7F5F0, 0 0 0 4.5px oklch(0.52 0.06 165)">M</div><div class="lb" style="font-weight:600">My Life</div></div>
+    <div class="rc"><div class="av" style="background:oklch(0.52 0.06 280 / 0.15);color:oklch(0.4 0.06 280)">Z</div><div class="lb" style="color:#6E675C">Zofia's</div></div>
+    <div class="rc"><div class="av" style="border:1.5px dashed rgba(33,30,26,0.25);box-sizing:border-box;color:#9B9488;font-size:20px;font-weight:400">+</div><div class="lb" style="color:#6E675C">New</div></div>
+  </div>
+  <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;gap:14px;padding:14px 0 0;border-top:1px solid rgba(33,30,26,0.08);margin-top:12px">
+    <div><div style="font:400 23px 'Newsreader',serif">My Life</div><div style="font-size:12px;color:#6E675C;margin-top:2px">about you · just getting started</div></div>
+    <div style="background:oklch(0.52 0.06 165 / 0.08);border:1px solid oklch(0.52 0.06 165 / 0.2);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:11px">
+      <div style="font-size:12px;color:#3A362F">Next up · your twenties in Utrecht</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:10px;background:oklch(0.52 0.06 165);color:#fff;border-radius:999px;padding:13px 0;font-size:15px;font-weight:600"><div style="width:10px;height:10px;border-radius:3px;background:#fff"></div>Start talking</div>
+    </div>
+    <div style="display:flex;gap:9px">
+      <div style="flex:1;background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:12px;padding:12px 13px;text-align:center"><div style="font:400 19px 'Newsreader',serif">12</div><div style="font-size:10.5px;color:#6E675C;margin-top:1px">memories</div></div>
+      <div style="flex:1;background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:12px;padding:12px 13px;text-align:center"><div style="font:400 19px 'Newsreader',serif">14%</div><div style="font-size:10.5px;color:#6E675C;margin-top:1px">covered</div></div>
+      <div style="flex:1;background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:12px;padding:12px 13px;text-align:center"><div style="font:400 19px 'Newsreader',serif">—</div><div style="font-size:10.5px;color:#6E675C;margin-top:1px">private</div></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6E675C">Recent memories</div>
+      <div style="background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:12px;padding:12px 15px;font:400 14px/1.5 'Newsreader',serif">Left Kraków for Utrecht, autumn 1974</div>
+    </div>
+  </div>
+  <div class="fbar"><div class="in">
+    <div class="talk"><div style="display:flex;align-items:center;gap:1.5px"><div style="width:2px;height:8px;border-radius:1px;background:#fff"></div><div style="width:2px;height:12px;border-radius:1px;background:#fff"></div><div style="width:2px;height:7px;border-radius:1px;background:#fff"></div></div><div style="font-size:12.5px;font-weight:600">Talk</div></div>
+    <div class="ico" style="font-size:15px;line-height:1">✦</div>
+    <div class="ico"><div style="width:15px;height:15px;border-radius:99px;border:1.6px solid rgba(240,237,230,0.7);box-sizing:border-box"></div></div>
+  </div></div>
+</div></div>
+</div>
+</div>
+
+</div>
+</section>
+
+</x-dc>
+</body>
+</html>

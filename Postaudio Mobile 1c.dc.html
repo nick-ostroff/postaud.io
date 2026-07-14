@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#EFECE6;font-family:'Instrument Sans',system-ui,sans-serif}
+a{color:oklch(0.52 0.06 165)}a:hover{color:oklch(0.42 0.06 165)}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 8px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 'Instrument Sans',sans-serif;color:#1a1a1a}
+.dv-note{margin:0 0 24px;max-width:760px;font:400 12px/1.6 'Instrument Sans',sans-serif;color:rgba(0,0,0,.55)}
+.dv-opts{display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 'Instrument Sans',sans-serif;color:rgba(0,0,0,.55);max-width:400px}
+.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">postaud.io mobile — 1c brand applied</span></div>
+<p class="dv-note">Brand 1c worn in: waveform→block mark, lowercase Instrument Sans wordmark with mint .io, mono timecodes, green = live. <b>Account owner</b> (runs interviews): <a class="dv-oid" href="#1a">1a</a> home, <a class="dv-oid" href="#1b">1b</a> hand-the-mic. <b>Interviewee</b> (linked subject): <a class="dv-oid" href="#1c">1c</a> home, <a class="dv-oid" href="#1d">1d</a> live session, <a class="dv-oid" href="#1e">1e</a> recap, <a class="dv-oid" href="#1f">1f</a> review list, <a class="dv-oid" href="#1g">1g</a> review detail. Desktop set: <b>Postaudio Mockups</b>.</p>
+<div class="dv-opts">
+
+<!-- 1a Owner home -->
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Account owner home — your series, ready to record anywhere.</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="430px,880px">
+<div data-screen-label="1a Owner home mobile" style="height:100%;background:#F7F5F0;color:#211E1A;display:flex;flex-direction:column;font-family:'Instrument Sans',system-ui,sans-serif;box-sizing:border-box;padding:70px 24px 34px;gap:22px">
+  <div style="display:flex;align-items:center;gap:10px">
+    <div style="display:flex;align-items:center;gap:8px"><div style="width:26px;height:26px;border-radius:7px;background:oklch(0.52 0.06 165);display:flex;align-items:center;justify-content:center;gap:1.5px"><div style="width:2px;height:7px;border-radius:1px;background:rgba(255,255,255,0.55)"></div><div style="width:2px;height:12px;border-radius:1px;background:rgba(255,255,255,0.8)"></div><div style="width:2px;height:9px;border-radius:1px;background:rgba(255,255,255,0.8)"></div><div style="width:5px;height:12px;border-radius:1.5px;background:#fff;margin-left:1.5px"></div></div><div style="font:600 15.5px 'Instrument Sans',sans-serif;letter-spacing:-0.02em">postaud<span style="color:oklch(0.52 0.06 165)">.io</span></div></div>
+    <div style="margin-left:auto;width:34px;height:34px;border-radius:99px;background:oklch(0.52 0.06 165 / 0.18);color:oklch(0.4 0.06 165);display:grid;place-items:center;font-size:13px;font-weight:600">S</div>
+  </div>
+  <div>
+    <div style="font:400 26px/1.3 'Newsreader',serif">Your interviews</div>
+    <div style="font-size:13px;color:#6E675C;margin-top:5px">3 series · 214 facts</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div style="background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:16px;padding:18px 18px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:38px;height:38px;border-radius:99px;background:oklch(0.52 0.06 165 / 0.16);color:oklch(0.4 0.06 165);display:grid;place-items:center;font-size:14px;font-weight:600;flex:none">S</div>
+        <div style="flex:1;min-width:0">
+          <div style="font:400 17px 'Newsreader',serif">My Life</div>
+          <div style="font-size:12px;color:#6E675C;margin-top:2px">127 facts · last today</div>
+        </div>
+      </div>
+      <div style="height:6px;border-radius:99px;background:rgba(33,30,26,0.08);overflow:hidden"><div style="width:58%;height:100%;background:oklch(0.52 0.06 165)"></div></div>
+      <div style="display:flex;align-items:center;justify-content:center;background:oklch(0.52 0.06 165);color:#fff;border-radius:999px;padding:13px 0;font-size:14.5px;font-weight:600;cursor:pointer">Continue — Early career</div>
+    </div>
+    <div style="background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:16px;padding:18px 18px;display:flex;align-items:center;gap:12px">
+      <div style="width:38px;height:38px;border-radius:99px;background:oklch(0.52 0.06 50 / 0.18);color:oklch(0.4 0.06 50);display:grid;place-items:center;font-size:14px;font-weight:600;flex:none">M</div>
+      <div style="flex:1;min-width:0">
+        <div style="font:400 17px 'Newsreader',serif">Mum's stories</div>
+        <div style="font-size:12px;color:oklch(0.55 0.1 50);margin-top:2px">going stale — interview soon</div>
+      </div>
+      <div style="flex:none;font-size:13px;font-weight:500;color:#3A362F;border:1px solid rgba(33,30,26,0.15);padding:9px 15px;border-radius:999px">Open</div>
+    </div>
+    <div style="background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:16px;padding:18px 18px;display:flex;align-items:center;gap:12px">
+      <div style="width:38px;height:38px;border-radius:99px;background:oklch(0.52 0.06 280 / 0.15);color:oklch(0.4 0.06 280);display:grid;place-items:center;font-size:13px;font-weight:600;flex:none">Px</div>
+      <div style="flex:1;min-width:0">
+        <div style="font:400 17px 'Newsreader',serif">Pixelocity — founding history</div>
+        <div style="font-size:12px;color:#6E675C;margin-top:2px">23 facts · just getting started</div>
+      </div>
+      <div style="flex:none;font-size:13px;font-weight:500;color:#3A362F;border:1px solid rgba(33,30,26,0.15);padding:9px 15px;border-radius:999px">Open</div>
+    </div>
+  </div>
+  <div style="margin-top:auto;display:flex;align-items:center;justify-content:center;gap:8px;border:1.5px dashed rgba(33,30,26,0.18);border-radius:999px;padding:14px 0;color:#6E675C;font-size:14px;cursor:pointer">+ New series</div>
+</div>
+</x-import>
+</div>
+
+<!-- 1b Hand the mic -->
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Hand the mic — owner interviews someone with no account, in person.</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="430px,880px">
+<div data-screen-label="1b Hand the mic mobile" style="height:100%;background:#F7F5F0;color:#211E1A;display:flex;flex-direction:column;font-family:'Instrument Sans',system-ui,sans-serif;box-sizing:border-box;padding:70px 24px 34px;gap:20px">
+  <div style="display:flex;align-items:center;gap:10px">
+    <div style="font-size:13px;color:#6E675C">Mum's stories · Session 3</div>
+    <div style="margin-left:auto;font-size:14px;color:#6E675C">Cancel</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px;padding-top:8px">
+    <div style="font:400 26px/1.3 'Newsreader',serif">Hand the phone to Marta</div>
+    <div style="font-size:14.5px;line-height:1.6;color:#6E675C">You're sitting together. The assistant will speak to her directly and record into <b style="color:#211E1A">Mum's stories</b>.</div>
+  </div>
+  <div style="background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:38px;height:38px;border-radius:99px;background:oklch(0.52 0.06 50 / 0.18);color:oklch(0.4 0.06 50);display:grid;place-items:center;font-size:14px;font-weight:600;flex:none">M</div>
+      <div>
+        <div style="font-size:15px;font-weight:500">Speaking with: Marta</div>
+        <div style="font-size:12.5px;color:#6E675C;margin-top:2px">subject of this series · no account needed</div>
+      </div>
+    </div>
+    <div style="border-top:1px solid rgba(33,30,26,0.08);padding-top:14px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:#3A362F"><div style="width:6px;height:6px;border-radius:99px;background:oklch(0.52 0.06 165);flex:none"></div>Questions address her by name, larger text, slower pace</div>
+      <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:#3A362F"><div style="width:6px;height:6px;border-radius:99px;background:oklch(0.52 0.06 165);flex:none"></div>You can take the phone back to rephrase or skip</div>
+      <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:#3A362F"><div style="width:6px;height:6px;border-radius:99px;background:oklch(0.52 0.06 165);flex:none"></div>Facts save to the same knowledge base</div>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="font-size:11.5px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:#6E675C">Starting topic</div>
+    <div style="background:#FFFFFF;border:1px solid rgba(33,30,26,0.14);border-radius:12px;padding:14px 16px;font-size:15px;font-family:'Newsreader',serif">Meeting Dad — the ferry story</div>
+  </div>
+  <div style="margin-top:auto;display:flex;flex-direction:column;gap:10px">
+    <div style="text-align:center;font-size:16px;font-weight:600;color:#fff;background:oklch(0.52 0.06 165);border-radius:999px;padding:16px 0;cursor:pointer">Begin — she's ready</div>
+    <div style="text-align:center;font-size:13px;color:#6E675C">Session appears in her voice, saved under your account</div>
+  </div>
+</div>
+</x-import>
+</div>
+
+<!-- 1c Interviewee home -->
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Interviewee home — one thing to do: talk.</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="430px,880px">
+<div data-screen-label="1c Interviewee home mobile" style="height:100%;background:#F7F5F0;color:#211E1A;display:flex;flex-direction:column;font-family:'Instrument Sans',system-ui,sans-serif;box-sizing:border-box;padding:70px 24px 34px">
+  <div style="display:flex;align-items:center;gap:10px">
+    <div style="display:flex;align-items:center;gap:8px"><div style="width:26px;height:26px;border-radius:7px;background:oklch(0.52 0.06 165);display:flex;align-items:center;justify-content:center;gap:1.5px"><div style="width:2px;height:7px;border-radius:1px;background:rgba(255,255,255,0.55)"></div><div style="width:2px;height:12px;border-radius:1px;background:rgba(255,255,255,0.8)"></div><div style="width:2px;height:9px;border-radius:1px;background:rgba(255,255,255,0.8)"></div><div style="width:5px;height:12px;border-radius:1.5px;background:#fff;margin-left:1.5px"></div></div><div style="font:600 15.5px 'Instrument Sans',sans-serif;letter-spacing:-0.02em">postaud<span style="color:oklch(0.52 0.06 165)">.io</span></div></div>
+    <div style="margin-left:auto;width:34px;height:34px;border-radius:99px;background:oklch(0.52 0.06 50 / 0.18);color:oklch(0.4 0.06 50);display:grid;place-items:center;font-size:13px;font-weight:600">M</div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:22px">
+    <div style="display:flex;align-items:center;gap:8px"><div style="font:400 15px 'Newsreader',serif;font-style:italic;color:#6E675C">Good morning, Marta</div></div>
+    <div style="font:400 30px/1.35 'Newsreader',serif">Sam would love to hear about meeting Dad — the ferry story.</div>
+    <div style="font-size:14.5px;line-height:1.6;color:#6E675C">About 20 minutes, whenever suits you. You can pause any time.</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;align-items:center;justify-content:center;gap:12px;background:oklch(0.52 0.06 165);color:#fff;border-radius:999px;padding:18px 0;font-size:17px;font-weight:600;cursor:pointer">
+      <div style="width:12px;height:12px;border-radius:3px;background:#fff"></div>
+      Start talking
+    </div>
+    <div style="text-align:center;font-size:13.5px;color:#6E675C;padding:10px 0">Not now — remind me this weekend</div>
+    <div style="border-top:1px solid rgba(33,30,26,0.1);padding-top:16px;display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:11.5px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:#6E675C">Your stories so far</div>
+      <div style="font-size:14px;color:#3A362F;line-height:1.55">2 conversations · 64 memories saved for the family</div>
+    </div>
+  </div>
+</div>
+</x-import>
+</div>
+
+<!-- 1d Live session -->
+<div class="dv-opt" id="1d">
+<div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>Live session — one question fills the screen; big pause target.</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="430px,880px">
+<div data-screen-label="1d Live session mobile" style="height:100%;background:#211E1A;color:#F0EDE6;display:flex;flex-direction:column;font-family:'Instrument Sans',system-ui,sans-serif;box-sizing:border-box;padding:70px 24px 34px;position:relative;overflow:hidden">
+  <div style="position:absolute;top:-140px;left:50%;transform:translateX(-50%);width:420px;height:420px;border-radius:999px;background:radial-gradient(circle, oklch(0.52 0.06 165 / 0.25) 0%, transparent 68%)"></div>
+  <div style="display:flex;align-items:center;gap:10px;position:relative">
+    <div style="display:flex;align-items:center;gap:7px"><div style="width:22px;height:22px;border-radius:6px;background:oklch(0.52 0.06 165);display:flex;align-items:center;justify-content:center;gap:1.5px"><div style="width:2px;height:6px;border-radius:1px;background:rgba(255,255,255,0.55)"></div><div style="width:2px;height:10px;border-radius:1px;background:rgba(255,255,255,0.8)"></div><div style="width:2px;height:8px;border-radius:1px;background:rgba(255,255,255,0.8)"></div><div style="width:4px;height:10px;border-radius:1px;background:#fff;margin-left:1px"></div></div><div style="font-size:13px;color:rgba(240,237,230,0.55);white-space:nowrap">Sam's assistant</div></div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:7px;flex:none;white-space:nowrap;font:500 12px ui-monospace,Menlo,monospace;color:oklch(0.72 0.08 165)"><div style="width:7px;height:7px;border-radius:99px;background:oklch(0.62 0.16 25);flex:none"></div>REC 08:12</div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;text-align:center;position:relative">
+    <div style="width:56px;height:56px;border-radius:999px;background:oklch(0.52 0.06 165);box-shadow:0 0 0 12px oklch(0.52 0.06 165 / 0.15), 0 0 0 26px oklch(0.52 0.06 165 / 0.06)"></div>
+    <div style="font:400 27px/1.4 'Newsreader',serif">What do you remember about the first time you saw him on that ferry?</div>
+    <div style="font:italic 400 14.5px 'Newsreader',serif;color:rgba(240,237,230,0.55);min-height:22px">"Oh, it was so windy that day, everyone was inside except…"</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:12px;position:relative">
+    <div style="display:flex;align-items:center;justify-content:center;gap:4px;height:28px">
+      <div style="width:3px;height:10px;border-radius:2px;background:oklch(0.72 0.08 165)"></div>
+      <div style="width:3px;height:20px;border-radius:2px;background:oklch(0.72 0.08 165)"></div>
+      <div style="width:3px;height:14px;border-radius:2px;background:oklch(0.72 0.08 165)"></div>
+      <div style="width:3px;height:24px;border-radius:2px;background:oklch(0.72 0.08 165)"></div>
+      <div style="width:3px;height:12px;border-radius:2px;background:oklch(0.72 0.08 165)"></div>
+      <div style="width:3px;height:18px;border-radius:2px;background:oklch(0.72 0.08 165)"></div>
+      <div style="width:3px;height:9px;border-radius:2px;background:oklch(0.72 0.08 165)"></div>
+    </div>
+    <div style="display:flex;gap:12px">
+      <div style="flex:1;text-align:center;font-size:15px;color:rgba(240,237,230,0.8);border:1px solid rgba(240,237,230,0.25);border-radius:999px;padding:15px 0;cursor:pointer">Pause</div>
+      <div style="flex:1;text-align:center;font-size:15px;color:rgba(240,237,230,0.8);border:1px solid rgba(240,237,230,0.25);border-radius:999px;padding:15px 0;cursor:pointer">Skip question</div>
+    </div>
+    <div style="text-align:center;font-size:13px;color:rgba(240,237,230,0.45);padding:8px 0;cursor:pointer">I'm done for today</div>
+  </div>
+</div>
+</x-import>
+</div>
+
+<!-- 1e Recap -->
+<div class="dv-opt" id="1e">
+<div class="dv-olabel"><a class="dv-oid" href="#1e">1e</a>After the session — a warm recap, not a data report.</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="430px,880px">
+<div data-screen-label="1e Recap mobile" style="height:100%;background:#F7F5F0;color:#211E1A;display:flex;flex-direction:column;font-family:'Instrument Sans',system-ui,sans-serif;box-sizing:border-box;padding:70px 24px 34px;gap:24px">
+  <div style="display:flex;align-items:center;gap:10px">
+    <div style="display:flex;align-items:center;gap:8px"><div style="width:26px;height:26px;border-radius:7px;background:oklch(0.52 0.06 165);display:flex;align-items:center;justify-content:center;gap:1.5px"><div style="width:2px;height:7px;border-radius:1px;background:rgba(255,255,255,0.55)"></div><div style="width:2px;height:12px;border-radius:1px;background:rgba(255,255,255,0.8)"></div><div style="width:2px;height:9px;border-radius:1px;background:rgba(255,255,255,0.8)"></div><div style="width:5px;height:12px;border-radius:1.5px;background:#fff;margin-left:1.5px"></div></div><div style="font:600 15.5px 'Instrument Sans',sans-serif;letter-spacing:-0.02em">postaud<span style="color:oklch(0.52 0.06 165)">.io</span></div></div>
+    <div style="margin-left:auto;font-size:14px;color:#6E675C">Done</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px;padding-top:12px">
+    <div style="font:400 26px/1.3 'Newsreader',serif">Thank you, Marta.</div>
+    <div style="font-size:14.5px;line-height:1.6;color:#6E675C">22 minutes · the ferry story is now saved for the family.</div>
+  </div>
+  <div style="background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+    <div style="font-size:11.5px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:#6E675C">What we heard today</div>
+    <div style="font:400 16px/1.6 'Newsreader',serif;color:#3A362F">You met Jan on the Hoek van Holland ferry in spring 1975 — he offered you his coat on the windy deck, and you "pretended to be colder" than you were.</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="font-size:11.5px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:#6E675C">Saved to your stories</div>
+    <div style="display:flex;flex-direction:column;background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:12px;overflow:hidden">
+      <div style="padding:13px 16px;border-bottom:1px solid rgba(33,30,26,0.07);font-size:14px;line-height:1.5">Met Jan, spring 1975, Hoek van Holland ferry</div>
+      <div style="padding:13px 16px;border-bottom:1px solid rgba(33,30,26,0.07);font-size:14px;line-height:1.5">First date: herring stand at the harbor</div>
+      <div style="padding:13px 16px;font-size:14px;line-height:1.5;color:#6E675C">+6 more memories · review them any time</div>
+    </div>
+  </div>
+  <div style="margin-top:auto;display:flex;flex-direction:column;gap:10px">
+    <div style="font-size:14px;line-height:1.55;color:#6E675C">Next time, we'd love to hear about <span style="color:#211E1A;font-family:'Newsreader',serif">your first job in Utrecht</span>.</div>
+    <div style="text-align:center;font-size:16px;font-weight:600;color:#fff;background:#211E1A;border-radius:999px;padding:16px 0;cursor:pointer">Finish</div>
+    <div style="text-align:center;font:600 11px 'Instrument Sans',sans-serif;letter-spacing:0.02em;color:#9B9488">postaud<span style="color:oklch(0.52 0.06 165)">.io</span> · talk. it compounds.</div>
+  </div>
+</div>
+</x-import>
+</div>
+
+<!-- 1f Review list -->
+<div class="dv-opt" id="1f">
+<div class="dv-olabel"><a class="dv-oid" href="#1f">1f</a>Your stories — everything saved, tap to review.</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="430px,880px">
+<div data-screen-label="1f Review list mobile" style="height:100%;background:#F7F5F0;color:#211E1A;display:flex;flex-direction:column;font-family:'Instrument Sans',system-ui,sans-serif;box-sizing:border-box;padding:70px 24px 34px;gap:20px">
+  <div style="display:flex;align-items:center;gap:10px">
+    <div style="display:flex;align-items:center;gap:8px"><div style="width:26px;height:26px;border-radius:7px;background:oklch(0.52 0.06 165);display:flex;align-items:center;justify-content:center;gap:1.5px"><div style="width:2px;height:7px;border-radius:1px;background:rgba(255,255,255,0.55)"></div><div style="width:2px;height:12px;border-radius:1px;background:rgba(255,255,255,0.8)"></div><div style="width:2px;height:9px;border-radius:1px;background:rgba(255,255,255,0.8)"></div><div style="width:5px;height:12px;border-radius:1.5px;background:#fff;margin-left:1.5px"></div></div><div style="font:600 15.5px 'Instrument Sans',sans-serif;letter-spacing:-0.02em">postaud<span style="color:oklch(0.52 0.06 165)">.io</span></div></div>
+    <div style="margin-left:auto;width:34px;height:34px;border-radius:99px;background:oklch(0.52 0.06 50 / 0.18);color:oklch(0.4 0.06 50);display:grid;place-items:center;font-size:13px;font-weight:600">M</div>
+  </div>
+  <div>
+    <div style="font:400 26px/1.3 'Newsreader',serif">Your stories</div>
+    <div style="font-size:13px;color:#6E675C;margin-top:5px">72 memories · 3 conversations</div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <div style="font-size:12.5px;font-weight:500;color:#fff;background:#211E1A;padding:7px 14px;border-radius:999px">Newest</div>
+    <div style="font-size:12.5px;color:#3A362F;background:#FFFFFF;border:1px solid rgba(33,30,26,0.12);padding:7px 14px;border-radius:999px">People</div>
+    <div style="font-size:12.5px;color:#3A362F;background:#FFFFFF;border:1px solid rgba(33,30,26,0.12);padding:7px 14px;border-radius:999px">Places</div>
+    <div style="font-size:12.5px;color:oklch(0.5 0.1 50);background:#FFFFFF;border:1px solid oklch(0.5 0.1 50 / 0.3);padding:7px 14px;border-radius:999px">Needs review · 1</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px;overflow:hidden">
+    <div style="background:#FFFFFF;border:1px solid oklch(0.5 0.1 50 / 0.4);border-radius:14px;padding:15px 17px;display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.5 0.1 50)">Flagged by you</div>
+        <div style="margin-left:auto;font-size:11.5px;color:#6E675C">yesterday</div>
+      </div>
+      <div style="font:400 15.5px/1.5 'Newsreader',serif">Met Jan, spring 1975, Hoek van Holland ferry</div>
+      <div style="font-size:12.5px;color:#6E675C">"It was 1974, not 1975 — the year before I moved."</div>
+    </div>
+    <div style="background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:14px;padding:15px 17px;display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6E675C">The ferry story</div>
+        <div style="margin-left:auto;font-size:11.5px;color:#6E675C">yesterday</div>
+      </div>
+      <div style="font:400 15.5px/1.5 'Newsreader',serif">He offered you his coat on the windy deck — you "pretended to be colder" than you were.</div>
+    </div>
+    <div style="background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:14px;padding:15px 17px;display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6E675C">First date</div>
+        <div style="margin-left:auto;font-size:11.5px;color:#6E675C">yesterday</div>
+      </div>
+      <div style="font:400 15.5px/1.5 'Newsreader',serif">Herring stand at the harbor — he paid with coins he'd been saving in his coat pocket.</div>
+    </div>
+  </div>
+  <div style="margin-top:auto;text-align:center;font-size:13px;color:#6E675C">Tap any memory to confirm, fix, or retell it</div>
+</div>
+</x-import>
+</div>
+
+<!-- 1g Review detail -->
+<div class="dv-opt" id="1g">
+<div class="dv-olabel"><a class="dv-oid" href="#1g">1g</a>One memory opened — confirm, fix a detail, or retell next time.</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="430px,880px">
+<div data-screen-label="1g Review detail mobile" style="height:100%;background:#F7F5F0;color:#211E1A;display:flex;flex-direction:column;font-family:'Instrument Sans',system-ui,sans-serif;box-sizing:border-box;padding:70px 24px 34px;gap:20px">
+  <div style="display:flex;align-items:center;gap:10px">
+    <div style="font-size:14px;color:#6E675C">‹ Your stories</div>
+    <div style="margin-left:auto;font-size:14px;color:#6E675C">Done</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px;padding-top:6px">
+    <div style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6E675C">Saved memory · from session 3</div>
+    <div style="font:400 24px/1.4 'Newsreader',serif">Met Jan, spring 1975, Hoek van Holland ferry</div>
+  </div>
+  <div style="background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+    <div style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6E675C">In your words</div>
+    <div style="font:italic 400 15px/1.65 'Newsreader',serif;color:#3A362F">"We were on the deck even though the wind was terrible. Everyone else stayed inside. He walked over and offered me his coat, and I said yes even though I wasn't that cold…"</div>
+    <div style="display:flex;align-items:center;gap:10px;padding-top:2px">
+      <div style="width:34px;height:34px;border-radius:99px;background:oklch(0.52 0.06 165);display:grid;place-items:center;flex:none"><div style="width:0;height:0;border-left:9px solid #fff;border-top:6px solid transparent;border-bottom:6px solid transparent;margin-left:2px"></div></div>
+      <div style="flex:1;height:4px;border-radius:99px;background:rgba(33,30,26,0.1)"><div style="width:30%;height:100%;border-radius:99px;background:oklch(0.52 0.06 165)"></div></div>
+      <div style="font:500 11.5px ui-monospace,Menlo,monospace;color:#6E675C">0:41 / 2:16</div>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;align-items:center;justify-content:center;gap:10px;background:oklch(0.52 0.06 165);color:#fff;border-radius:999px;padding:15px 0;font-size:15px;font-weight:600;cursor:pointer">✓ That's right</div>
+    <div style="display:flex;gap:10px">
+      <div style="flex:1;text-align:center;font-size:14px;font-weight:500;color:#3A362F;background:#FFFFFF;border:1px solid rgba(33,30,26,0.15);border-radius:999px;padding:14px 0;cursor:pointer">Fix a detail</div>
+      <div style="flex:1;text-align:center;font-size:14px;font-weight:500;color:#3A362F;background:#FFFFFF;border:1px solid rgba(33,30,26,0.15);border-radius:999px;padding:14px 0;cursor:pointer">Retell next time</div>
+    </div>
+  </div>
+  <div style="background:oklch(0.52 0.06 165 / 0.07);border:1px solid oklch(0.52 0.06 165 / 0.2);border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;color:#3A362F">
+    <b style="color:oklch(0.4 0.06 165)">Fix a detail</b> updates the saved fact (say it or type it). <b style="color:oklch(0.4 0.06 165)">Retell</b> queues this story for your next conversation. Your original recording is never changed.
+  </div>
+</div>
+</x-import>
+</div>
+
+</div>
+</section>
+
+</x-dc>
+</body>
+</html>

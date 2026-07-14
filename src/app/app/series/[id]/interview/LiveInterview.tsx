@@ -577,7 +577,7 @@ export function LiveInterview({
       <audio ref={audioElRef} autoPlay className="hidden" />
 
       {/* top bar */}
-      <header className="flex items-center justify-between px-6 py-4 text-[13px]">
+      <header className="flex items-center justify-between gap-3 px-5 pt-[max(16px,env(safe-area-inset-top))] pb-4 text-[13px] sm:px-6">
         <div className="min-w-0">
           <span className="block truncate font-semibold text-[#F7F5F0]">{seriesTitle}</span>
           {handoff ? (
@@ -586,14 +586,12 @@ export function LiveInterview({
             </span>
           ) : null}
         </div>
-        <div className="flex items-center gap-3 text-[rgba(247,245,240,0.7)]">
+        {/* ● REC 00:14 — one mono pill, per the Talk-flow mockups. */}
+        <div className="flex shrink-0 items-center gap-1.5 font-mono text-[11.5px] font-medium tabular-nums text-[oklch(0.72_0.08_165)]">
           {connected ? (
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[oklch(0.72_0.08_165)]" />
-              recording
-            </span>
+            <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[oklch(0.62_0.16_25)]" />
           ) : null}
-          <span className="tabular-nums">{formatElapsed(elapsedSec)}</span>
+          {connected ? `REC ${formatElapsed(elapsedSec)}` : "connecting…"}
         </div>
       </header>
 
@@ -629,8 +627,8 @@ export function LiveInterview({
       </main>
 
       {/* controls */}
-      <footer className="flex flex-col items-center gap-4 pb-8">
-        <div className="flex items-center gap-6">
+      <footer className="flex flex-col items-center gap-4 px-5 pb-[max(32px,env(safe-area-inset-bottom))]">
+        <div className="flex items-start gap-4 sm:gap-6">
           <SessionButton
             label={isPaused ? "Resume" : "Pause"}
             glyph={isPaused ? "▶" : "⏸"}
@@ -644,7 +642,7 @@ export function LiveInterview({
             disabled={!connected || isPaused || isEnding}
           />
           <SessionButton
-            label={isEnding ? "Wrapping up…" : "I'm done for today"}
+            label={isEnding ? "Wrapping up…" : "I'm done"}
             glyph="✓"
             onClick={() => void endSession()}
             disabled={!connected || isEnding}
@@ -682,6 +680,49 @@ export function LiveInterview({
           </div>
         ) : null}
       </footer>
+
+      {/* Pause (Talk-flow mockup 5e) — a bottom sheet over the dimmed stage.
+          The mic is already muted by togglePause; this is the choice of what
+          to do next, with the reassurance that nothing is at risk. */}
+      {isPaused && !isEnding ? (
+        <div className="absolute inset-0 z-10 flex flex-col justify-end bg-[rgba(10,8,6,0.55)]">
+          <div
+            role="dialog"
+            aria-label="Paused"
+            className="flex flex-col gap-3 rounded-t-3xl bg-dark-2 px-6 pb-[max(28px,env(safe-area-inset-bottom))] pt-5"
+          >
+            <span aria-hidden className="mx-auto h-1 w-9 rounded-full bg-[rgba(240,237,230,0.2)]" />
+            <p className="font-serif text-[21px] text-center text-[#F0EDE6]">Taking a break?</p>
+            <button
+              type="button"
+              onClick={togglePause}
+              className="rounded-pill bg-green py-4 text-[16px] font-semibold text-white hover:bg-green-deep"
+            >
+              ▶ Resume
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                togglePause();
+                skipQuestion();
+              }}
+              className="rounded-pill border border-[rgba(240,237,230,0.25)] py-3.5 text-[15px] text-[rgba(240,237,230,0.85)] hover:border-[rgba(240,237,230,0.5)]"
+            >
+              Skip this topic
+            </button>
+            <button
+              type="button"
+              onClick={() => void endSession()}
+              className="rounded-pill border border-[rgba(240,237,230,0.25)] py-3.5 text-[15px] text-[rgba(240,237,230,0.85)] hover:border-[rgba(240,237,230,0.5)]"
+            >
+              I&apos;m done for today
+            </button>
+            <p className="pt-0.5 text-center text-xs text-[rgba(240,237,230,0.4)]">
+              Everything so far is already saved
+            </p>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -705,7 +746,7 @@ function SessionButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex flex-col items-center gap-2 text-[12px] font-semibold text-[rgba(247,245,240,0.85)] disabled:opacity-40"
+      className="flex w-[88px] flex-col items-center gap-2 text-center text-[12px] font-semibold leading-tight text-[rgba(247,245,240,0.85)] disabled:opacity-40"
     >
       <span
         className={

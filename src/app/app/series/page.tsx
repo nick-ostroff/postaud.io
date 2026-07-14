@@ -14,12 +14,12 @@ export default async function SeriesListPage() {
 
   return (
     <div>
-      <div className="mb-[22px] flex items-end justify-between gap-4">
+      <div className="mb-[22px] flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-[28px]">Series</h1>
           <div className="mt-[3px] text-[13.5px] text-muted">Every story your workspace is building.</div>
         </div>
-        <Link href="/app/series/new">
+        <Link href="/app/series/new" className="hover:no-underline">
           <Button variant="primary">＋ New series</Button>
         </Link>
       </div>

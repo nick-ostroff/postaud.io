@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { StoryBar } from "@/components/nav/StoryBar";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -133,17 +134,19 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
             </Chip>
           </div>
         </div>
-        <div className="flex items-center gap-2.5">
-          <Link href={`/app/series/${series.id}/access`}>
+        {/* Below `sm` these stack full-width; the floating story bar carries
+            the same Talk action on mobile, so nothing here is the only path. */}
+        <div className="flex w-full flex-wrap items-center gap-2.5 sm:w-auto">
+          <Link href={`/app/series/${series.id}/access`} className="hover:no-underline">
             <Button variant="ghost">Access</Button>
           </Link>
           {series.subject_user_id == null && (
-            <Link href={`/app/series/${series.id}/handoff`}>
+            <Link href={`/app/series/${series.id}/handoff`} className="hover:no-underline">
               <Button variant="secondary">Hand the mic</Button>
             </Link>
           )}
-          <Link href={`/app/series/${series.id}/interview`}>
-            <Button variant="primary" size="big">
+          <Link href={`/app/series/${series.id}/interview`} className="w-full sm:w-auto">
+            <Button variant="primary" size="big" className="w-full justify-center">
               Start interview
             </Button>
           </Link>
@@ -215,8 +218,11 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
             ) : (
               <div className="mt-2">
                 {queueTopics.map((t) => (
-                  <div key={t.id} className="flex items-center gap-3 py-[9px]">
-                    <span className="w-[190px] shrink-0 text-[13.5px] font-medium">
+                  <div
+                    key={t.id}
+                    className="flex flex-col items-stretch gap-1.5 py-[9px] sm:flex-row sm:items-center sm:gap-3"
+                  >
+                    <span className="text-[13.5px] font-medium sm:w-[190px] sm:shrink-0">
                       {t.name}
                       {t.coverage_score === 0 && (
                         <span className="ml-1.5 inline-block align-middle">
@@ -337,6 +343,15 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
           </Card>
         </div>
       </div>
+
+      <StoryBar
+        seriesId={series.id}
+        talkHref={
+          series.subject_user_id == null
+            ? `/app/series/${series.id}/handoff`
+            : `/app/series/${series.id}/interview`
+        }
+      />
     </div>
   );
 }

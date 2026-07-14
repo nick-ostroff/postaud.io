@@ -37,7 +37,32 @@ export default async function MembersPage() {
 
       {isAdmin && <InviteForm />}
 
-      <Card className="overflow-hidden">
+      {/* Mobile: the same roster as rows, since a 3-column table can't fit a phone. */}
+      <Card className="overflow-hidden lg:hidden">
+        {members.length === 0 && (
+          <div className="px-4 py-8 text-center text-[13.5px] text-muted">No members yet.</div>
+        )}
+        {members.map((m) => {
+          const email = m.users?.email ?? "—";
+          const name = m.users?.display_name || email;
+          return (
+            <div key={m.user_id} className="flex items-center gap-3 border-b border-line px-4 py-3.5 last:border-b-0">
+              <Avatar name={name} />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[13.5px] font-semibold text-ink">{name}</div>
+                <div className="truncate text-xs text-faint">{email}</div>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted">
+                  <span className="font-medium text-ink-soft">{ROLE_LABELS[m.role] ?? m.role}</span>
+                  <span className="text-faint">· {formatJoined(m.accepted_at)}</span>
+                  {!m.accepted_at && <Badge tone="amber">Invited</Badge>}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </Card>
+
+      <Card className="hidden overflow-hidden lg:block">
         <table className="w-full border-collapse text-[13.5px]">
           <thead>
             <tr>

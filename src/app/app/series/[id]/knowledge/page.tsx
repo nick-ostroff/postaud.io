@@ -172,8 +172,11 @@ export default async function KnowledgePage({ params }: { params: Params }) {
             ) : (
               <div>
                 {queueTopics.map((t) => (
-                  <div key={t.id} className="flex items-center gap-3 py-[7px]">
-                    <span className="w-[210px] shrink-0 text-[13.5px] font-medium">
+                  <div
+                    key={t.id}
+                    className="flex flex-col items-stretch gap-1.5 py-[7px] sm:flex-row sm:items-center sm:gap-3"
+                  >
+                    <span className="text-[13.5px] font-medium sm:w-[210px] sm:shrink-0">
                       {t.name}
                       {t.coverage_score === 0 && (
                         <span className="ml-1.5 inline-block align-middle">

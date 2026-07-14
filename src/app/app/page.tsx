@@ -5,6 +5,8 @@ import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
 import { SeriesCard } from "@/components/series/SeriesCard";
 import {
+  getMemoriesForSeries,
+  getSeriesAccessSummary,
   getSeriesForUser,
   getSeriesKnowledge,
   getSeriesSummaries,
@@ -14,8 +16,13 @@ import {
 } from "@/db/queries";
 import { firstNameOf } from "@/lib/names";
 import { pickIntervieweeSeries } from "@/server/interviewee/select-series";
+import { staleness } from "@/server/series/staleness";
 import { pickPersonalPromptTopic } from "@/server/topics/pick";
 import { IntervieweeHome } from "./IntervieweeHome";
+import { MobileHome, type MobileStory } from "./MobileHome";
+
+/** Recent memories shown on the mobile dashboard before "All memories →". */
+const RECENT_MEMORIES = 2;
 
 function greeting(now: Date): string {
   const hour = now.getHours();
@@ -24,7 +31,10 @@ function greeting(now: Date): string {
   return "Good evening";
 }
 
-export default async function DashboardHome() {
+type SearchParams = Promise<{ story?: string }>;
+
+export default async function DashboardHome({ searchParams }: { searchParams: SearchParams }) {
+  const { story: storyParam } = await searchParams;
   const { user, supabase, organization, role } = await getViewer();
   const name =
     (user.user_metadata?.full_name as string | undefined) ||
@@ -80,9 +90,54 @@ export default async function DashboardHome() {
 
   const storyWord = series.length === 1 ? "story" : "stories";
   const subtitle = `The ${organization?.name ?? "workspace"} workspace — ${series.length} ${storyWord} in motion.`;
+  const isAdmin = role === "admin";
+
+  // ---- the mobile dashboard's selected story (`?story=`, first one by default) ----
+  const now = new Date();
+  const railStories = series.map((s) => ({
+    id: s.id,
+    title: s.title,
+    waiting: staleness(
+      summaries[s.id]?.lastSessionAt ? new Date(summaries[s.id].lastSessionAt as string) : null,
+      now,
+    ).stale,
+  }));
+
+  const activeSeries = series.find((s) => s.id === storyParam) ?? series[0] ?? null;
+  let activeStory: MobileStory | null = null;
+  if (activeSeries) {
+    const [knowledge, memories, access] = await Promise.all([
+      getSeriesKnowledge(supabase, activeSeries.id),
+      getMemoriesForSeries(supabase, [activeSeries.id]),
+      getSeriesAccessSummary(supabase, activeSeries.id),
+    ]);
+    const s = summaries[activeSeries.id];
+    const isOwnStory =
+      activeSeries.subject_kind === "self" || activeSeries.subject_user_id === user.id;
+    activeStory = {
+      id: activeSeries.id,
+      title: activeSeries.title,
+      subtitle: isOwnStory
+        ? "about you"
+        : [`about ${activeSeries.subject_name}`, activeSeries.subject_relationship]
+            .filter(Boolean)
+            .join(" · "),
+      memoriesCount: s.memoriesCount,
+      coveragePct: Math.round(s.meanCoverage * 100),
+      // The owner is always in the access summary — "shared" counts everyone else.
+      sharedCount: Math.max(0, access.length - 1),
+      sessionsCount: s.sessionsCount,
+      nextTopic: pickPersonalPromptTopic(knowledge.topics)?.name ?? null,
+      recentMemories: memories.slice(0, RECENT_MEMORIES).map((m) => m.statement),
+      handoff: activeSeries.subject_user_id == null,
+    };
+  }
 
   return (
     <div>
+      <MobileHome stories={railStories} active={activeStory} canCreate={isAdmin} />
+
+      <div className="hidden lg:block">
       <div className="mb-[22px] flex items-end justify-between gap-4">
         <div>
           <h1 className="text-[28px]">
@@ -121,6 +176,7 @@ export default async function DashboardHome() {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

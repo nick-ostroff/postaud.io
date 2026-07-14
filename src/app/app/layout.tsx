@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
+import { AppTopNav } from "@/components/nav/AppTopNav";
 import { Sidebar } from "@/components/nav/Sidebar";
 import { getViewer } from "@/db/queries";
 import { isPlatformAdmin } from "@/lib/auth/is-platform-admin";
@@ -39,7 +40,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {banner && <ImpersonationBanner session={banner.session} expired={banner.expired} />}
       <div className="flex min-h-0 flex-1">
         <Sidebar name={name} role={roleLabel} isPlatformAdmin={platformAdmin} />
-        <main className="min-w-0 flex-1 px-9 py-[30px] pb-11">{children}</main>
+        <div className="flex min-w-0 flex-1 flex-col">
+          {/* Below `lg` the sidebar is hidden and this carries the nav instead. */}
+          <AppTopNav name={name} />
+          {/* The bottom padding clears the floating story bar on mobile. */}
+          <main className="min-w-0 flex-1 px-5 py-6 pb-28 lg:px-9 lg:py-[30px] lg:pb-11">{children}</main>
+        </div>
       </div>
     </div>
   );

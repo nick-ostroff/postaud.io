@@ -39,7 +39,7 @@ function NavItem({ href, label, icon }: { href: string; label: string; icon: str
 
 export function Sidebar({ name, role, isPlatformAdmin = false }: Props) {
   return (
-    <aside className="flex w-[232px] shrink-0 flex-col gap-1 border-r border-line bg-paper-2 py-[22px] px-3.5">
+    <aside className="hidden w-[232px] shrink-0 flex-col gap-1 border-r border-line bg-paper-2 py-[22px] px-3.5 lg:flex">
       <div className="serif px-2.5 pb-[18px] text-[19px]">
         post<b className="font-semibold text-green-deep">aud</b>.io
       </div>

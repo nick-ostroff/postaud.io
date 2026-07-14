@@ -1,35 +1,59 @@
+import Link from "next/link";
+import { Avatar } from "@/components/ui/Avatar";
 import { Card } from "@/components/ui/Card";
-import { getViewer } from "@/db/queries";
+import { getSeriesForUser, getSeriesSummaries, getViewer } from "@/db/queries";
+import { isPlatformAdmin } from "@/lib/auth/is-platform-admin";
 import { ROLE_LABELS } from "@/lib/roles";
 
 /**
- * Minimal read-only profile/org card. There's no editable workspace
- * settings yet (name/plan changes go through the platform admin console,
- * not self-serve) — this page just confirms who you are and which
- * workspace you're in, rather than presenting controls that don't save
- * anything.
+ * Profile (mobile mockup 2a) — the account view the top-nav avatar opens:
+ * who you are, your totals across every story, and the account-level actions.
+ * On mobile this is also the only way out of the app, since the sidebar that
+ * carries "Sign out" on desktop isn't rendered below `lg`.
+ *
+ * Workspace name/plan/credits stay read-only — those change through the
+ * operator console, not self-serve.
  */
 export default async function SettingsPage() {
-  const { user, organization, role } = await getViewer();
+  const { user, supabase, organization, role } = await getViewer();
   const roleLabel = role ? (ROLE_LABELS[role] ?? role) : "Member";
+  const platformAdmin = await isPlatformAdmin();
+
+  const name =
+    (user.user_metadata?.full_name as string | undefined) || user.email?.split("@")[0] || "You";
+
+  const series = organization
+    ? (await getSeriesForUser(supabase)).filter((s) => s.status !== "archived")
+    : [];
+  const summaries = await getSeriesSummaries(supabase, series.map((s) => s.id));
+  const memoriesTotal = Object.values(summaries).reduce((sum, s) => sum + s.memoriesCount, 0);
+  const sessionsTotal = Object.values(summaries).reduce((sum, s) => sum + s.sessionsCount, 0);
 
   return (
-    <div>
-      <h1 className="text-[28px]">Settings</h1>
-      <p className="mt-1 text-[13.5px] text-muted">Your profile and workspace.</p>
+    <div className="mx-auto w-full max-w-3xl">
+      <div className="flex flex-col items-center gap-2.5 lg:items-start">
+        <span className="lg:hidden">
+          <Avatar name={name} tone="warm" size="lg" />
+        </span>
+        <div className="text-center lg:text-left">
+          <h1 className="text-[26px]">{name}</h1>
+          <div className="mt-0.5 text-[13px] text-muted">
+            {user.email} · {roleLabel}
+          </div>
+        </div>
+      </div>
 
-      <Card className="mt-8 px-[22px] py-5">
-        <h3>Profile</h3>
-        <dl className="mt-3 flex flex-col gap-2 text-[13.5px]">
-          <div className="flex justify-between gap-4">
-            <dt className="text-muted">Email</dt>
-            <dd className="font-medium text-ink">{user.email}</dd>
-          </div>
-          <div className="flex justify-between gap-4">
-            <dt className="text-muted">Role</dt>
-            <dd className="font-medium text-ink">{roleLabel}</dd>
-          </div>
-        </dl>
+      <div className="mt-5 grid grid-cols-3 gap-2.5">
+        <MiniStat n={String(series.length)} label={series.length === 1 ? "story" : "stories"} />
+        <MiniStat n={String(memoriesTotal)} label="memories" />
+        <MiniStat n={String(sessionsTotal)} label="sessions" />
+      </div>
+
+      <Card className="mt-4 overflow-hidden">
+        <Row href="/app/memories" label="Your memories" />
+        <Row href="/app/series" label="All stories" />
+        <Row href="/app/members" label="Members &amp; roles" />
+        {platformAdmin && <Row href="/super" label="Operator console" />}
       </Card>
 
       {organization && (
@@ -42,7 +66,7 @@ export default async function SettingsPage() {
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted">Plan</dt>
-              <dd className="font-medium text-ink capitalize">{organization.plan}</dd>
+              <dd className="font-medium capitalize text-ink">{organization.plan}</dd>
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted">Credits remaining</dt>
@@ -51,6 +75,42 @@ export default async function SettingsPage() {
           </dl>
         </Card>
       )}
+
+      <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 lg:justify-start">
+        <form action="/auth/sign-out" method="POST">
+          <button className="text-[13.5px] font-medium text-muted hover:text-ink">Sign out</button>
+        </form>
+        <Link href="/privacy" className="text-[13px] text-faint">
+          Privacy
+        </Link>
+        <Link href="/terms" className="text-[13px] text-faint">
+          Terms
+        </Link>
+      </div>
     </div>
+  );
+}
+
+function Row({ href, label }: { href: string; label: string }) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-3 border-b border-line px-4 py-3.5 text-[13.5px] text-ink last:border-b-0 hover:bg-[rgba(33,30,26,0.02)] hover:no-underline"
+    >
+      <span aria-hidden className="h-5 w-5 shrink-0 rounded-md bg-green-tint" />
+      <span className="flex-1">{label}</span>
+      <span aria-hidden className="text-faint">
+        ›
+      </span>
+    </Link>
+  );
+}
+
+function MiniStat({ n, label }: { n: string; label: string }) {
+  return (
+    <Card className="px-3 py-3 text-center shadow-none">
+      <div className="serif text-[19px] leading-none">{n}</div>
+      <div className="mt-1 text-[10.5px] text-muted">{label}</div>
+    </Card>
   );
 }
