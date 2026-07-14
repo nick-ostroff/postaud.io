@@ -1,4 +1,4 @@
-import type { SeriesTone } from "@/db/types";
+import type { SeriesDepth, SeriesTone } from "@/db/types";
 
 export type InterviewerSeriesInput = {
   title: string;
@@ -9,6 +9,11 @@ export type InterviewerSeriesInput = {
   dontBringUp: string[];
   tone: SeriesTone;
   sessionMinutes: number;
+  /** The interviewer's persona name — comes from the series' chosen voice. */
+  interviewerName: string;
+  depth: SeriesDepth;
+  /** Optional target; null means the series is open-ended. */
+  plannedSessions?: number | null;
 };
 
 export type InterviewerKnownFact = { topic: string; statement: string };
@@ -25,6 +30,8 @@ export type BuildInterviewerInstructionsInput = {
   knownFacts: InterviewerKnownFact[];
   topics: InterviewerTopic[];
   retellQueue: string[];
+  /** 1-based index of the session being conducted; null if it can't be derived. */
+  sessionNumber?: number | null;
 };
 
 const TONE_REGISTER: Record<SeriesTone, string> = {
@@ -34,15 +41,40 @@ const TONE_REGISTER: Record<SeriesTone, string> = {
 };
 
 /**
+ * Depth is the one dial that governs question length, follow-up count, and
+ * how fast the interviewer moves between topics. It's a single enum rather
+ * than three sliders so it can't be set to an incoherent combination ("brief
+ * questions, exhaust every thread"). `balanced` reproduces the behavior that
+ * was implicit before the dial existed.
+ */
+const DEPTH_REGISTER: Record<SeriesDepth, string[]> = {
+  light: [
+    "Keep your questions short and simple — a sentence, not a paragraph.",
+    "Ask one or two follow-ups on a thread, then move on. Do not mine a memory to exhaustion.",
+    "Prioritize covering ground: it is fine to touch many topics lightly in a single session.",
+  ],
+  balanced: [
+    "Keep your questions conversational — a sentence or two at most.",
+    "Ask three or four follow-ups on a thread before considering a new topic.",
+    "Favor depth when a story is clearly alive, and move on once it has genuinely run dry.",
+  ],
+  deep: [
+    "Ask rich, specific questions that show you were listening closely.",
+    "Stay on a thread until it is genuinely exhausted, even if that means only two or three topics all session.",
+    "Push for sensory detail, names, dates, and the feeling in the moment — the specifics are the point.",
+  ],
+};
+
+/**
  * Deterministic template that turns a series' guide rails + knowledge base
- * into Anna's Realtime system instructions. No model call here — this is
- * pure string assembly so it's cheap to unit test and to reason about when
- * an interview goes off the rails.
+ * into the interviewer persona's Realtime system instructions. No model call
+ * here — this is pure string assembly so it's cheap to unit test and to
+ * reason about when an interview goes off the rails.
  *
- * Section order matters: it mirrors how Anna should prioritize a session —
- * who she is, who she's talking to, what she's for, what NOT to re-ask,
- * what to explore next (lowest coverage first), what to ask to be retold,
- * what to never bring up, how to sound, and how to close.
+ * Section order matters: it mirrors how the interviewer should prioritize a
+ * session — who they are, who they're talking to, what they're for, what NOT
+ * to re-ask, what to explore next (lowest coverage first), what to ask to be
+ * retold, what to never bring up, how to sound, and how to close.
  */
 export function buildInterviewerInstructions(input: BuildInterviewerInstructionsInput): string {
   const { series, handTheMic, knownFacts, topics, retellQueue } = input;
@@ -53,9 +85,9 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
   sections.push(
     [
       "WHO YOU ARE",
-      `You are Anna, a warm and skilled voice interviewer conducting a live, recorded oral-history ` +
-        `interview for the series "${series.title}". You speak naturally, out loud, in short conversational ` +
-        `turns — never in bullet points or numbered lists.`,
+      `You are ${series.interviewerName}, a warm and skilled voice interviewer conducting a live, recorded ` +
+        `oral-history interview for the series "${series.title}". You speak naturally, out loud, in short ` +
+        `conversational turns — never in bullet points or numbered lists.`,
     ].join("\n"),
   );
 
@@ -71,6 +103,15 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
   const goalLines = [`Goal for this series: ${series.goal}`];
   if (series.openingPrompt) {
     goalLines.push(`Opening prompt for this session: "${series.openingPrompt}" — start from there.`);
+  }
+  // Only pace against a target when we know BOTH where we are and where we're
+  // headed. An open-ended series (the default) gets no pacing pressure at all.
+  if (series.plannedSessions && input.sessionNumber) {
+    goalLines.push(
+      `This is session ${input.sessionNumber} of ${series.plannedSessions} planned for this series. Budget ` +
+        `your must-cover topics across the sessions that remain. On the final session, aim to close the loop ` +
+        `rather than open new threads.`,
+    );
   }
   sections.push(["THE GOAL", ...goalLines].join("\n"));
 
@@ -163,6 +204,17 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
       "One hard exception: NEVER chase anything listed under NEVER BRING UP below. If a door the subject " +
         "opens leads to one of those topics, do not walk through it — follow the NEVER BRING UP guardrail " +
         "instead (listen briefly, respond with care, gently move on). That guardrail always outranks this one.",
+    ].join("\n"),
+  );
+
+  // ---- DEPTH ----
+  // Sits directly after STAY ON THE THREAD so it reads as a modifier on it:
+  // that section says "go deep"; this one says how deep, for THIS series.
+  sections.push(
+    [
+      "DEPTH (how this series wants to be interviewed)",
+      ...DEPTH_REGISTER[series.depth].map((line) => `- ${line}`),
+      "This dial never overrides NEVER BRING UP. Guardrails always outrank depth.",
     ].join("\n"),
   );
 
