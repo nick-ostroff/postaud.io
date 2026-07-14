@@ -23,20 +23,20 @@ export type VoicePersona = {
   sample: string;
 };
 
-export const VOICES: VoicePersona[] = [
+export const VOICES: readonly VoicePersona[] = [
   { id: "marin", name: "Anna", blurb: "Warm and unhurried. Lets a silence sit.", sample: "/voices/marin.mp3" },
   { id: "cedar", name: "Ellis", blurb: "Dry and curious. Asks the question you were avoiding.", sample: "/voices/cedar.mp3" },
   { id: "sage", name: "Nora", blurb: "Calm and precise. Good with hard subjects.", sample: "/voices/sage.mp3" },
   { id: "coral", name: "Vivian", blurb: "Bright and quick. Keeps a conversation moving.", sample: "/voices/coral.mp3" },
   { id: "echo", name: "Gil", blurb: "Steady and plain-spoken. No performance.", sample: "/voices/echo.mp3" },
   { id: "alloy", name: "Reese", blurb: "Neutral and easy. Gets out of the way.", sample: "/voices/alloy.mp3" },
-];
+] as const;
 
 export const DEFAULT_VOICE: VoiceId = "marin";
 export const DEFAULT_INTERVIEWER_NAME = "Anna";
 
 /** Tuple form for `z.enum(VOICE_IDS)` — zod needs a non-empty literal tuple. */
-export const VOICE_IDS = VOICES.map((v) => v.id) as [VoiceId, ...VoiceId[]];
+export const VOICE_IDS: readonly [VoiceId, ...VoiceId[]] = VOICES.map((v) => v.id) as [VoiceId, ...VoiceId[]];
 
 /**
  * Resolve a stored voice id back to its persona. Falls back to the default
