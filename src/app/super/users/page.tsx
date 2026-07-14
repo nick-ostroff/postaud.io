@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getPlatformStats, getPlatformGrowth, listPlatformUsers, type PlatformUserRow } from "@/db/queries/admin";
 import { relativeTime } from "@/lib/time";
 import { ImpersonateButton } from "@/components/super/ImpersonateButton";
-import { Avatar, StatusPill, computeStatus, displayName, networkLabel } from "../DashboardUsers";
+import { Avatar, StatusPill, computeStatus, displayName, networkLabel } from "../user-display";
 
 export const metadata = { title: "Users — Operator — PostAud.io" };
 

@@ -2,83 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import type { PlatformUserRow, PlatformUserDetail } from "@/db/queries/admin";
-import { relativeTime, daysSince } from "@/lib/time";
+import type { PlatformUserDetail } from "@/db/queries/admin";
+import { relativeTime } from "@/lib/time";
 import { ImpersonateButton } from "@/components/super/ImpersonateButton";
-
-export type DashboardUserStatus = "active" | "dormant" | "invited";
-export type DashboardUserRow = PlatformUserRow & { status: DashboardUserStatus };
-
-// Shared status derivation — used by the dashboard, the users list, and the
-// user detail page so "Active"/"Dormant"/"Invited" always means the same
-// thing everywhere in the operator console.
-const STATUS_DORMANT_DAYS = 30;
-
-export function computeStatus(u: Pick<PlatformUserRow, "orgs" | "lastActivity">): DashboardUserStatus {
-  // Invited: every org membership this user has is still a pending
-  // invite — nobody has accepted anything yet.
-  if (u.orgs.length > 0 && u.orgs.every((o) => !o.accepted)) return "invited";
-  if (!u.lastActivity) return "dormant";
-  return daysSince(u.lastActivity) > STATUS_DORMANT_DAYS ? "dormant" : "active";
-}
-
-export function displayName(row: { displayName: string | null; email: string }): string {
-  return row.displayName ?? row.email.split("@")[0];
-}
-
-export function initialOf(row: { displayName: string | null; email: string }): string {
-  return (row.displayName ?? row.email).slice(0, 1).toUpperCase();
-}
-
-/** Compact "invited N · assignees N · subjects N" line — real counts only,
- *  shared by the desktop table's Network column, the panel, and mobile cards. */
-export function networkLabel(row: { network: { invited: number; assignees: number; subjects: number } }): string {
-  const { invited, assignees, subjects } = row.network;
-  const parts: string[] = [];
-  if (invited > 0) parts.push(`invited ${invited}`);
-  if (assignees > 0) parts.push(`assignees ${assignees}`);
-  if (subjects > 0) parts.push(`subjects ${subjects}`);
-  return parts.length > 0 ? parts.join(" · ") : "organic";
-}
-
-export function Avatar({
-  row,
-  size = 30,
-}: {
-  row: { displayName: string | null; email: string };
-  size?: number;
-}) {
-  return (
-    <span
-      className="grid flex-none place-items-center rounded-full bg-green-tint font-semibold text-green-deep"
-      style={{ width: size, height: size, fontSize: size > 34 ? 15 : 11.5 }}
-    >
-      {initialOf(row)}
-    </span>
-  );
-}
-
-export function StatusPill({ status }: { status: DashboardUserStatus }) {
-  if (status === "active") {
-    return (
-      <span className="inline-flex items-center rounded-full bg-green-tint px-2.5 py-[3px] text-[11px] font-semibold text-green-deep">
-        Active
-      </span>
-    );
-  }
-  if (status === "invited") {
-    return (
-      <span className="inline-flex items-center rounded-full bg-amber-tint px-2.5 py-[3px] text-[11px] font-semibold text-amber">
-        Invited
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center rounded-full bg-ink/8 px-2.5 py-[3px] text-[11px] font-semibold text-muted">
-      Dormant
-    </span>
-  );
-}
+import { Avatar, StatusPill, displayName, networkLabel, type DashboardUserRow } from "./user-display";
 
 function StatTile({ label, value, loading }: { label: string; value: number | undefined; loading: boolean }) {
   return (
@@ -251,7 +178,11 @@ export function DashboardUsers({ rows }: { rows: DashboardUserRow[] }) {
               <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-[22px] py-4">
                 <div className="flex gap-2.5">
                   <StatTile label="Series" value={detail?.seriesOwned.length} loading={detailLoading} />
-                  <StatTile label="Facts" value={detail?.factCount} loading={detailLoading} />
+                  {/* Owned-only, same definition as the list's "Facts" column
+                      (row.factsCount) — NOT detail.factCount, which also
+                      counts series this user is merely the subject of and
+                      would silently disagree with the row they clicked. */}
+                  <StatTile label="Facts" value={selectedRow.factsCount} loading={false} />
                   <StatTile label="Sessions" value={detail?.interviewCount} loading={detailLoading} />
                 </div>
 

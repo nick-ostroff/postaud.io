@@ -1,5 +1,6 @@
 import { getPlatformStats, getPlatformGrowth, listPlatformUsers } from "@/db/queries/admin";
-import { DashboardUsers, computeStatus, type DashboardUserRow } from "./DashboardUsers";
+import { DashboardUsers } from "./DashboardUsers";
+import { computeStatus, type DashboardUserRow } from "./user-display";
 
 export const metadata = { title: "Dashboard — Operator — PostAud.io" };
 

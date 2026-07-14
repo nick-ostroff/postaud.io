@@ -133,6 +133,67 @@ describe("getPlatformUserDetail", () => {
     await expect(getPlatformUserDetail("nope")).resolves.toBeNull();
   });
 
+  it("returns an owned-only factsCount that agrees with listPlatformUsers' definition, distinct from the owned+subject-of factCount", async () => {
+    const d = (await getPlatformUserDetail("u1"))!;
+    // factCount totals both series (s1 + s2, see BASE.facts comment above);
+    // factsCount is owned-series-only (s1 alone) — same shape as the Users
+    // list's factsCount column, so the identity card's bare "Facts" label
+    // can use factsCount and agree with the list for the same person.
+    expect(d.factsCount).toBe(3);
+    expect(d.factCount).toBe(5);
+  });
+
+  it("computes network counts (same definitions as listPlatformUsers) and populates per-series sessions/facts/lastActivity", async () => {
+    const fixture = {
+      ...BASE,
+      series: [
+        ...BASE.series,
+        // A series u1 created with a subject who isn't u1 — BASE alone
+        // never exercises the "subjects" leg of network.
+        { id: "s3", title: "Extra series", organization_id: "o1", created_by: "u1", subject_user_id: "u4" },
+      ],
+      memberships: [
+        // u1 is the earliest admin of o1 -> its owner -> "invited" counts
+        // every other member of o1 (mirrors listPlatformUsers.invitedCount).
+        {
+          organization_id: "o1",
+          user_id: "u1",
+          role: "admin",
+          created_at: "2026-01-02T00:00:00Z",
+          accepted_at: "2026-01-02T00:00:00Z",
+          organizations: { name: "Acme" },
+        },
+        {
+          organization_id: "o1",
+          user_id: "u2",
+          role: "member",
+          created_at: "2026-01-03T00:00:00Z",
+          accepted_at: "2026-01-03T00:00:00Z",
+          organizations: { name: "Acme" },
+        },
+      ],
+      series_access: [
+        // u3 has access to s1, which u1 owns -> counts as an "assignee"
+        // (mirrors listPlatformUsers.assigneesCount).
+        { series_id: "s1", user_id: "u3" },
+      ],
+      interviews: [
+        { series_id: "s1", organization_id: "o1", started_at: "2026-05-01T00:00:00Z" },
+        { series_id: "s1", organization_id: "o1", started_at: "2026-05-03T00:00:00Z" },
+      ],
+    };
+    mocks.serviceClient.mockReturnValue(makeSvc(fixture, calls));
+
+    const d = (await getPlatformUserDetail("u1"))!;
+
+    expect(d.network).toEqual({ invited: 1, assignees: 1, subjects: 1 });
+
+    const s1 = d.seriesOwned.find((s) => s.id === "s1")!;
+    expect(s1.sessions).toBe(2);
+    expect(s1.facts).toBe(3);
+    expect(d.lastActivity).toBe("2026-05-03T00:00:00Z");
+  });
+
   it("filters every query on the requested user, not an unscoped or wrong column", async () => {
     await getPlatformUserDetail("u1");
 

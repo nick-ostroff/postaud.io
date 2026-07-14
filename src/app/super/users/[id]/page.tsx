@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getPlatformUserDetail, type PlatformUserDetail } from "@/db/queries/admin";
 import { relativeTime } from "@/lib/time";
 import { ImpersonateButton } from "@/components/super/ImpersonateButton";
-import { Avatar, StatusPill, computeStatus, displayName, networkLabel } from "../../DashboardUsers";
+import { Avatar, StatusPill, computeStatus, displayName, networkLabel } from "../../user-display";
 
 type Params = Promise<{ id: string }>;
 
@@ -50,8 +50,18 @@ export default async function SuperUserDetailPage({ params }: { params: Params }
   const { id } = await params;
   const detail: PlatformUserDetail | null = await getPlatformUserDetail(id);
   if (!detail) notFound();
-  const { user, orgs, seriesOwned, seriesSubjectOf, interviewCount, factCount, auditLog, network, lastActivity } =
-    detail;
+  const {
+    user,
+    orgs,
+    seriesOwned,
+    seriesSubjectOf,
+    interviewCount,
+    factsCount,
+    factCount,
+    auditLog,
+    network,
+    lastActivity,
+  } = detail;
 
   const name = displayName(user);
   const status = computeStatus({ orgs, lastActivity });
@@ -83,7 +93,12 @@ export default async function SuperUserDetailPage({ params }: { params: Params }
               <MetaRow label="Status">
                 <StatusPill status={status} />
               </MetaRow>
-              <MetaRow label="Facts">{factCount.toLocaleString()}</MetaRow>
+              {/* Owned-only — same definition as the Users list' "Facts"
+                  column, so list → detail agree for the same person. */}
+              <MetaRow label="Facts">{factsCount.toLocaleString()}</MetaRow>
+              {factCount !== factsCount && (
+                <MetaRow label="Facts (incl. subject-of)">{factCount.toLocaleString()}</MetaRow>
+              )}
               <MetaRow label="Interviews">{interviewCount.toLocaleString()}</MetaRow>
             </div>
 

@@ -906,6 +906,15 @@ export type PlatformUserDetail = {
   // capped to 5 — feeds the dashboard slide-in panel's "Top series" list.
   topSeries: Array<{ id: string; title: string; facts: number }>;
   interviewCount: number;
+  // Owned-only — same definition as listPlatformUsers' PlatformUserRow.factsCount
+  // (sum of facts across series this user created). This is what the identity
+  // card's headline "Facts" must display so it agrees with the list's "Facts"
+  // column for the same user.
+  factsCount: number;
+  // Owned + subject-of series combined. Kept for callers that want the wider
+  // total, but deliberately NOT what the bare "Facts" label shows, since it
+  // silently disagrees with factsCount/the list for users who are the
+  // subject of series they didn't create.
   factCount: number;
   auditLog: Array<{ id: number; at: string; action: string; actorEmail: string | null }>;
 };
@@ -1062,6 +1071,9 @@ export async function getPlatformUserDetail(userId: string): Promise<PlatformUse
       .map((s) => ({ id: s.id, title: s.title, organizationId: s.organization_id })),
     topSeries,
     interviewCount: interviewCount ?? 0,
+    // Sum of seriesOwned facts — same definition as listPlatformUsers'
+    // factsCountFor(userId), so the list and this detail page always agree.
+    factsCount: seriesOwned.reduce((sum, s) => sum + s.facts, 0),
     factCount,
     auditLog: (audit ?? []).map((a) => ({
       id: a.id,
