@@ -120,3 +120,98 @@ describe("listPlatformUsers", () => {
     expect(rows.map((r) => r.id)).toEqual(["u3"]);
   });
 });
+
+// -----------------------------------------------------------------------
+// network + factsCount (Task R1) — own fixtures, isolated from the shared
+// USERS/MEMBERSHIPS/SERIES/INTERVIEWS above so these additions can't shift
+// any of the pre-existing assertions (lastActivity, sort order, search).
+// -----------------------------------------------------------------------
+describe("listPlatformUsers — network + factsCount", () => {
+  const NET_USERS = [
+    { id: "n1", email: "owner@example.com", display_name: "Owner", created_at: "2026-01-01T00:00:00Z" },
+    { id: "n2", email: "member2@example.com", display_name: null, created_at: "2026-01-02T00:00:00Z" },
+    { id: "n3", email: "member3@example.com", display_name: null, created_at: "2026-01-03T00:00:00Z" },
+    { id: "n4", email: "subject@example.com", display_name: null, created_at: "2026-01-04T00:00:00Z" },
+    { id: "n5", email: "assignee@example.com", display_name: null, created_at: "2026-01-05T00:00:00Z" },
+  ];
+
+  // n1 is the earliest admin (owner) of org1; n2 and n3 are its two other members.
+  const NET_MEMBERSHIPS = [
+    {
+      user_id: "n1",
+      organization_id: "org1",
+      role: "admin",
+      created_at: "2026-01-01T00:00:00Z",
+      accepted_at: "2026-01-01T00:00:00Z",
+      organizations: { name: "OrgOne" },
+    },
+    {
+      user_id: "n2",
+      organization_id: "org1",
+      role: "interviewer",
+      created_at: "2026-01-02T00:00:00Z",
+      accepted_at: "2026-01-02T00:00:00Z",
+      organizations: { name: "OrgOne" },
+    },
+    {
+      user_id: "n3",
+      organization_id: "org1",
+      role: "viewer",
+      created_at: "2026-01-03T00:00:00Z",
+      accepted_at: "2026-01-03T00:00:00Z",
+      organizations: { name: "OrgOne" },
+    },
+  ];
+
+  // n1 created ns1, whose subject is n4 (a different user).
+  const NET_SERIES = [{ id: "ns1", title: "Family history", subject_user_id: "n4", created_by: "n1" }];
+
+  // n5 was granted access to n1's series.
+  const NET_SERIES_ACCESS = [{ series_id: "ns1", user_id: "n5" }];
+
+  // 3 facts on n1's series; none anywhere else.
+  const NET_FACTS = [
+    { id: "f1", series_id: "ns1" },
+    { id: "f2", series_id: "ns1" },
+    { id: "f3", series_id: "ns1" },
+  ];
+
+  beforeEach(() => {
+    mocks.serviceClient.mockReturnValue(
+      makeSvc({
+        users: NET_USERS,
+        memberships: NET_MEMBERSHIPS,
+        series: NET_SERIES,
+        interviews: [],
+        series_access: NET_SERIES_ACCESS,
+        facts: NET_FACTS,
+      }),
+    );
+  });
+
+  it("counts invited as the other members of an org this user is the earliest admin (owner) of", async () => {
+    const { rows } = await listPlatformUsers({});
+    expect(rows.find((r) => r.id === "n1")!.network.invited).toBe(2);
+    // n2 is a member but not the owner of any org -> 0, not counted against itself.
+    expect(rows.find((r) => r.id === "n2")!.network.invited).toBe(0);
+  });
+
+  it("counts subjects as distinct non-self subject_user_id on series this user created", async () => {
+    const { rows } = await listPlatformUsers({});
+    expect(rows.find((r) => r.id === "n1")!.network.subjects).toBe(1);
+    expect(rows.find((r) => r.id === "n4")!.network.subjects).toBe(0);
+  });
+
+  it("counts assignees as distinct series_access grants (excluding self) on series this user created", async () => {
+    const { rows } = await listPlatformUsers({});
+    expect(rows.find((r) => r.id === "n1")!.network.assignees).toBe(1);
+    expect(rows.find((r) => r.id === "n5")!.network.assignees).toBe(0);
+  });
+
+  it("sums factsCount across series this user created only", async () => {
+    const { rows } = await listPlatformUsers({});
+    expect(rows.find((r) => r.id === "n1")!.factsCount).toBe(3);
+    // n4 is the subject of ns1, not its creator -> not credited with its facts.
+    expect(rows.find((r) => r.id === "n4")!.factsCount).toBe(0);
+  });
+});
