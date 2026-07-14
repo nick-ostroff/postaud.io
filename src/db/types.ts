@@ -15,6 +15,7 @@ export type MemberRole = "admin" | "interviewer" | "viewer"
 export type SeriesStatus = "active" | "paused" | "archived"
 export type SubjectKind = "member" | "self" | "person" | "organization"
 export type SeriesTone = "warm" | "neutral" | "playful"
+export type SeriesDepth = "light" | "balanced" | "deep"
 export type InterviewStatus = "in_progress" | "completed" | "processed" | "abandoned"
 export type MessageRole = "interviewer" | "subject"
 export type FactStatus = "active" | "needs_review" | "superseded" | "retell_queued"
@@ -171,6 +172,10 @@ export type Database = {
           dont_bring_up: Json
           tone: SeriesTone
           session_minutes: number
+          voice: string
+          interviewer_name: string
+          depth: SeriesDepth
+          planned_sessions: number | null
           status: SeriesStatus
           created_by: string | null
           created_at: string
@@ -188,6 +193,10 @@ export type Database = {
           dont_bring_up?: Json
           tone?: SeriesTone
           session_minutes?: number
+          voice?: string
+          interviewer_name?: string
+          depth?: SeriesDepth
+          planned_sessions?: number | null
           status?: SeriesStatus
           created_by?: string | null
           created_at?: string
@@ -205,6 +214,10 @@ export type Database = {
           dont_bring_up?: Json
           tone?: SeriesTone
           session_minutes?: number
+          voice?: string
+          interviewer_name?: string
+          depth?: SeriesDepth
+          planned_sessions?: number | null
           status?: SeriesStatus
           created_by?: string | null
           created_at?: string
