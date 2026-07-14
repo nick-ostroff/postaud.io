@@ -9,7 +9,10 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import { Segmented } from "@/components/ui/Segmented";
-import type { MemberRole, SeriesTone, SubjectKind } from "@/db/types";
+import type { MemberRole, SeriesDepth, SeriesTone, SubjectKind } from "@/db/types";
+import { DEFAULT_VOICE, personaFor } from "@/lib/voices";
+import type { VoiceId } from "@/lib/voices";
+import { VoicePicker } from "@/components/series/VoicePicker";
 import { ChipEditor, RadioCard, StepsIndicator, inputClasses, textareaClasses } from "./formkit";
 import type { MemberOption } from "./formkit";
 
@@ -60,6 +63,18 @@ const LENGTH_OPTIONS = [
   { value: "20", label: "20 min" },
   { value: "45", label: "45 min" },
 ];
+
+const DEPTH_OPTIONS: { value: SeriesDepth; label: string }[] = [
+  { value: "light", label: "Light touch" },
+  { value: "balanced", label: "Balanced" },
+  { value: "deep", label: "Go deep" },
+];
+
+const DEPTH_LABELS: Record<SeriesDepth, string> = {
+  light: "Light touch",
+  balanced: "Balanced",
+  deep: "Go deep",
+};
 
 const INVITE_ERROR_MESSAGES: Record<string, string> = {
   already_member: "Already a member of this workspace.",
@@ -142,6 +157,9 @@ export function Wizard({
   const [dontBringUp, setDontBringUp] = useState<string[]>([]);
   const [tone, setTone] = useState<SeriesTone>("warm");
   const [sessionMinutes, setSessionMinutes] = useState<10 | 20 | 45>(20);
+  const [voice, setVoice] = useState<VoiceId>(DEFAULT_VOICE);
+  const [depth, setDepth] = useState<SeriesDepth>("balanced");
+  const [plannedSessions, setPlannedSessions] = useState<string>("");
 
   // Step 4 — Review
   const [questionPlan, setQuestionPlan] = useState<string[]>([]);
@@ -156,6 +174,10 @@ export function Wizard({
   const pickedMember = subjectChoice.startsWith("member:")
     ? members.find((m) => m.userId === subjectChoice.slice("member:".length))
     : undefined;
+
+  // The persona is derived, never stored separately — the name always follows
+  // the voice, and the Guide copy reads back whichever one is selected.
+  const persona = personaFor(voice);
 
   const uiSubjectKind: "self" | "member" | "person" | "organization" =
     subjectChoice === "self" ? "self" : subjectChoice === "new" ? subjectKindNew : "member";
@@ -260,6 +282,10 @@ export function Wizard({
       dontBringUp,
       tone,
       sessionMinutes,
+      voice,
+      interviewerName: persona.name,
+      depth,
+      plannedSessions: plannedSessions.trim() ? Number(plannedSessions) : null,
       access: Object.entries(access)
         .filter(([, level]) => level !== "none")
         .map(([userId, level]) => ({ userId, canView: true, canInterview: level === "interview" })),
@@ -515,7 +541,11 @@ export function Wizard({
 
         {step === 3 && (
           <div>
-            <Field label="Opening prompt" hint="How Anna should open the very first session.">
+            <Field label="Who should do the interviewing?" hint="Pick a voice — the name comes with it. Press ▶ to hear each one.">
+              <VoicePicker value={voice} onChange={setVoice} />
+            </Field>
+
+            <Field label="Opening prompt" hint={`How ${persona.name} should open the very first session.`}>
               <input
                 className={inputClasses}
                 value={openingPrompt}
@@ -524,14 +554,15 @@ export function Wizard({
               />
             </Field>
 
-            <Field label="Topics Anna must cover">
+            <Field label={`Topics ${persona.name} must cover`}>
               <ChipEditor items={mustCover} onChange={setMustCover} placeholder="＋ Add a topic" />
             </Field>
 
             <Field label="Don't bring up">
               <ChipEditor items={dontBringUp} onChange={setDontBringUp} placeholder="＋ Add" tone="amber" />
               <div className="mt-[5px] text-xs text-faint">
-                Anna will never raise these; if they come up she&apos;ll listen, then gently move on.
+                {persona.name} will never raise these — if they come up, the answer gets heard, then the
+                conversation moves gently on.
               </div>
             </Field>
 
@@ -549,6 +580,28 @@ export function Wizard({
               </Field>
             </div>
 
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Depth" hint="How long the questions run, and how hard each thread gets mined.">
+                <Segmented
+                  name="depth"
+                  options={DEPTH_OPTIONS}
+                  value={depth}
+                  onChange={(v) => setDepth(v as SeriesDepth)}
+                />
+              </Field>
+              <Field label="Planned sessions (optional)" hint="Leave blank for open-ended. Setting it lets the interviewer pace the topics.">
+                <input
+                  type="number"
+                  min={1}
+                  max={50}
+                  className={`${inputClasses} max-w-[140px]`}
+                  value={plannedSessions}
+                  onChange={(e) => setPlannedSessions(e.target.value)}
+                  placeholder="—"
+                />
+              </Field>
+            </div>
+
             <WizardActions onBack={() => setStep(2)}>
               <Button type="button" variant="primary" onClick={() => setStep(4)}>
                 Continue
@@ -561,10 +614,10 @@ export function Wizard({
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div>
               <Card className="px-5 py-5">
-                <h3 className="serif text-[18px]">Anna drafted the first session</h3>
+                <h3 className="serif text-[18px]">{persona.name} drafted the first session</h3>
                 <p className="mt-1 text-[13px] text-muted">
-                  Reorder, edit, or remove anything — this is a starting point. Anna improvises follow-ups from whatever{" "}
-                  {subjectName || "they"} say.
+                  Reorder, edit, or remove anything — this is a starting point. {persona.name} improvises follow-ups
+                  from whatever {subjectName || "they"} say.
                 </p>
 
                 <div className="mt-3">
@@ -631,10 +684,13 @@ export function Wizard({
                 {accessSummary}
               </KV>
               <KV k="Guide" edit={() => setStep(3)}>
-                {TONE_LABELS[tone]} tone · {sessionMinutes}-minute sessions
+                {persona.name} · {TONE_LABELS[tone]} tone · {DEPTH_LABELS[depth]}
+                <br />
+                {sessionMinutes}-minute sessions ·{" "}
+                {plannedSessions.trim() ? `${plannedSessions.trim()} planned` : "open-ended"}
                 <br />
                 {mustCover.length} must-cover topic{mustCover.length === 1 ? "" : "s"} · {dontBringUp.length} thing
-                {dontBringUp.length === 1 ? "" : "s"} Anna won&apos;t raise
+                {dontBringUp.length === 1 ? "" : "s"} {persona.name} won&apos;t raise
               </KV>
               {inviteSubjectEmail.trim() && subjectChoice === "new" && (
                 <div className="mt-2">
