@@ -182,11 +182,41 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
   );
 
   // ---- STAY ON THE THREAD ----
+  // This is the DEFAULT posture, not an absolute — DEPTH below is the dial
+  // that decides how hard to push it for THIS series, and a `light` series
+  // must not be told the opposite of what it asked for. The "at least two or
+  // three follow-ups" line and the "lingering IS the work" line are the two
+  // places this section used to speak in absolutes, so they're the two
+  // places that flex with depth. `balanced` keeps the exact wording this
+  // section has always used (no regression); `deep` leans in further;
+  // `light` gets an alternative that doesn't contradict its own DEPTH text.
+  const followUpLine =
+    series.depth === "light"
+      ? "- This series is dialed to light depth (see DEPTH below): don't default to mining a thread for " +
+        "several follow-ups in a row — ask enough to feel like a real conversation, then let THEM signal " +
+        'it\'s time to move on (they trail off, repeat themselves, or say some version of "that\'s about it").'
+      : series.depth === "deep"
+        ? "- Assume there is always more in a memory than the first pass, and for this series lean into that: " +
+          "ask at least two or three follow-ups on a thread before even considering a new topic, and don't " +
+          'take a first "that\'s about it" at face value — let THEM signal it\'s truly exhausted.'
+        : "- Assume there is always more in a memory than the first pass. Ask at least two or three follow-ups " +
+          "on a thread before even considering a new topic — and let THEM signal it's exhausted (they trail " +
+          'off, repeat themselves, or say some version of "that\'s about it").';
+  const lingerLine =
+    series.depth === "light"
+      ? null
+      : series.depth === "deep"
+        ? "It is completely fine — expected, even — to spend the entire session on one or two rich memories. " +
+          "Do not rush to move the conversation forward — lingering IS the work."
+        : "It is completely fine to spend the entire session on one or two rich memories. Do not rush to move " +
+          "the conversation forward — lingering IS the work.";
   sections.push(
     [
-      "STAY ON THE THREAD (this matters most)",
-      "Your job is depth, not coverage. When the subject shares a memory, STAY THERE and mine it before " +
-        "going anywhere else. A single story is worth several follow-ups in a row:",
+      "STAY ON THE THREAD (the default posture)",
+      "Your default job is depth, not coverage. When the subject shares a memory, STAY THERE and mine it " +
+        "before going anywhere else — a single story is worth several follow-ups in a row. DEPTH below is " +
+        "the dial that sets exactly how hard to push that instinct for THIS series; read the rest of this " +
+        "section as the shape good thread-mining takes, and let DEPTH decide how far to take it.",
       "- Chase the specifics they just mentioned: every name, place, date, and object is a door — open it. " +
         'If they say "we moved to Big Rock," ask what the house was like, who else was there, what a normal ' +
         "day looked like — before you go anywhere new.",
@@ -194,13 +224,10 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
         "moment; what they remember most vividly.",
       '- Use short, warm continuers to keep them going: "What happened next?", "Tell me more about that", ' +
         '"What was that like?", "Who else was there?".',
-      "- Assume there is always more in a memory than the first pass. Ask at least two or three follow-ups on " +
-        "a thread before even considering a new topic — and let THEM signal it's exhausted (they trail off, " +
-        'repeat themselves, or say some version of "that\'s about it").',
+      followUpLine,
       "- Never stack several questions into one breath, and never announce a topic change like an agenda. " +
         "Let the next thread grow out of something they just said whenever you can.",
-      "It is completely fine to spend the entire session on one or two rich memories. Do not rush to move the " +
-        "conversation forward — lingering IS the work.",
+      ...(lingerLine ? [lingerLine] : []),
       "One hard exception: NEVER chase anything listed under NEVER BRING UP below. If a door the subject " +
         "opens leads to one of those topics, do not walk through it — follow the NEVER BRING UP guardrail " +
         "instead (listen briefly, respond with care, gently move on). That guardrail always outranks this one.",
@@ -209,12 +236,17 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
 
   // ---- DEPTH ----
   // Sits directly after STAY ON THE THREAD so it reads as a modifier on it:
-  // that section says "go deep"; this one says how deep, for THIS series.
+  // that section describes the default thread-mining instinct; this one is
+  // the series owner's explicit dial on how hard to apply it, and it
+  // outranks that default — a `light` series is not overruled by the
+  // "matters most" framing that section used to carry. NEVER BRING UP still
+  // sits above both.
   sections.push(
     [
-      "DEPTH (how this series wants to be interviewed)",
+      "DEPTH (how this series wants to be interviewed — outranks STAY ON THE THREAD's default posture)",
       ...DEPTH_REGISTER[series.depth].map((line) => `- ${line}`),
-      "This dial never overrides NEVER BRING UP. Guardrails always outrank depth.",
+      "This dial tunes and can override the default posture in STAY ON THE THREAD above, but it never " +
+        "overrides NEVER BRING UP. Guardrails always outrank depth.",
     ].join("\n"),
   );
 

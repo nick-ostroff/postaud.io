@@ -49,3 +49,20 @@ it("says nothing about session count when the session number is unknown", () => 
   });
   expect(p).not.toContain("This is session");
 });
+it("light depth does not carry unconditional lingering instructions that contradict it", () => {
+  const p = buildInterviewerInstructions({ ...base, series: { ...base.series, depth: "light" } });
+  expect(p).not.toContain("lingering IS the work");
+  expect(p).not.toContain("fine to spend the entire session on one or two rich memories");
+  expect(p).not.toContain("Ask at least two or three follow-ups on a thread before even considering a new topic");
+});
+it("balanced depth still reproduces today's stay-on-the-thread language (no regression)", () => {
+  const p = buildInterviewerInstructions(base); // base.series.depth === "balanced"
+  expect(p).toContain("lingering IS the work");
+  expect(p).toContain("fine to spend the entire session on one or two rich memories");
+  expect(p).toContain("Ask at least two or three follow-ups on a thread before even considering a new topic");
+});
+it("DEPTH states its precedence over STAY ON THE THREAD, but never over NEVER BRING UP", () => {
+  const p = buildInterviewerInstructions(base);
+  expect(p).toMatch(/DEPTH[\s\S]*outrank[\s\S]*STAY ON THE THREAD/i);
+  expect(p).toContain("Guardrails always outrank depth.");
+});
