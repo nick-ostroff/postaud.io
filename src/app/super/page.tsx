@@ -1,6 +1,6 @@
 import { getPlatformStats, getPlatformGrowth, listPlatformUsers } from "@/db/queries/admin";
 import { DashboardUsers } from "./DashboardUsers";
-import { computeStatus, type DashboardUserRow } from "./user-display";
+import { computeStatus, GrowthSparkBars, type DashboardUserRow } from "./user-display";
 
 export const metadata = { title: "Dashboard — Operator — PostAud.io" };
 
@@ -41,7 +41,6 @@ export default async function SuperDashboardPage() {
 
   const avgSeriesPerUser = stats.totalUsers > 0 ? (stats.activeSeries / stats.totalUsers).toFixed(1) : "0.0";
   const dormantPct = stats.totalUsers > 0 ? Math.round((growth.dormantCount / stats.totalUsers) * 100) : 0;
-  const maxWeekly = Math.max(1, ...growth.weekly.map((w) => w.count));
 
   return (
     <div className="flex flex-col gap-5">
@@ -81,20 +80,7 @@ export default async function SuperDashboardPage() {
           <div className="text-[11.5px] font-semibold uppercase tracking-[0.06em] text-muted">Users · 12 weeks</div>
           <div className="ml-auto font-serif text-[20px] text-ink">{growth.totalUsers.toLocaleString()}</div>
         </div>
-        <div className="flex h-[64px] items-end gap-[5px]">
-          {growth.weekly.map((w, i) => {
-            const heightPct = Math.max(4, Math.round((w.count / maxWeekly) * 100));
-            const opacity = 0.25 + (i / Math.max(1, growth.weekly.length - 1)) * 0.75;
-            return (
-              <div
-                key={w.weekStart}
-                className="flex-1 rounded-t-[3px] bg-green"
-                style={{ height: `${heightPct}%`, opacity }}
-                title={`Week of ${w.weekStart}: ${w.count} new user${w.count === 1 ? "" : "s"}`}
-              />
-            );
-          })}
-        </div>
+        <GrowthSparkBars weekly={growth.weekly} />
         <div className="text-[12px] text-green-deep">+{growth.newThisWeek} this week</div>
       </div>
 

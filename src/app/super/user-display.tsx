@@ -1,4 +1,4 @@
-import type { PlatformUserRow } from "@/db/queries/admin";
+import type { GrowthBucket, PlatformUserRow } from "@/db/queries/admin";
 import { daysSince } from "@/lib/time";
 
 // Pure/presentational helpers shared by the /super dashboard, the users
@@ -57,6 +57,29 @@ export function Avatar({
     >
       {initialOf(row)}
     </span>
+  );
+}
+
+/** 12-week spark-bar growth chart — shared by the dashboard and the usage
+ *  page. Presentational only (no hooks), so it's safe to render directly
+ *  from a Server Component page.tsx. */
+export function GrowthSparkBars({ weekly }: { weekly: GrowthBucket[] }) {
+  const maxWeekly = Math.max(1, ...weekly.map((w) => w.count));
+  return (
+    <div className="flex h-[64px] items-end gap-[5px]">
+      {weekly.map((w, i) => {
+        const heightPct = Math.max(4, Math.round((w.count / maxWeekly) * 100));
+        const opacity = 0.25 + (i / Math.max(1, weekly.length - 1)) * 0.75;
+        return (
+          <div
+            key={w.weekStart}
+            className="flex-1 rounded-t-[3px] bg-green"
+            style={{ height: `${heightPct}%`, opacity }}
+            title={`Week of ${w.weekStart}: ${w.count} new user${w.count === 1 ? "" : "s"}`}
+          />
+        );
+      })}
+    </div>
   );
 }
 

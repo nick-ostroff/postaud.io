@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getPlatformStats, listSeriesRegistry } from "@/db/queries/admin";
+import { getPlatformStats, listSeriesRegistry, type SeriesRegistryRow } from "@/db/queries/admin";
 import { relativeTime } from "@/lib/time";
 
 export const metadata = { title: "Series registry — Operator — PostAud.io" };
@@ -18,6 +18,19 @@ const TYPE_PILLS: Array<{ key: SubjectFilter; label: string }> = [
 
 function isSubjectFilter(v: string | undefined): v is SubjectFilter {
   return v === "all" || v === "person" || v === "self" || v === "organization" || v === "no_account";
+}
+
+const SERIES_COLS = "1fr 190px 130px 100px 100px 110px 150px";
+
+function ActivityCell({ row }: { row: SeriesRegistryRow }) {
+  if (row.stale) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-tint px-2.5 py-1 text-[11.5px] font-semibold text-amber">
+        <span className="h-1.5 w-1.5 rounded-full bg-current" /> Stale — {relativeTime(row.lastActivity)}
+      </span>
+    );
+  }
+  return <span className="text-muted">{relativeTime(row.lastActivity)}</span>;
 }
 
 export default async function SeriesRegistryPage({ searchParams }: { searchParams: SearchParams }) {
@@ -49,21 +62,20 @@ export default async function SeriesRegistryPage({ searchParams }: { searchParam
   }
 
   return (
-    <div>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="font-serif text-[26px] text-neutral-900 dark:text-white">Series registry</h1>
-          <p className="mt-1 text-[13.5px] text-neutral-500">
-            {stats.activeSeries.toLocaleString()} active series across all accounts. Titles and counts only — no
-            content.
+          <h1 className="font-serif text-[26px] text-ink">Series registry</h1>
+          <p className="mt-1 text-[13.5px] text-muted">
+            {stats.activeSeries.toLocaleString()} active series across all accounts — titles and counts only.
           </p>
         </div>
-        <span className="rounded-full bg-neutral-100 px-3 py-1.5 text-[11.5px] font-medium text-neutral-600 dark:bg-white/5 dark:text-neutral-400">
+        <span className="rounded-full bg-ink/8 px-3 py-1.5 text-[11.5px] font-medium text-muted">
           Metadata only
         </span>
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center gap-2.5">
+      <div className="flex flex-wrap items-center gap-2.5">
         <div className="flex flex-wrap gap-1.5">
           {TYPE_PILLS.map((p) => (
             <Link
@@ -71,8 +83,8 @@ export default async function SeriesRegistryPage({ searchParams }: { searchParam
               href={pillHref(p.key)}
               className={
                 p.key === type
-                  ? "rounded-full border border-emerald-600/40 bg-emerald-50 px-3.5 py-1.5 text-[12.5px] font-semibold text-emerald-800 dark:bg-emerald-900/25 dark:text-emerald-300"
-                  : "rounded-full border border-neutral-300 px-3.5 py-1.5 text-[12.5px] font-semibold text-neutral-600 hover:border-neutral-400 dark:border-neutral-700 dark:text-neutral-400"
+                  ? "rounded-full border border-green/40 bg-green-tint px-3.5 py-1.5 text-[12.5px] font-semibold text-green-deep"
+                  : "rounded-full border border-line-strong bg-white px-3.5 py-1.5 text-[12.5px] font-semibold text-ink-soft hover:bg-paper-2"
               }
             >
               {p.label}
@@ -84,69 +96,89 @@ export default async function SeriesRegistryPage({ searchParams }: { searchParam
             type="search"
             name="q"
             defaultValue={q ?? ""}
-            placeholder="Search series or accounts…"
-            className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-[13px] text-neutral-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-neutral-700 dark:bg-[#1c1c1e] dark:text-white"
+            placeholder="Search series or owner…"
+            className="w-full rounded-[10px] border border-line-strong bg-white px-3.5 py-2.5 text-[13.5px] text-ink placeholder:text-faint focus:border-green focus:outline-none focus:ring-1 focus:ring-green"
           />
           {type !== "all" && <input type="hidden" name="type" value={type} />}
         </form>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-[#111]">
-        <table className="w-full min-w-[920px] text-[13.5px]">
-          <thead className="bg-neutral-50 text-left text-neutral-600 dark:bg-[#161616] dark:text-neutral-400">
-            <tr>
-              <th className="px-4 py-3 font-medium">Account</th>
-              <th className="px-4 py-3 font-medium">Series</th>
-              <th className="px-4 py-3 font-medium">Subject type</th>
-              <th className="px-4 py-3 font-medium">Sessions</th>
-              <th className="px-4 py-3 font-medium">Facts</th>
-              <th className="px-4 py-3 font-medium">Members w/ access</th>
-              <th className="px-4 py-3 font-medium">Last activity</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-neutral-500">
-                  No series match.
-                </td>
-              </tr>
-            )}
-            {rows.map((r) => (
-              <tr key={r.id} className="hover:bg-neutral-50 dark:hover:bg-[#161616]">
-                <td className="px-4 py-3">
-                  <Link
-                    href={`/super/accounts/${r.organizationId}`}
-                    className="text-neutral-700 hover:text-emerald-700 dark:text-neutral-300 dark:hover:text-emerald-400"
-                  >
-                    {r.organizationName}
-                  </Link>
-                </td>
-                <td className="px-4 py-3 font-serif text-[15px] text-neutral-900 dark:text-white">{r.title}</td>
-                <td className="px-4 py-3">
-                  <span className="rounded-full border border-neutral-200 px-2.5 py-1 text-[11.5px] text-neutral-600 dark:border-neutral-700 dark:text-neutral-400">
-                    {r.subjectDisplay}
-                  </span>
-                </td>
-                <td className="px-4 py-3 tabular-nums text-neutral-900 dark:text-white">{r.sessions}</td>
-                <td className="px-4 py-3 tabular-nums text-neutral-900 dark:text-white">{r.facts}</td>
-                <td className="px-4 py-3 tabular-nums text-neutral-900 dark:text-white">{r.membersWithAccess}</td>
-                <td className="px-4 py-3">
-                  {r.stale ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[12px] font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
-                      <span className="h-1.5 w-1.5 rounded-full bg-current" /> Stale — {relativeTime(r.lastActivity)}
-                    </span>
-                  ) : (
-                    <span className="text-neutral-500">{relativeTime(r.lastActivity)}</span>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Desktop (lg+): full table */}
+      <div className="hidden overflow-x-auto rounded-xl border border-line bg-white lg:block">
+        <div
+          className="grid min-w-[1080px] items-center gap-x-3.5 border-b border-line px-[18px] py-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted"
+          style={{ gridTemplateColumns: SERIES_COLS }}
+        >
+          <div>Series</div>
+          <div>Owner</div>
+          <div>Subject</div>
+          <div>Sessions</div>
+          <div>Facts</div>
+          <div>Members</div>
+          <div>Last activity</div>
+        </div>
+        {rows.length === 0 && (
+          <div className="px-[18px] py-12 text-center text-[13px] text-muted">No series match.</div>
+        )}
+        {rows.map((r) => (
+          <div
+            key={r.id}
+            className="grid min-w-[1080px] items-center gap-x-3.5 border-b border-line px-[18px] py-3.5 text-[12.5px] last:border-b-0 hover:bg-paper-2"
+            style={{ gridTemplateColumns: SERIES_COLS }}
+          >
+            <div className="truncate font-serif text-[15px] text-ink">{r.title}</div>
+            <Link
+              href={`/super/accounts/${r.organizationId}`}
+              className="truncate text-ink-soft hover:text-green-deep"
+            >
+              {r.organizationName}
+            </Link>
+            <div className="text-muted">{r.subjectDisplay}</div>
+            <div className="font-serif text-[14px] tabular-nums text-ink">{r.sessions}</div>
+            <div className="font-mono text-[12px] font-medium tabular-nums text-ink-soft">
+              {r.facts.toLocaleString()}
+            </div>
+            <div className="tabular-nums text-muted">{r.membersWithAccess}</div>
+            <div>
+              <ActivityCell row={r} />
+            </div>
+          </div>
+        ))}
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-[13px] text-neutral-500">
+      {/* Mobile (<lg): stacked cards */}
+      <div className="flex flex-col gap-2.5 lg:hidden">
+        {rows.length === 0 && (
+          <div className="rounded-xl border border-line bg-white px-4 py-10 text-center text-[13px] text-muted">
+            No series match.
+          </div>
+        )}
+        {rows.map((r) => (
+          <Link
+            key={r.id}
+            href={`/super/accounts/${r.organizationId}`}
+            className="flex flex-col gap-1.5 rounded-xl border border-line bg-white px-4 py-3.5"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 truncate font-serif text-[15px] text-ink">{r.title}</div>
+              <div className="flex-none font-mono text-[12px] font-medium tabular-nums text-ink-soft">
+                {r.facts.toLocaleString()} facts
+              </div>
+            </div>
+            <div className="truncate text-[12px] text-muted">
+              {r.organizationName} · {r.subjectDisplay} · {r.sessions} session{r.sessions === 1 ? "" : "s"} ·{" "}
+              {r.membersWithAccess} member{r.membersWithAccess === 1 ? "" : "s"} ·{" "}
+              {r.stale ? (
+                <span className="font-medium text-amber">stale, {relativeTime(r.lastActivity)}</span>
+              ) : (
+                relativeTime(r.lastActivity)
+              )}
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2 text-[13px] text-muted">
         <div>
           Showing {rows.length === 0 ? 0 : offset + 1}–{offset + rows.length} of {total} active series · sorted by
           last activity
@@ -155,7 +187,7 @@ export default async function SeriesRegistryPage({ searchParams }: { searchParam
           {offset > 0 && (
             <Link
               href={pageHref(Math.max(0, offset - pageSize))}
-              className="rounded-lg border border-neutral-300 px-3 py-1.5 font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-[#161616]"
+              className="rounded-lg border border-line-strong px-3 py-1.5 font-medium text-ink-soft hover:bg-paper-2"
             >
               Previous
             </Link>
@@ -163,7 +195,7 @@ export default async function SeriesRegistryPage({ searchParams }: { searchParam
           {offset + rows.length < total && (
             <Link
               href={pageHref(offset + pageSize)}
-              className="rounded-lg border border-neutral-300 px-3 py-1.5 font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-[#161616]"
+              className="rounded-lg border border-line-strong px-3 py-1.5 font-medium text-ink-soft hover:bg-paper-2"
             >
               Next
             </Link>
