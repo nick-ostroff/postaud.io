@@ -86,14 +86,20 @@ export async function POST(_request: Request, { params }: { params: Params }) {
       .eq("series_id", series.id)
       .eq("status", "retell_queued")
       .order("created_at", { ascending: false }),
-    // Session number, derived the same way `listSeriesSessions` does it
-    // (src/db/queries.ts:414): order by started_at, 1-based. Only needed when
-    // the series has a planned-session target to pace against — but it's one
-    // indexed count, so we always fetch it rather than branch the Promise.all.
+    // Session number: count this series' completed/processed interviews
+    // started before this one, 1-based. Must match `listInterviewsForSeries`
+    // (src/db/queries.ts:391) — including its status filter — since that's
+    // the derivation the series page shows the user as "Session N". Without
+    // the filter, another conductor's still-in_progress or abandoned
+    // interview would inflate the count and desync the number Anna speaks
+    // from the one the page displays. Only needed when the series has a
+    // planned-session target to pace against — but it's one indexed count,
+    // so we always fetch it rather than branch the Promise.all.
     svc
       .from("interviews")
       .select("id", { count: "exact", head: true })
       .eq("series_id", series.id)
+      .in("status", ["completed", "processed"])
       .lt("started_at", interview.started_at),
   ]);
   if (topicsRes.error) {
