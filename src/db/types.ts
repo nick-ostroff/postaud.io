@@ -728,6 +728,7 @@ export type Database = {
       series_status: "active" | "paused" | "archived"
       subject_kind: "member" | "self" | "person" | "organization"
       series_tone: "warm" | "neutral" | "playful"
+      series_depth: "light" | "balanced" | "deep"
       interview_status: "in_progress" | "completed" | "processed" | "abandoned"
       message_role: "interviewer" | "subject"
       fact_status: "active" | "needs_review" | "superseded" | "retell_queued"
@@ -865,6 +866,7 @@ export const Constants = {
       series_status: ["active", "paused", "archived"],
       subject_kind: ["member", "self", "person", "organization"],
       series_tone: ["warm", "neutral", "playful"],
+      series_depth: ["light", "balanced", "deep"],
       interview_status: ["in_progress", "completed", "processed", "abandoned"],
       message_role: ["interviewer", "subject"],
       fact_status: ["active", "needs_review", "superseded", "retell_queued"],
