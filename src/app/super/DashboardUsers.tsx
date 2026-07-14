@@ -3,23 +3,36 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { PlatformUserRow, PlatformUserDetail } from "@/db/queries/admin";
-import { relativeTime } from "@/lib/time";
+import { relativeTime, daysSince } from "@/lib/time";
 import { ImpersonateButton } from "@/components/super/ImpersonateButton";
 
 export type DashboardUserStatus = "active" | "dormant" | "invited";
 export type DashboardUserRow = PlatformUserRow & { status: DashboardUserStatus };
 
-function displayName(row: Pick<DashboardUserRow, "displayName" | "email">): string {
+// Shared status derivation — used by the dashboard, the users list, and the
+// user detail page so "Active"/"Dormant"/"Invited" always means the same
+// thing everywhere in the operator console.
+const STATUS_DORMANT_DAYS = 30;
+
+export function computeStatus(u: Pick<PlatformUserRow, "orgs" | "lastActivity">): DashboardUserStatus {
+  // Invited: every org membership this user has is still a pending
+  // invite — nobody has accepted anything yet.
+  if (u.orgs.length > 0 && u.orgs.every((o) => !o.accepted)) return "invited";
+  if (!u.lastActivity) return "dormant";
+  return daysSince(u.lastActivity) > STATUS_DORMANT_DAYS ? "dormant" : "active";
+}
+
+export function displayName(row: { displayName: string | null; email: string }): string {
   return row.displayName ?? row.email.split("@")[0];
 }
 
-function initialOf(row: Pick<DashboardUserRow, "displayName" | "email">): string {
+export function initialOf(row: { displayName: string | null; email: string }): string {
   return (row.displayName ?? row.email).slice(0, 1).toUpperCase();
 }
 
 /** Compact "invited N · assignees N · subjects N" line — real counts only,
  *  shared by the desktop table's Network column, the panel, and mobile cards. */
-function networkLabel(row: Pick<DashboardUserRow, "network">): string {
+export function networkLabel(row: { network: { invited: number; assignees: number; subjects: number } }): string {
   const { invited, assignees, subjects } = row.network;
   const parts: string[] = [];
   if (invited > 0) parts.push(`invited ${invited}`);
@@ -28,7 +41,13 @@ function networkLabel(row: Pick<DashboardUserRow, "network">): string {
   return parts.length > 0 ? parts.join(" · ") : "organic";
 }
 
-function Avatar({ row, size = 30 }: { row: DashboardUserRow; size?: number }) {
+export function Avatar({
+  row,
+  size = 30,
+}: {
+  row: { displayName: string | null; email: string };
+  size?: number;
+}) {
   return (
     <span
       className="grid flex-none place-items-center rounded-full bg-green-tint font-semibold text-green-deep"
@@ -39,7 +58,7 @@ function Avatar({ row, size = 30 }: { row: DashboardUserRow; size?: number }) {
   );
 }
 
-function StatusPill({ status }: { status: DashboardUserStatus }) {
+export function StatusPill({ status }: { status: DashboardUserStatus }) {
   if (status === "active") {
     return (
       <span className="inline-flex items-center rounded-full bg-green-tint px-2.5 py-[3px] text-[11px] font-semibold text-green-deep">

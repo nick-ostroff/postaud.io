@@ -1,30 +1,36 @@
 import Link from "next/link";
-import { getPlatformStats, listPlatformUsers } from "@/db/queries/admin";
+import { getPlatformStats, getPlatformGrowth, listPlatformUsers, type PlatformUserRow } from "@/db/queries/admin";
 import { relativeTime } from "@/lib/time";
 import { ImpersonateButton } from "@/components/super/ImpersonateButton";
+import { Avatar, StatusPill, computeStatus, displayName, networkLabel } from "../DashboardUsers";
 
 export const metadata = { title: "Users — Operator — PostAud.io" };
 
 type SearchParams = Promise<{ q?: string; offset?: string }>;
 
-function StatTile({ n, label }: { n: number; label: string }) {
+function joinedLabel(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", year: "numeric" });
+}
+
+function KpiTile({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white px-4 py-4 dark:border-neutral-800 dark:bg-[#111]">
-      <div className="font-serif text-[28px] leading-tight text-neutral-900 dark:text-white">
-        {n.toLocaleString()}
-      </div>
-      <div className="mt-0.5 text-[12px] text-neutral-500">{label}</div>
+    <div className="flex-1 rounded-[10px] bg-paper px-3 py-2.5">
+      <div className="text-[10.5px] font-semibold uppercase tracking-[0.05em] text-muted">{label}</div>
+      <div className="mt-0.5 font-serif text-[19px] text-ink">{value.toLocaleString()}</div>
     </div>
   );
 }
+
+const TABLE_COLS = "240px 110px 1fr 100px 100px 110px 90px 120px";
 
 export default async function SuperUsersPage({ searchParams }: { searchParams: SearchParams }) {
   const { q, offset: offsetStr } = await searchParams;
   const offset = Number.isFinite(Number(offsetStr)) && Number(offsetStr) > 0 ? Number(offsetStr) : 0;
   const pageSize = 50;
 
-  const [stats, { rows, total }] = await Promise.all([
+  const [stats, growth, { rows, total }] = await Promise.all([
     getPlatformStats(),
+    getPlatformGrowth(),
     listPlatformUsers({ search: q, limit: pageSize, offset }),
   ]);
 
@@ -37,107 +43,123 @@ export default async function SuperUsersPage({ searchParams }: { searchParams: S
   }
 
   return (
-    <div>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="font-serif text-[26px] text-neutral-900 dark:text-white">Users</h1>
-          <p className="mt-1 text-[13.5px] text-neutral-500">Everyone on the platform.</p>
+          <h1 className="font-serif text-[26px] text-ink">Users</h1>
+          <p className="mt-1 text-[13.5px] text-muted">Everyone on the platform — metadata only.</p>
         </div>
-        <span className="rounded-full bg-neutral-100 px-3 py-1.5 text-[11.5px] font-medium text-neutral-600 dark:bg-white/5 dark:text-neutral-400">
-          Metadata only — content requires impersonation
+        <span className="rounded-full bg-ink/8 px-3 py-1.5 text-[11.5px] font-medium text-muted">
+          Content requires impersonation
         </span>
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-3.5 md:grid-cols-4">
-        <StatTile n={stats.totalUsers} label="users" />
-        <StatTile n={stats.activeSeries} label="active series" />
-        <StatTile n={stats.interviewsThisWeek} label="interviews this week" />
-        <StatTile n={stats.totalFacts} label="facts extracted, all time" />
+      {/* Mobile-only KPI mini-tiles */}
+      <div className="flex gap-2.5 lg:hidden">
+        <KpiTile label="New/wk" value={growth.newThisWeek} />
+        <KpiTile label="Interviews" value={stats.interviewsThisWeek} />
+        <KpiTile label="Facts" value={stats.totalFacts} />
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center gap-2.5">
-        <form className="ml-auto w-full max-w-xs sm:w-72">
+      <div className="flex flex-wrap items-center gap-2.5">
+        <form className="w-full sm:w-80">
           <input
             type="search"
             name="q"
             defaultValue={q ?? ""}
             placeholder="Search name or email…"
-            className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-[13px] text-neutral-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-neutral-700 dark:bg-[#1c1c1e] dark:text-white"
+            className="w-full rounded-[10px] border border-line-strong bg-white px-3.5 py-2.5 text-[13.5px] text-ink placeholder:text-faint focus:border-green focus:outline-none focus:ring-1 focus:ring-green"
           />
         </form>
+        <div className="ml-auto text-[12.5px] text-muted">
+          {rows.length === 0 ? 0 : offset + 1}–{offset + rows.length} of {total.toLocaleString()}
+        </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-[#111]">
-        <table className="w-full min-w-[880px] text-[13.5px]">
-          <thead className="bg-neutral-50 text-left text-neutral-600 dark:bg-[#161616] dark:text-neutral-400">
-            <tr>
-              <th className="px-4 py-3 font-medium">User</th>
-              <th className="px-4 py-3 font-medium">Accounts</th>
-              <th className="px-4 py-3 font-medium">Subject of</th>
-              <th className="px-4 py-3 font-medium">Last activity</th>
-              <th className="px-4 py-3 font-medium">Joined</th>
-              <th className="px-4 py-3 font-medium"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-neutral-500">
-                  No users match.
-                </td>
-              </tr>
-            )}
-            {rows.map((u) => (
-              <tr key={u.id} className="hover:bg-neutral-50 dark:hover:bg-[#161616]">
-                <td className="px-4 py-3">
-                  <Link
-                    href={`/super/users/${u.id}`}
-                    className="font-medium text-neutral-900 hover:text-emerald-700 dark:text-white dark:hover:text-emerald-400"
-                  >
-                    {u.displayName ?? u.email.split("@")[0]}
-                  </Link>
-                  <div className="text-[12px] text-neutral-500">{u.email}</div>
-                </td>
-                <td className="px-4 py-3">
-                  {u.orgs.length === 0 ? (
-                    <span className="text-neutral-400">—</span>
-                  ) : (
-                    <div className="flex flex-wrap gap-1.5">
-                      {u.orgs.map((o) => (
-                        <Link
-                          key={o.id}
-                          href={`/super/accounts/${o.id}`}
-                          className={
-                            "rounded-full px-2 py-0.5 text-[11.5px] font-medium " +
-                            (o.accepted
-                              ? "bg-neutral-100 text-neutral-600 hover:text-emerald-700 dark:bg-white/10 dark:text-neutral-300"
-                              : "bg-amber-50 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300")
-                          }
-                          title={o.accepted ? o.role : `${o.role} · invited, not accepted`}
-                        >
-                          {o.name} · {o.role}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </td>
-                <td className="px-4 py-3 tabular-nums text-neutral-900 dark:text-white">
-                  {u.subjectOfCount === 0 ? <span className="text-neutral-400">—</span> : u.subjectOfCount}
-                </td>
-                <td className="px-4 py-3 text-neutral-500">{relativeTime(u.lastActivity)}</td>
-                <td className="px-4 py-3 text-neutral-500">
-                  {new Date(u.createdAt).toLocaleDateString(undefined, { month: "short", year: "numeric" })}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <ImpersonateButton userId={u.id} label="⚿ Log in as" />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Desktop (lg+): full table */}
+      <div className="hidden overflow-x-auto rounded-xl border border-line bg-white lg:block">
+        <div
+          className="grid min-w-[1080px] items-center gap-x-3.5 border-b border-line px-[18px] py-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted"
+          style={{ gridTemplateColumns: TABLE_COLS }}
+        >
+          <div>User</div>
+          <div>Joined</div>
+          <div>Network</div>
+          <div>Series</div>
+          <div>Facts</div>
+          <div>Last active</div>
+          <div>Status</div>
+          <div></div>
+        </div>
+        {rows.length === 0 && (
+          <div className="px-[18px] py-12 text-center text-[13px] text-muted">No users match.</div>
+        )}
+        {rows.map((u) => {
+          const status = computeStatus(u);
+          return (
+            <div
+              key={u.id}
+              className="grid min-w-[1080px] items-center gap-x-3.5 border-b border-line px-[18px] py-3.5 text-[12.5px] last:border-b-0 hover:bg-paper-2"
+              style={{ gridTemplateColumns: TABLE_COLS }}
+            >
+              <Link href={`/super/users/${u.id}`} className="flex min-w-0 items-center gap-2.5">
+                <Avatar row={u} size={32} />
+                <div className="min-w-0">
+                  <div className="truncate text-[13.5px] font-medium text-ink">{displayName(u)}</div>
+                  <div className="truncate text-[11.5px] text-muted">{u.email}</div>
+                </div>
+              </Link>
+              <div className="text-muted">{joinedLabel(u.createdAt)}</div>
+              <div className="truncate text-ink-soft">{networkLabel(u)}</div>
+              <div className="text-ink">{u.seriesCount} owned</div>
+              <div className="font-mono text-[12px] font-medium tabular-nums text-ink-soft">
+                {u.factsCount > 0 ? u.factsCount.toLocaleString() : "—"}
+              </div>
+              <div className="text-muted">{relativeTime(u.lastActivity)}</div>
+              <div>
+                <StatusPill status={status} />
+              </div>
+              <div className="text-right">
+                <ImpersonateButton
+                  userId={u.id}
+                  label="Impersonate"
+                  className="rounded-full border border-line-strong px-3 py-1.5 text-[11.5px] font-medium text-ink-soft hover:bg-paper-2 disabled:opacity-60"
+                />
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-[13px] text-neutral-500">
+      {/* Mobile (<lg): stacked cards */}
+      <div className="flex flex-col gap-2.5 lg:hidden">
+        {rows.length === 0 && (
+          <div className="rounded-xl border border-line bg-white px-4 py-10 text-center text-[13px] text-muted">
+            No users match.
+          </div>
+        )}
+        {rows.map((u: PlatformUserRow) => {
+          const status = computeStatus(u);
+          return (
+            <Link
+              key={u.id}
+              href={`/super/users/${u.id}`}
+              className="flex items-center gap-3 rounded-xl border border-line bg-white px-4 py-3.5"
+            >
+              <Avatar row={u} />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[13.5px] font-medium text-ink">{displayName(u)}</div>
+                <div className="truncate text-[12px] text-muted">
+                  invited {u.network.invited} · {u.seriesCount} series · {u.factsCount.toLocaleString()} facts
+                </div>
+              </div>
+              <StatusPill status={status} />
+            </Link>
+          );
+        })}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2 text-[13px] text-muted">
         <div>
           Showing {rows.length === 0 ? 0 : offset + 1}–{offset + rows.length} of {total} users · sorted by last
           activity
@@ -146,7 +168,7 @@ export default async function SuperUsersPage({ searchParams }: { searchParams: S
           {offset > 0 && (
             <Link
               href={pageHref(Math.max(0, offset - pageSize))}
-              className="rounded-lg border border-neutral-300 px-3 py-1.5 font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-[#161616]"
+              className="rounded-lg border border-line-strong px-3 py-1.5 font-medium text-ink-soft hover:bg-paper-2"
             >
               Previous
             </Link>
@@ -154,7 +176,7 @@ export default async function SuperUsersPage({ searchParams }: { searchParams: S
           {offset + rows.length < total && (
             <Link
               href={pageHref(offset + pageSize)}
-              className="rounded-lg border border-neutral-300 px-3 py-1.5 font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-[#161616]"
+              className="rounded-lg border border-line-strong px-3 py-1.5 font-medium text-ink-soft hover:bg-paper-2"
             >
               Next
             </Link>

@@ -887,7 +887,20 @@ export async function listPlatformUsers(opts: {
 export type PlatformUserDetail = {
   user: { id: string; email: string; displayName: string | null; createdAt: string };
   orgs: PlatformUserOrg[];
-  seriesOwned: Array<{ id: string; title: string; organizationId: string }>;
+  // Last interview activity across every org this user belongs to — same
+  // computation listPlatformUsers uses for the list's "Last active" column,
+  // so the detail page and the list always agree.
+  lastActivity: string | null;
+  network: { invited: number; assignees: number; subjects: number };
+  seriesOwned: Array<{
+    id: string;
+    title: string;
+    organizationId: string;
+    subjectDisplay: SubjectDisplay;
+    sessions: number;
+    facts: number;
+    lastActivity: string | null;
+  }>;
   seriesSubjectOf: Array<{ id: string; title: string; organizationId: string }>;
   // Series this user created, ranked by real fact counts (highest first),
   // capped to 5 — feeds the dashboard slide-in panel's "Top series" list.
@@ -915,7 +928,7 @@ export async function getPlatformUserDetail(userId: string): Promise<PlatformUse
     // Titles only — never transcript or fact content.
     svc
       .from("series")
-      .select("id, title, organization_id, created_by, subject_user_id")
+      .select("id, title, organization_id, created_by, subject_user_id, subject_kind, subject_name")
       .or(`created_by.eq.${userId},subject_user_id.eq.${userId}`),
     // `conducted_by` is the interviews table's per-user column (0001_init.sql).
     svc.from("interviews").select("id", { count: "exact", head: true }).eq("conducted_by", userId),
@@ -928,13 +941,35 @@ export async function getPlatformUserDetail(userId: string): Promise<PlatformUse
   ]);
 
   const seriesIds = (series ?? []).map((s) => s.id);
-  // Row-level fetch (not head-count): one query gives both the total
-  // factCount (across owned + subject-of series) AND a per-series
-  // breakdown for topSeries below, without a second round trip.
-  // Counting only — never select `statement`.
-  const { data: factRows } = seriesIds.length
-    ? await svc.from("facts").select("id, series_id").in("series_id", seriesIds)
-    : { data: [] as Array<{ id: string; series_id: string }> };
+  const orgIds = (memberships ?? []).map((m) => m.organization_id);
+
+  const [{ data: factRows }, { data: seriesInterviews }, { data: seriesAccessRows }, { data: orgInterviews }, { data: orgMemberships }] =
+    await Promise.all([
+      // Row-level fetch (not head-count): one query gives both the total
+      // factCount (across owned + subject-of series) AND a per-series
+      // breakdown for topSeries/seriesOwned below, without a second round trip.
+      // Counting only — never select `statement`.
+      seriesIds.length
+        ? svc.from("facts").select("id, series_id").in("series_id", seriesIds)
+        : Promise.resolve({ data: [] as Array<{ id: string; series_id: string }> }),
+      seriesIds.length
+        ? svc.from("interviews").select("series_id, started_at").in("series_id", seriesIds)
+        : Promise.resolve({ data: [] as Array<{ series_id: string; started_at: string }> }),
+      seriesIds.length
+        ? svc.from("series_access").select("series_id, user_id").in("series_id", seriesIds)
+        : Promise.resolve({ data: [] as Array<{ series_id: string; user_id: string }> }),
+      orgIds.length
+        ? svc.from("interviews").select("organization_id, started_at").in("organization_id", orgIds)
+        : Promise.resolve({ data: [] as Array<{ organization_id: string; started_at: string }> }),
+      // Fellow members of this user's own orgs — needed to tell whether this
+      // user is an org's owner (earliest admin) and, if so, how many people
+      // they invited. Mirrors listPlatformUsers' ownerByOrg/invitedCount.
+      orgIds.length
+        ? svc.from("memberships").select("organization_id, user_id, role, created_at").in("organization_id", orgIds)
+        : Promise.resolve({
+            data: [] as Array<{ organization_id: string; user_id: string; role: MemberRole; created_at: string }>,
+          }),
+    ]);
 
   const factsBySeries = new Map<string, number>();
   for (const f of factRows ?? []) {
@@ -942,14 +977,69 @@ export async function getPlatformUserDetail(userId: string): Promise<PlatformUse
   }
   const factCount = (factRows ?? []).length;
 
+  const sessionsBySeries = new Map<string, number>();
+  const lastActivityBySeries = new Map<string, string>();
+  for (const row of seriesInterviews ?? []) {
+    sessionsBySeries.set(row.series_id, (sessionsBySeries.get(row.series_id) ?? 0) + 1);
+    const prev = lastActivityBySeries.get(row.series_id);
+    if (!prev || new Date(row.started_at) > new Date(prev)) {
+      lastActivityBySeries.set(row.series_id, row.started_at);
+    }
+  }
+
   const seriesOwned = (series ?? [])
     .filter((s) => s.created_by === userId)
-    .map((s) => ({ id: s.id, title: s.title, organizationId: s.organization_id }));
+    .map((s) => ({
+      id: s.id,
+      title: s.title,
+      organizationId: s.organization_id,
+      subjectDisplay: subjectDisplay(s.subject_kind, s.subject_user_id),
+      sessions: sessionsBySeries.get(s.id) ?? 0,
+      facts: factsBySeries.get(s.id) ?? 0,
+      lastActivity: lastActivityBySeries.get(s.id) ?? null,
+    }));
 
   const topSeries = seriesOwned
-    .map((s) => ({ id: s.id, title: s.title, facts: factsBySeries.get(s.id) ?? 0 }))
+    .map((s) => ({ id: s.id, title: s.title, facts: s.facts }))
     .sort((a, b) => b.facts - a.facts)
     .slice(0, 5);
+
+  // --- network: invited / assignees / subjects (same definitions as
+  // listPlatformUsers, scoped to this one user) ---
+  const membershipsByOrg = new Map<string, NonNullable<typeof orgMemberships>>();
+  for (const m of orgMemberships ?? []) {
+    const list = membershipsByOrg.get(m.organization_id) ?? [];
+    list.push(m);
+    membershipsByOrg.set(m.organization_id, list);
+  }
+  let invited = 0;
+  for (const orgMembers of membershipsByOrg.values()) {
+    const owner = [...orgMembers]
+      .filter((m) => m.role === "admin")
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0];
+    if (owner?.user_id === userId) {
+      invited += orgMembers.filter((m) => m.user_id !== userId).length;
+    }
+  }
+
+  const assignees = new Set<string>();
+  for (const row of seriesAccessRows ?? []) {
+    if (row.user_id !== userId && (seriesOwned.some((s) => s.id === row.series_id))) {
+      assignees.add(row.user_id);
+    }
+  }
+
+  const subjects = new Set<string>();
+  for (const s of series ?? []) {
+    if (s.created_by === userId && s.subject_user_id && s.subject_user_id !== userId) {
+      subjects.add(s.subject_user_id);
+    }
+  }
+
+  const lastActivity = (orgInterviews ?? []).reduce<string | null>((latest, iv) => {
+    if (!latest || new Date(iv.started_at) > new Date(latest)) return iv.started_at;
+    return latest;
+  }, null);
 
   return {
     user: {
@@ -964,6 +1054,8 @@ export async function getPlatformUserDetail(userId: string): Promise<PlatformUse
       role: m.role as MemberRole,
       accepted: m.accepted_at !== null,
     })),
+    lastActivity,
+    network: { invited, assignees: assignees.size, subjects: subjects.size },
     seriesOwned,
     seriesSubjectOf: (series ?? [])
       .filter((s) => s.subject_user_id === userId)

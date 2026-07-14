@@ -1,21 +1,7 @@
-import { getPlatformStats, getPlatformGrowth, listPlatformUsers, type PlatformUserRow } from "@/db/queries/admin";
-import { daysSince } from "@/lib/time";
-import { DashboardUsers, type DashboardUserRow, type DashboardUserStatus } from "./DashboardUsers";
+import { getPlatformStats, getPlatformGrowth, listPlatformUsers } from "@/db/queries/admin";
+import { DashboardUsers, computeStatus, type DashboardUserRow } from "./DashboardUsers";
 
 export const metadata = { title: "Dashboard — Operator — PostAud.io" };
-
-// Matches the "Dormant > 30 days" KPI tile — distinct constant from the
-// account-level DORMANT_DAYS (42) used elsewhere in admin.ts; this dashboard
-// mirrors getPlatformGrowth's own GROWTH_DORMANT_DAYS threshold.
-const DASHBOARD_DORMANT_DAYS = 30;
-
-function computeStatus(u: PlatformUserRow): DashboardUserStatus {
-  // Invited: every org membership this user has is still a pending
-  // invite — nobody has accepted anything yet.
-  if (u.orgs.length > 0 && u.orgs.every((o) => !o.accepted)) return "invited";
-  if (!u.lastActivity) return "dormant";
-  return daysSince(u.lastActivity) > DASHBOARD_DORMANT_DAYS ? "dormant" : "active";
-}
 
 function KpiTile({
   label,
