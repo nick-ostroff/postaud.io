@@ -65,7 +65,16 @@ const BASE = {
     { id: "s2", title: "Her story", organization_id: "o1", created_by: "u9", subject_user_id: "u1" },
   ],
   interviews: 4,
-  facts: 17,
+  // Row-level facts (not a head count) — 3 on s1 (owned by u1), 2 on s2
+  // (u1 is only the subject, not the owner). factCount totals both series;
+  // topSeries only ranks series u1 actually created.
+  facts: [
+    { id: "f1", series_id: "s1" },
+    { id: "f2", series_id: "s1" },
+    { id: "f3", series_id: "s1" },
+    { id: "f4", series_id: "s2" },
+    { id: "f5", series_id: "s2" },
+  ],
   audit_logs: [
     { id: 1, at: "2026-06-01T00:00:00Z", action: "admin.impersonation_started", actor_email: "nick@pixelocity.com" },
   ],
@@ -103,7 +112,14 @@ describe("getPlatformUserDetail", () => {
   it("returns interview and fact counts", async () => {
     const d = (await getPlatformUserDetail("u1"))!;
     expect(d.interviewCount).toBe(4);
-    expect(d.factCount).toBe(17);
+    expect(d.factCount).toBe(5); // 3 on s1 + 2 on s2, both in this user's series set
+  });
+
+  it("ranks topSeries by real per-series fact counts, limited to series the user owns", async () => {
+    const d = (await getPlatformUserDetail("u1"))!;
+    // s2 has facts too, but u1 didn't create it (u9 did) — only owned
+    // series ("Dad's stories") appear in topSeries.
+    expect(d.topSeries).toEqual([{ id: "s1", title: "Dad's stories", facts: 3 }]);
   });
 
   it("returns the audit trail", async () => {
@@ -115,6 +131,67 @@ describe("getPlatformUserDetail", () => {
   it("returns null for an unknown user", async () => {
     mocks.serviceClient.mockReturnValue(makeSvc({ ...BASE, users: null }, calls));
     await expect(getPlatformUserDetail("nope")).resolves.toBeNull();
+  });
+
+  it("returns an owned-only factsCount that agrees with listPlatformUsers' definition, distinct from the owned+subject-of factCount", async () => {
+    const d = (await getPlatformUserDetail("u1"))!;
+    // factCount totals both series (s1 + s2, see BASE.facts comment above);
+    // factsCount is owned-series-only (s1 alone) — same shape as the Users
+    // list's factsCount column, so the identity card's bare "Facts" label
+    // can use factsCount and agree with the list for the same person.
+    expect(d.factsCount).toBe(3);
+    expect(d.factCount).toBe(5);
+  });
+
+  it("computes network counts (same definitions as listPlatformUsers) and populates per-series sessions/facts/lastActivity", async () => {
+    const fixture = {
+      ...BASE,
+      series: [
+        ...BASE.series,
+        // A series u1 created with a subject who isn't u1 — BASE alone
+        // never exercises the "subjects" leg of network.
+        { id: "s3", title: "Extra series", organization_id: "o1", created_by: "u1", subject_user_id: "u4" },
+      ],
+      memberships: [
+        // u1 is the earliest admin of o1 -> its owner -> "invited" counts
+        // every other member of o1 (mirrors listPlatformUsers.invitedCount).
+        {
+          organization_id: "o1",
+          user_id: "u1",
+          role: "admin",
+          created_at: "2026-01-02T00:00:00Z",
+          accepted_at: "2026-01-02T00:00:00Z",
+          organizations: { name: "Acme" },
+        },
+        {
+          organization_id: "o1",
+          user_id: "u2",
+          role: "member",
+          created_at: "2026-01-03T00:00:00Z",
+          accepted_at: "2026-01-03T00:00:00Z",
+          organizations: { name: "Acme" },
+        },
+      ],
+      series_access: [
+        // u3 has access to s1, which u1 owns -> counts as an "assignee"
+        // (mirrors listPlatformUsers.assigneesCount).
+        { series_id: "s1", user_id: "u3" },
+      ],
+      interviews: [
+        { series_id: "s1", organization_id: "o1", started_at: "2026-05-01T00:00:00Z" },
+        { series_id: "s1", organization_id: "o1", started_at: "2026-05-03T00:00:00Z" },
+      ],
+    };
+    mocks.serviceClient.mockReturnValue(makeSvc(fixture, calls));
+
+    const d = (await getPlatformUserDetail("u1"))!;
+
+    expect(d.network).toEqual({ invited: 1, assignees: 1, subjects: 1 });
+
+    const s1 = d.seriesOwned.find((s) => s.id === "s1")!;
+    expect(s1.sessions).toBe(2);
+    expect(s1.facts).toBe(3);
+    expect(d.lastActivity).toBe("2026-05-03T00:00:00Z");
   });
 
   it("filters every query on the requested user, not an unscoped or wrong column", async () => {

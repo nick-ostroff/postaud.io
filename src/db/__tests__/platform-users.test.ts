@@ -120,3 +120,195 @@ describe("listPlatformUsers", () => {
     expect(rows.map((r) => r.id)).toEqual(["u3"]);
   });
 });
+
+// -----------------------------------------------------------------------
+// network + factsCount (Task R1) — own fixtures, isolated from the shared
+// USERS/MEMBERSHIPS/SERIES/INTERVIEWS above so these additions can't shift
+// any of the pre-existing assertions (lastActivity, sort order, search).
+// -----------------------------------------------------------------------
+describe("listPlatformUsers — network + factsCount", () => {
+  const NET_USERS = [
+    { id: "n1", email: "owner@example.com", display_name: "Owner", created_at: "2026-01-01T00:00:00Z" },
+    { id: "n2", email: "member2@example.com", display_name: null, created_at: "2026-01-02T00:00:00Z" },
+    { id: "n3", email: "member3@example.com", display_name: null, created_at: "2026-01-03T00:00:00Z" },
+    { id: "n4", email: "subject@example.com", display_name: null, created_at: "2026-01-04T00:00:00Z" },
+    { id: "n5", email: "assignee@example.com", display_name: null, created_at: "2026-01-05T00:00:00Z" },
+  ];
+
+  // n1 is the earliest admin (owner) of org1; n2 and n3 are its two other members.
+  const NET_MEMBERSHIPS = [
+    {
+      user_id: "n1",
+      organization_id: "org1",
+      role: "admin",
+      created_at: "2026-01-01T00:00:00Z",
+      accepted_at: "2026-01-01T00:00:00Z",
+      organizations: { name: "OrgOne" },
+    },
+    {
+      user_id: "n2",
+      organization_id: "org1",
+      role: "interviewer",
+      created_at: "2026-01-02T00:00:00Z",
+      accepted_at: "2026-01-02T00:00:00Z",
+      organizations: { name: "OrgOne" },
+    },
+    {
+      user_id: "n3",
+      organization_id: "org1",
+      role: "viewer",
+      created_at: "2026-01-03T00:00:00Z",
+      accepted_at: "2026-01-03T00:00:00Z",
+      organizations: { name: "OrgOne" },
+    },
+  ];
+
+  // n1 created ns1, whose subject is n4 (a different user).
+  const NET_SERIES = [{ id: "ns1", title: "Family history", subject_user_id: "n4", created_by: "n1" }];
+
+  // n5 was granted access to n1's series.
+  const NET_SERIES_ACCESS = [{ series_id: "ns1", user_id: "n5" }];
+
+  // 3 facts on n1's series; none anywhere else.
+  const NET_FACTS = [
+    { id: "f1", series_id: "ns1" },
+    { id: "f2", series_id: "ns1" },
+    { id: "f3", series_id: "ns1" },
+  ];
+
+  beforeEach(() => {
+    mocks.serviceClient.mockReturnValue(
+      makeSvc({
+        users: NET_USERS,
+        memberships: NET_MEMBERSHIPS,
+        series: NET_SERIES,
+        interviews: [],
+        series_access: NET_SERIES_ACCESS,
+        facts: NET_FACTS,
+      }),
+    );
+  });
+
+  it("counts invited as the other members of an org this user is the earliest admin (owner) of", async () => {
+    const { rows } = await listPlatformUsers({});
+    expect(rows.find((r) => r.id === "n1")!.network.invited).toBe(2);
+    // n2 is a member but not the owner of any org -> 0, not counted against itself.
+    expect(rows.find((r) => r.id === "n2")!.network.invited).toBe(0);
+  });
+
+  it("counts subjects as distinct non-self subject_user_id on series this user created", async () => {
+    const { rows } = await listPlatformUsers({});
+    expect(rows.find((r) => r.id === "n1")!.network.subjects).toBe(1);
+    expect(rows.find((r) => r.id === "n4")!.network.subjects).toBe(0);
+  });
+
+  it("counts assignees as distinct series_access grants (excluding self) on series this user created", async () => {
+    const { rows } = await listPlatformUsers({});
+    expect(rows.find((r) => r.id === "n1")!.network.assignees).toBe(1);
+    expect(rows.find((r) => r.id === "n5")!.network.assignees).toBe(0);
+  });
+
+  it("sums factsCount across series this user created only", async () => {
+    const { rows } = await listPlatformUsers({});
+    expect(rows.find((r) => r.id === "n1")!.factsCount).toBe(3);
+    // n4 is the subject of ns1, not its creator -> not credited with its facts.
+    expect(rows.find((r) => r.id === "n4")!.factsCount).toBe(0);
+  });
+
+  it("counts seriesCount as series this user created only", async () => {
+    const { rows } = await listPlatformUsers({});
+    expect(rows.find((r) => r.id === "n1")!.seriesCount).toBe(1);
+    // n4 is the subject of ns1, not its creator -> doesn't own any series.
+    expect(rows.find((r) => r.id === "n4")!.seriesCount).toBe(0);
+  });
+});
+
+// -----------------------------------------------------------------------
+// network self-exclusion + dedup (Task R2 mutation-coverage gaps) — each
+// test below sets its own mock return value so the three fixtures stay
+// fully isolated from each other and from the blocks above. Every fixture
+// is built so the guard under test is the *only* thing standing between
+// the asserted count and a wrong one: delete the guard and the count
+// asserted here changes.
+// -----------------------------------------------------------------------
+describe("listPlatformUsers — network self-exclusion + dedup", () => {
+  it("excludes the creator from their own network.subjects when they are the subject of their own series", async () => {
+    // a1 created both series. ss1's subject is a1 itself (self-interview);
+    // ss2's subject is a2. Without the `subject_user_id !== created_by`
+    // guard in admin.ts, a1 would count itself as a subject too, making
+    // network.subjects 2 instead of 1.
+    mocks.serviceClient.mockReturnValue(
+      makeSvc({
+        users: [
+          { id: "a1", email: "a1@example.com", display_name: null, created_at: "2026-01-01T00:00:00Z" },
+          { id: "a2", email: "a2@example.com", display_name: null, created_at: "2026-01-02T00:00:00Z" },
+        ],
+        memberships: [],
+        series: [
+          { id: "ss1", title: "Self series", subject_user_id: "a1", created_by: "a1" },
+          { id: "ss2", title: "Other series", subject_user_id: "a2", created_by: "a1" },
+        ],
+        interviews: [],
+        series_access: [],
+        facts: [],
+      }),
+    );
+
+    const { rows } = await listPlatformUsers({});
+    expect(rows.find((r) => r.id === "a1")!.network.subjects).toBe(1);
+  });
+
+  it("excludes the creator from their own network.assignees when granted access to their own series", async () => {
+    // b1 created as1 and also holds a series_access grant on it (e.g. via
+    // an org-wide default grant). b2 holds the other grant. Without the
+    // `uid !== userId` guard in assigneesCount, b1 would count itself too,
+    // making network.assignees 2 instead of 1.
+    mocks.serviceClient.mockReturnValue(
+      makeSvc({
+        users: [
+          { id: "b1", email: "b1@example.com", display_name: null, created_at: "2026-01-01T00:00:00Z" },
+          { id: "b2", email: "b2@example.com", display_name: null, created_at: "2026-01-02T00:00:00Z" },
+        ],
+        memberships: [],
+        series: [{ id: "as1", title: "Series", subject_user_id: null, created_by: "b1" }],
+        interviews: [],
+        series_access: [
+          { series_id: "as1", user_id: "b1" },
+          { series_id: "as1", user_id: "b2" },
+        ],
+        facts: [],
+      }),
+    );
+
+    const { rows } = await listPlatformUsers({});
+    expect(rows.find((r) => r.id === "b1")!.network.assignees).toBe(1);
+  });
+
+  it("dedups network.assignees when the same other user has access to two series from the same creator", async () => {
+    // c1 created two series; c2 was granted access to both. c2 must count
+    // once toward c1's network.assignees, not once per grant. Without the
+    // cross-series Set dedup in assigneesCount, this would be 2 instead of 1.
+    mocks.serviceClient.mockReturnValue(
+      makeSvc({
+        users: [
+          { id: "c1", email: "c1@example.com", display_name: null, created_at: "2026-01-01T00:00:00Z" },
+          { id: "c2", email: "c2@example.com", display_name: null, created_at: "2026-01-02T00:00:00Z" },
+        ],
+        memberships: [],
+        series: [
+          { id: "ds1", title: "Series One", subject_user_id: null, created_by: "c1" },
+          { id: "ds2", title: "Series Two", subject_user_id: null, created_by: "c1" },
+        ],
+        interviews: [],
+        series_access: [
+          { series_id: "ds1", user_id: "c2" },
+          { series_id: "ds2", user_id: "c2" },
+        ],
+        facts: [],
+      }),
+    );
+
+    const { rows } = await listPlatformUsers({});
+    expect(rows.find((r) => r.id === "c1")!.network.assignees).toBe(1);
+  });
+});
