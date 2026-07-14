@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/db/server";
 import { getSeriesForUser } from "@/db/queries";
+import { LogoLockup } from "@/components/nav/LogoMark";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
@@ -34,54 +35,55 @@ export default async function WelcomePage() {
   const orgName = organization?.name ?? "the workspace";
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-paper px-6 py-12">
-      <Card className="w-full max-w-[460px] px-9 py-8">
-        <div className="serif text-[20px]">
-          post<b className="font-semibold text-green-deep">aud</b>.io
-        </div>
+    <main className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-paper px-6 py-12">
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-[150px] left-1/2 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,oklch(0.52_0.06_165_/_0.14)_0%,transparent_68%)]"
+      />
 
-        <div className="mt-5 flex items-start gap-3.5">
-          <Avatar name={orgName} size="lg" />
-          <div>
-            <div className="serif text-[19px] leading-snug">
-              You&apos;ve been invited to join <b>{orgName}</b>.
+      <div className="relative w-full max-w-[420px]">
+        <LogoLockup />
+
+        {/* The context card (mockup 6b): who invited you and what you're
+            getting, before you're asked for anything. */}
+        <Card className="mt-[18px] px-5 py-5">
+          <div className="flex items-center gap-3">
+            <Avatar name={orgName} size="lg" />
+            <div className="text-sm leading-snug text-ink-soft">
+              You&apos;ve been invited to <b className="text-ink">{orgName}</b> as{" "}
+              <Badge tone="green">{ROLE_LABELS[membership.role] ?? membership.role}</Badge>
+              <div className="mt-0.5 text-xs text-muted">{user.email}</div>
             </div>
-            <div className="mt-1 text-[13px] text-muted">{user.email}</div>
           </div>
-        </div>
 
-        <div className="my-5 flex items-center gap-2 text-[13px] text-muted">
-          You&apos;ll join as <Badge tone="green">{ROLE_LABELS[membership.role] ?? membership.role}</Badge>
-        </div>
-
-        {series.length > 0 && (
-          <div className="mb-[22px] overflow-hidden rounded-sm border border-line">
-            {series.map((s) => (
-              <div
-                key={s.id}
-                className="flex items-center justify-between gap-3 border-b border-line bg-card px-3.5 py-3 last:border-b-0"
-              >
-                <div>
-                  <div className="serif text-[15px]">{s.title}</div>
-                  <div className="mt-0.5 text-[11.5px] text-faint">{s.subject_name}</div>
+          {series.map((s) => (
+            <div key={s.id} className="mt-3.5 flex items-center gap-3 border-t border-line pt-3.5">
+              <Avatar name={s.subject_name} tone="warm" />
+              <div className="min-w-0">
+                <div className="serif truncate text-[15px]">{s.title}</div>
+                <div className="text-xs text-muted">
+                  {s.subject_user_id === user.id ? "you'll be the storyteller" : "you can listen"}
                 </div>
-                <Badge tone={s.subject_user_id === user.id ? "amber" : "muted"}>
-                  {s.subject_user_id === user.id ? "Your series — subject" : "Can view"}
-                </Badge>
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          ))}
+        </Card>
 
-        <AcceptForm orgId={membership.organization_id} />
+        <div className="mt-[18px]">
+          <AcceptForm orgId={membership.organization_id} />
+        </div>
 
-        <p className="mt-4 text-[12px] leading-relaxed text-faint">
+        <p className="mt-4 text-center text-xs leading-relaxed text-faint">
           {series.length > 0
-            ? "You'll see the series above, plus anything else you're given access to later."
-            : "You won't see any series yet — you'll get access as soon as it's shared with you."}{" "}
-          Workspace billing, members, and other series stay hidden unless you&apos;re made an admin.
+            ? "You'll see the story above, plus anything else shared with you later."
+            : "You won't see any stories yet — you'll get access as soon as one is shared with you."}{" "}
+          Workspace billing, members, and other stories stay hidden unless you&apos;re made an admin.
         </p>
-      </Card>
+
+        <form action="/auth/sign-out" method="POST" className="mt-4 text-center">
+          <button className="text-[12.5px] text-muted hover:text-ink">Not you? Sign out</button>
+        </form>
+      </div>
     </main>
   );
 }

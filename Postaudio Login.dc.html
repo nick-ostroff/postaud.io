@@ -1,288 +1,158 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>postaud.io — Login mockups</title>
-<link rel="stylesheet" href="postaudio-mockups.css">
-<style>
-  /* ---- screen-specific layout: auth surfaces ---- */
-
-  .auth-stage {
-    min-height: 720px;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    padding: 56px 24px 40px;
-    position: relative; overflow: hidden;
-  }
-  .auth-stage .big-quote {
-    position: absolute; top: -60px; left: 34px;
-    font-family: var(--serif); font-style: italic; font-weight: 300;
-    font-size: 340px; line-height: 1; color: rgba(33,30,26,0.045);
-    user-select: none; pointer-events: none;
-  }
-  .auth-stage .atmo {
-    position: absolute; bottom: 44px; left: 0; right: 0;
-    text-align: center; font-family: var(--serif); font-style: italic;
-    font-size: 16px; color: var(--faint); pointer-events: none;
-  }
-
-  .auth-card {
-    width: 100%; max-width: 400px; position: relative;
-    padding: 36px 38px 32px;
-  }
-  .auth-card.wide { max-width: 460px; }
-  .auth-card .wordmark { font-family: var(--serif); font-size: 20px; }
-  .auth-card .wordmark b { color: var(--green-deep); font-weight: 600; }
-  .auth-card h2.hello {
-    font-size: 27px; font-weight: 500; margin: 18px 0 4px;
-  }
-  .auth-card .sub { color: var(--muted); font-size: 13.5px; margin-bottom: 24px; }
-  .auth-card .btn-block { width: 100%; justify-content: center; }
-
-  .divider {
-    display: flex; align-items: center; gap: 12px;
-    margin: 20px 0; color: var(--faint);
-    font-size: 11.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
-  }
-  .divider::before, .divider::after {
-    content: ""; flex: 1; height: 1px; background: var(--line);
-  }
-
-  .g-ic { width: 17px; height: 17px; flex-shrink: 0; }
-
-  .auth-foot {
-    margin-top: 22px; text-align: center; font-size: 12.5px; color: var(--faint);
-  }
-  .stage-foot {
-    margin-top: 26px; font-size: 12px; color: var(--faint); text-align: center;
-  }
-
-  /* invite acceptance (1b) */
-  .invite-head { display: flex; gap: 14px; align-items: flex-start; margin: 20px 0 6px; }
-  .invite-head .inv-t { font-family: var(--serif); font-size: 19px; line-height: 1.35; }
-  .invite-head .inv-t b { font-weight: 600; }
-  .invite-role { margin: 10px 0 20px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
-
-  .series-access { border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; margin-bottom: 22px; }
-  .series-access .sa-row {
-    display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    padding: 12px 14px; border-bottom: 1px solid var(--line); background: var(--card);
-  }
-  .series-access .sa-row:last-child { border-bottom: none; }
-  .series-access .sa-t { font-family: var(--serif); font-size: 15px; }
-  .series-access .sa-d { font-size: 11.5px; color: var(--faint); margin-top: 1px; font-family: var(--sans); }
-
-  .fine-print { font-size: 12px; color: var(--faint); line-height: 1.55; margin-top: 16px; }
-
-  /* mobile sign-in (1c) */
-  .m-auth { padding: 54px 30px 30px; min-height: 700px; display: flex; flex-direction: column; }
-  .m-auth .wordmark { font-family: var(--serif); font-size: 21px; text-align: center; }
-  .m-auth .wordmark b { color: var(--green-deep); font-weight: 600; }
-  .m-auth h2.hello { font-size: 28px; font-weight: 500; text-align: center; margin: 40px 0 6px; }
-  .m-auth .sub { text-align: center; color: var(--muted); font-size: 13.5px; margin-bottom: 34px; }
-  .m-auth .field > label { font-size: 13px; }
-  .m-auth .input { padding: 13px 15px; font-size: 15px; border-radius: 12px; }
-  .m-auth .btn-block { width: 100%; justify-content: center; }
-  .m-auth .m-spacer { flex: 1; }
-  .m-auth .m-foot { text-align: center; font-size: 12.5px; color: var(--faint); padding-top: 18px; }
-</style>
+<script src="./support.js"></script>
 </head>
 <body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#EFECE6;font-family:'Instrument Sans',system-ui,sans-serif}
+a{color:oklch(0.52 0.06 165)}a:hover{color:oklch(0.42 0.06 165)}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 8px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 'Instrument Sans',sans-serif;color:#1a1a1a}
+.dv-note{margin:0 0 24px;max-width:760px;font:400 12px/1.6 'Instrument Sans',sans-serif;color:rgba(0,0,0,.55)}
+.dv-opts{display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 'Instrument Sans',sans-serif;color:rgba(0,0,0,.55);max-width:400px}
+.dv-card{max-width:100%;background:#fff;border:1px solid rgba(0,0,0,.1);border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.07);overflow:hidden}
+.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}
+</style>
+</helmet>
 
-<header class="doc-header">
-  <div class="wordmark">post<b>aud</b>.io</div>
-  <h1>Login &amp; access</h1>
-  <p>Sign-in and invite-acceptance screens — the front door to a de Vries Family workspace. Warm paper, one primary action, and a first hint of the product's spoken-word soul.</p>
-  <nav class="doc-toc">
-    <a href="#1a">1a · Desktop sign-in</a>
-    <a href="#1b">1b · Invited member's first login</a>
-    <a href="#1c">1c · Mobile sign-in</a>
-  </nav>
-</header>
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">postaud.io — sign in &amp; first login</span></div>
+<p class="dv-note"><a class="dv-oid" href="#1a">1a</a> desktop sign-in — email + password, Google option. <a class="dv-oid" href="#1b">1b</a> invited member's first login — they land from the invite email, see who invited them and what they get access to. <a class="dv-oid" href="#1c">1c</a> mobile sign-in. Related pages: <b>Postaudio Admin</b> (members &amp; access), <b>Postaudio Mobile</b>.</p>
+<div class="dv-opts">
 
-<!-- ============================================================ 1a -->
-<section class="mock-section" id="1a">
-  <div class="mock-label">
-    <span class="tag">1a</span>
-    <h2>Desktop sign-in</h2>
-    <span class="note">Email + password or Google · no app chrome, just the door</span>
-  </div>
-
-  <div class="frame-desktop">
-    <div class="browser-bar">
-      <span class="dots"><i></i><i></i><i></i></span>
-      <span class="url">postaud.io/sign-in</span>
+<!-- 1a Desktop sign in -->
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Desktop sign-in — email + password; the left panel states the promise.</div>
+<div class="dv-card" style="width:1000px">
+<div data-screen-label="1a Desktop sign in" style="height:640px;display:flex;background:#F7F5F0;color:#211E1A">
+  <div style="width:420px;flex:none;background:#211E1A;color:#F0EDE6;display:flex;flex-direction:column;justify-content:space-between;padding:44px 44px 40px;box-sizing:border-box;position:relative;overflow:hidden">
+    <div style="position:absolute;bottom:-160px;left:-80px;width:440px;height:440px;border-radius:999px;background:radial-gradient(circle, oklch(0.52 0.06 165 / 0.3) 0%, transparent 68%)"></div>
+    <div style="font:500 18px 'Newsreader',serif;position:relative">postaud.io</div>
+    <div style="display:flex;flex-direction:column;gap:16px;position:relative">
+      <div style="font:400 30px/1.35 'Newsreader',serif">Every conversation permanently improves what your AI knows.</div>
+      <div style="font-size:13.5px;line-height:1.6;color:rgba(240,237,230,0.6)">The transcript isn't the product. The growing knowledge base is.</div>
     </div>
-    <div class="viewport">
-      <div class="auth-stage">
-        <div class="big-quote">&rdquo;</div>
-
-        <div class="card auth-card">
-          <div class="wordmark">post<b>aud</b>.io</div>
-          <h2 class="hello">Welcome back</h2>
-          <p class="sub">Sign in to keep the stories going.</p>
-
-          <div class="field">
-            <label for="a-email">Email</label>
-            <input class="input" id="a-email" type="email" value="sam@devries.family">
-          </div>
-          <div class="field">
-            <label for="a-pass">Password</label>
-            <input class="input" id="a-pass" type="password" value="••••••••••">
-          </div>
-
-          <a class="btn btn-primary btn-block" href="Postaudio%20Admin.dc.html#2a">Sign in</a>
-
-          <div class="divider">or</div>
-
-          <a class="btn btn-block" href="#1a">
-            <svg class="g-ic" viewBox="0 0 24 24" aria-hidden="true">
-              <path fill="#4285F4" d="M23.5 12.27c0-.85-.08-1.66-.22-2.45H12v4.64h6.45a5.52 5.52 0 0 1-2.39 3.62v3h3.87c2.26-2.09 3.57-5.16 3.57-8.81z"/>
-              <path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.93-2.91l-3.87-3c-1.07.72-2.44 1.15-4.06 1.15-3.12 0-5.77-2.11-6.71-4.95H1.29v3.1A11.99 11.99 0 0 0 12 24z"/>
-              <path fill="#FBBC05" d="M5.29 14.29A7.2 7.2 0 0 1 4.91 12c0-.8.14-1.57.38-2.29v-3.1H1.29a12 12 0 0 0 0 10.78l4-3.1z"/>
-              <path fill="#EA4335" d="M12 4.77c1.76 0 3.34.6 4.58 1.79l3.44-3.44C17.95 1.19 15.24 0 12 0A11.99 11.99 0 0 0 1.29 6.61l4 3.1C6.23 6.88 8.88 4.77 12 4.77z"/>
-            </svg>
-            Continue with Google
-          </a>
-
-          <div class="auth-foot">
-            <a href="#1a">Forgot password?</a>
-          </div>
+    <div style="font-size:12px;color:rgba(240,237,230,0.45);position:relative">© 2026 postaud.io</div>
+  </div>
+  <div style="flex:1;display:flex;align-items:center;justify-content:center">
+    <div style="width:360px;display:flex;flex-direction:column;gap:22px">
+      <div>
+        <div style="font:400 26px/1.3 'Newsreader',serif">Sign in</div>
+        <div style="font-size:13.5px;color:#6E675C;margin-top:6px">Welcome back — your stories are waiting.</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div style="font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6E675C">Email</div>
+        <div style="background:#FFFFFF;border:1px solid rgba(33,30,26,0.14);border-radius:10px;padding:13px 16px;font-size:15px;color:#9B9488">you@example.com</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div style="display:flex;align-items:baseline">
+          <div style="font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6E675C">Password</div>
+          <div style="margin-left:auto;font-size:12px;color:oklch(0.42 0.06 165);cursor:pointer">Forgot?</div>
         </div>
-
-        <div class="stage-foot">New here? Someone in your family usually opens the door — <a href="#1b">accept your invite</a>.</div>
-
-        <div class="atmo">&raquo;Tell me about the ferry.&laquo;</div>
+        <div style="background:#FFFFFF;border:1px solid rgba(33,30,26,0.14);border-radius:10px;padding:13px 16px;font-size:15px;color:#211E1A;letter-spacing:0.2em;display:flex;align-items:center">••••••••••<div style="margin-left:auto;font-size:12px;color:#6E675C;letter-spacing:0;cursor:pointer">Show</div></div>
       </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============================================================ 1b -->
-<section class="mock-section" id="1b">
-  <div class="mock-label">
-    <span class="tag">1b</span>
-    <h2>Invited member's first login</h2>
-    <span class="note">Jan accepts Sam's invite — sees who, what role, and which series before joining</span>
-  </div>
-
-  <div class="frame-desktop">
-    <div class="browser-bar">
-      <span class="dots"><i></i><i></i><i></i></span>
-      <span class="url">app.postaud.io/invite/jan-devries</span>
-    </div>
-    <div class="viewport">
-      <div class="auth-stage">
-        <div class="big-quote">&rdquo;</div>
-
-        <div class="card auth-card wide">
-          <div class="wordmark">post<b>aud</b>.io</div>
-
-          <div class="invite-head">
-            <span class="avatar lg">SD</span>
-            <div>
-              <div class="inv-t"><b>Sam de Vries</b> invited you to the <b>de&nbsp;Vries Family</b> workspace.</div>
-              <div class="small muted mt-1">For Jan de Vries &middot; jan.devries@xs4all.nl</div>
-            </div>
-          </div>
-
-          <div class="invite-role">
-            You'll join as <span class="badge">Interviewer</span>
-          </div>
-
-          <div class="series-access">
-            <div class="sa-row">
-              <div>
-                <div class="sa-t">Mam, in her own words</div>
-                <div class="sa-d">41 memories &middot; 6 sessions</div>
-              </div>
-              <span class="badge badge-amber">Your series &middot; subject</span>
-            </div>
-            <div class="sa-row">
-              <div>
-                <div class="sa-t">Dad's Story</div>
-                <div class="sa-d">64 memories &middot; 9 sessions</div>
-              </div>
-              <span class="badge">Can interview</span>
-            </div>
-          </div>
-
-          <div class="field">
-            <label for="b-pass">Choose a password</label>
-            <input class="input" id="b-pass" type="password" value="••••••••••">
-          </div>
-          <div class="field">
-            <label for="b-pass2">Confirm password</label>
-            <input class="input" id="b-pass2" type="password" value="••••••••••">
-            <div class="hint">At least 10 characters — a short sentence works well.</div>
-          </div>
-
-          <a class="btn btn-primary btn-block" href="Postaudio%20Mobile.dc.html#1c">Accept &amp; join</a>
-
-          <p class="fine-print">You'll see the two series above — your own words in &ldquo;Mam, in her own words&rdquo;, and the interviewer's side of Dad's Story. You won't see workspace billing, members, or any other series unless Sam grants access.</p>
-        </div>
-
-        <div class="stage-foot">Not Jan? <a href="#1a">Sign in with a different account</a>.</div>
+      <div style="text-align:center;font-size:14.5px;font-weight:600;color:#fff;background:#211E1A;padding:14px 0;border-radius:999px;cursor:pointer">Sign in</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="flex:1;height:1px;background:rgba(33,30,26,0.12)"></div>
+        <div style="font-size:12px;color:#6E675C">or</div>
+        <div style="flex:1;height:1px;background:rgba(33,30,26,0.12)"></div>
       </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============================================================ 1c -->
-<section class="mock-section" id="1c">
-  <div class="mock-label">
-    <span class="tag">1c</span>
-    <h2>Mobile sign-in</h2>
-    <span class="note">One primary action &middot; warm serif greeting &middot; light</span>
-  </div>
-
-  <div class="frame-phone">
-    <div class="statusbar"><span>9:41</span><span>&#9679;&#9679;&#9679; &#7076; &#9646;</span></div>
-
-    <div class="m-auth">
-      <div class="wordmark">post<b>aud</b>.io</div>
-
-      <h2 class="hello">Good to hear<br>from you again</h2>
-      <p class="sub">Sign in to keep the stories going.</p>
-
-      <div class="field">
-        <label for="c-email">Email</label>
-        <input class="input" id="c-email" type="email" placeholder="you@example.com">
-      </div>
-      <div class="field">
-        <label for="c-pass">Password</label>
-        <input class="input" id="c-pass" type="password" placeholder="Your password">
-      </div>
-
-      <a class="btn btn-primary btn-big btn-block" href="Postaudio%20Mobile.dc.html#1c">Sign in</a>
-
-      <div class="divider">or</div>
-
-      <a class="btn btn-block" href="#1c">
-        <svg class="g-ic" viewBox="0 0 24 24" aria-hidden="true">
-          <path fill="#4285F4" d="M23.5 12.27c0-.85-.08-1.66-.22-2.45H12v4.64h6.45a5.52 5.52 0 0 1-2.39 3.62v3h3.87c2.26-2.09 3.57-5.16 3.57-8.81z"/>
-          <path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.93-2.91l-3.87-3c-1.07.72-2.44 1.15-4.06 1.15-3.12 0-5.77-2.11-6.71-4.95H1.29v3.1A11.99 11.99 0 0 0 12 24z"/>
-          <path fill="#FBBC05" d="M5.29 14.29A7.2 7.2 0 0 1 4.91 12c0-.8.14-1.57.38-2.29v-3.1H1.29a12 12 0 0 0 0 10.78l4-3.1z"/>
-          <path fill="#EA4335" d="M12 4.77c1.76 0 3.34.6 4.58 1.79l3.44-3.44C17.95 1.19 15.24 0 12 0A11.99 11.99 0 0 0 1.29 6.61l4 3.1C6.23 6.88 8.88 4.77 12 4.77z"/>
-        </svg>
+      <div style="display:flex;align-items:center;justify-content:center;gap:10px;background:#FFFFFF;border:1px solid rgba(33,30,26,0.14);border-radius:999px;padding:13px 0;font-size:14px;font-weight:500;cursor:pointer">
+        <div style="width:16px;height:16px;border-radius:99px;background:conic-gradient(#4285F4 0 90deg,#34A853 90deg 180deg,#FBBC05 180deg 270deg,#EA4335 270deg 360deg)"></div>
         Continue with Google
-      </a>
-
-      <div class="auth-foot"><a href="#1c">Forgot password?</a></div>
-
-      <div class="m-spacer"></div>
-
-      <div class="m-foot spoken">&raquo;Tell me about the ferry.&laquo;</div>
+      </div>
+      <div style="font-size:12.5px;color:#6E675C;text-align:center;line-height:1.6">New here? Signing in creates your account.</div>
     </div>
-
-    <div class="homebar"></div>
   </div>
+</div>
+</div>
+</div>
+
+<!-- 1b Invite landing -->
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Invited member's first login — context before credentials.</div>
+<div class="dv-card" style="width:1000px">
+<div data-screen-label="1b Invite first login" style="height:640px;display:flex;align-items:center;justify-content:center;background:#F7F5F0;color:#211E1A;position:relative;overflow:hidden">
+  <div style="position:absolute;top:-200px;right:-140px;width:520px;height:520px;border-radius:999px;background:radial-gradient(circle, oklch(0.52 0.06 165 / 0.14) 0%, transparent 68%)"></div>
+  <div style="width:440px;display:flex;flex-direction:column;gap:24px;position:relative">
+    <div style="font:500 16px 'Newsreader',serif">postaud.io</div>
+    <div style="background:#FFFFFF;border:1px solid rgba(33,30,26,0.1);border-radius:16px;box-shadow:0 4px 18px rgba(33,30,26,0.06);padding:28px 30px;display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="width:44px;height:44px;border-radius:99px;background:oklch(0.52 0.06 165 / 0.18);color:oklch(0.4 0.06 165);display:grid;place-items:center;font-size:15px;font-weight:600;flex:none">S</div>
+        <div style="font-size:14.5px;line-height:1.55;color:#3A362F"><b>Sam</b> invited you to the family workspace as a <b>Viewer</b>.</div>
+      </div>
+      <div style="border-top:1px solid rgba(33,30,26,0.08);padding-top:18px;display:flex;flex-direction:column;gap:12px">
+        <div style="font-size:11.5px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:#6E675C">You'll get access to</div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:34px;height:34px;border-radius:99px;background:oklch(0.52 0.06 50 / 0.18);color:oklch(0.4 0.06 50);display:grid;place-items:center;font-size:12.5px;font-weight:600;flex:none">M</div>
+          <div>
+            <div style="font-size:14.5px;font-family:'Newsreader',serif">Mum's stories</div>
+            <div style="font-size:12px;color:#6E675C;margin-top:2px">64 memories · read transcripts &amp; stories</div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div style="font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6E675C">Your email</div>
+        <div style="background:#F7F5F0;border:1px solid rgba(33,30,26,0.14);border-radius:10px;padding:12px 16px;font-size:14.5px">tomas.k@gmail.com</div>
+      </div>
+      <div style="text-align:center;font-size:14.5px;font-weight:600;color:#fff;background:oklch(0.52 0.06 165);padding:14px 0;border-radius:999px;cursor:pointer">Accept &amp; continue</div>
+    </div>
+    <div style="font-size:12.5px;color:#6E675C;text-align:center">Not you? <span style="color:oklch(0.42 0.06 165)">Decline this invite</span></div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- 1c Mobile sign in -->
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Mobile sign-in — same email-first flow.</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="430px,880px">
+<div data-screen-label="1c Mobile sign in" style="height:100%;background:#F7F5F0;color:#211E1A;display:flex;flex-direction:column;font-family:'Instrument Sans',system-ui,sans-serif;box-sizing:border-box;padding:70px 28px 40px;position:relative;overflow:hidden">
+  <div style="position:absolute;top:-160px;left:50%;transform:translateX(-50%);width:440px;height:440px;border-radius:999px;background:radial-gradient(circle, oklch(0.52 0.06 165 / 0.16) 0%, transparent 68%)"></div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:18px;position:relative">
+    <div style="font:500 17px 'Newsreader',serif">postaud.io</div>
+    <div style="font:400 30px/1.35 'Newsreader',serif">Conversations that compound.</div>
+    <div style="font-size:14.5px;line-height:1.6;color:#6E675C">Every interview permanently improves what your AI knows about you and the people you love.</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:14px;position:relative">
+    <div style="display:flex;flex-direction:column;gap:7px">
+      <div style="font-size:11.5px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:#6E675C">Email</div>
+      <div style="background:#FFFFFF;border:1px solid rgba(33,30,26,0.14);border-radius:12px;padding:15px 16px;font-size:15px;color:#9B9488">you@example.com</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:7px">
+      <div style="display:flex;align-items:baseline">
+        <div style="font-size:11.5px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:#6E675C">Password</div>
+        <div style="margin-left:auto;font-size:12px;color:oklch(0.42 0.06 165);cursor:pointer">Forgot?</div>
+      </div>
+      <div style="background:#FFFFFF;border:1px solid rgba(33,30,26,0.14);border-radius:12px;padding:15px 16px;font-size:15px;color:#211E1A;letter-spacing:0.2em;display:flex;align-items:center">••••••••••<div style="margin-left:auto;font-size:12px;color:#6E675C;letter-spacing:0;cursor:pointer">Show</div></div>
+    </div>
+    <div style="text-align:center;font-size:16px;font-weight:600;color:#fff;background:#211E1A;border-radius:999px;padding:16px 0;cursor:pointer">Sign in</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:10px;background:#FFFFFF;border:1px solid rgba(33,30,26,0.14);border-radius:999px;padding:15px 0;font-size:14.5px;font-weight:500;cursor:pointer">
+      <div style="width:16px;height:16px;border-radius:99px;background:conic-gradient(#4285F4 0 90deg,#34A853 90deg 180deg,#FBBC05 180deg 270deg,#EA4335 270deg 360deg)"></div>
+      Continue with Google
+    </div>
+    <div style="font-size:12.5px;color:#6E675C;text-align:center">New here? Signing in creates your account.</div>
+  </div>
+</div>
+</x-import>
+</div>
+
+</div>
 </section>
 
-<footer class="doc-footer">
-  postaud.io — V1 mockups &middot; warm paper system &middot; Newsreader + Instrument Sans
-</footer>
-
+</x-dc>
 </body>
 </html>

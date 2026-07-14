@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes } from "react";
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "quiet-danger";
+type ButtonVariant = "primary" | "secondary" | "ink" | "ghost" | "quiet-danger";
 type ButtonSize = "md" | "big";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -14,6 +14,10 @@ const base =
 const variantClasses: Record<ButtonVariant, string> = {
   secondary: "bg-card border-line-strong text-ink hover:border-ink-soft",
   primary: "bg-green border-green text-white hover:bg-green-deep hover:border-green-deep",
+  // Ink, not green: the mockups reserve green for the action that *commits*
+  // something (accept an invite, start talking) and use ink for the plain
+  // "get me in" CTA — sign in, next step of a wizard.
+  ink: "bg-ink border-ink text-paper hover:bg-ink-soft hover:border-ink-soft",
   ghost: "border-transparent bg-transparent text-muted hover:text-ink hover:border-transparent hover:no-underline",
   "quiet-danger": "text-amber border-amber-tint bg-amber-tint",
 };

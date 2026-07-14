@@ -4,13 +4,20 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/db/client";
 import { Button } from "@/components/ui/Button";
-import { Field } from "@/components/ui/Field";
-import { inputClasses } from "@/components/ui/Input";
 
+const authInput =
+  "w-full rounded-xl border border-line-strong bg-card px-4 py-3.5 text-[15px] text-ink placeholder:text-faint focus:border-green focus:outline focus:outline-2 focus:-outline-offset-1 focus:outline-green";
+
+/**
+ * Invited first login (mockup 6b) — one field, one button. The confirm-password
+ * field is gone: a "Show" toggle catches typos better than asking someone to
+ * type the same thing twice on a phone keyboard, and a mistyped password is
+ * recoverable via /auth/reset anyway.
+ */
 export function AcceptForm({ orgId }: { orgId: string }) {
   const router = useRouter();
   const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
+  const [show, setShow] = useState(false);
   const [state, setState] = useState<"idle" | "submitting" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -21,11 +28,6 @@ export function AcceptForm({ orgId }: { orgId: string }) {
     if (password.length < 10) {
       setState("error");
       setErrorMsg("Use at least 10 characters — a short sentence works well.");
-      return;
-    }
-    if (password !== confirm) {
-      setState("error");
-      setErrorMsg("Passwords don't match.");
       return;
     }
 
@@ -60,29 +62,37 @@ export function AcceptForm({ orgId }: { orgId: string }) {
   }
 
   return (
-    <form onSubmit={onSubmit}>
-      <Field label="Choose a password">
-        <input
-          type="password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete="new-password"
-          className={inputClasses}
-        />
-      </Field>
-      <Field label="Confirm password" hint="At least 10 characters — a short sentence works well.">
-        <input
-          type="password"
-          required
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-          autoComplete="new-password"
-          className={inputClasses}
-        />
-      </Field>
+    <form onSubmit={onSubmit} className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="new-password" className="text-[11.5px] font-semibold uppercase tracking-[0.07em] text-muted">
+          Set a password
+        </label>
+        <div className="relative">
+          <input
+            id="new-password"
+            type={show ? "text" : "password"}
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
+            className={`${authInput} pr-16`}
+          />
+          <button
+            type="button"
+            onClick={() => setShow((v) => !v)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-medium text-muted hover:text-ink"
+          >
+            {show ? "Hide" : "Show"}
+          </button>
+        </div>
+        <p className="text-xs text-faint">At least 10 characters — a short sentence works well.</p>
+      </div>
 
-      {errorMsg && <div className="mb-3 text-[13px] font-medium text-amber">{errorMsg}</div>}
+      {errorMsg && (
+        <p className="text-[13px] font-medium text-amber" role="alert">
+          {errorMsg}
+        </p>
+      )}
 
       <Button
         type="submit"
@@ -91,7 +101,7 @@ export function AcceptForm({ orgId }: { orgId: string }) {
         className="w-full justify-center"
         disabled={state === "submitting"}
       >
-        {state === "submitting" ? "Joining…" : "Accept & join"}
+        {state === "submitting" ? "Joining…" : "Accept & continue"}
       </Button>
     </form>
   );

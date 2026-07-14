@@ -5,16 +5,32 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/db/client";
 import { Button } from "@/components/ui/Button";
-import { Field } from "@/components/ui/Field";
-import { Input } from "@/components/ui/Input";
 
 type Mode = "password" | "magic";
 
+/** The taller, softer input from the mobile mockups (12px radius, 15px text). */
+const authInput =
+  "w-full rounded-xl border border-line-strong bg-card px-4 py-3.5 text-[15px] text-ink placeholder:text-faint focus:border-green focus:outline focus:outline-2 focus:-outline-offset-1 focus:outline-green";
+
+const authLabel = "text-[11.5px] font-semibold uppercase tracking-[0.07em] text-muted";
+
+/**
+ * Sign in (mobile mockup 6a) — email + password, with the password's
+ * "Forgot?" and "Show" affordances inline in the field rather than stranded
+ * under the form, so the whole thing fits one thumb-reach on a phone.
+ *
+ * The secondary pill is a magic link, not "Continue with Google": Google
+ * OAuth isn't enabled on the Supabase project yet, and a button that 400s is
+ * worse than one that works. Swap the handler for
+ * `supabase.auth.signInWithOAuth({ provider: "google" })` once the provider
+ * is configured — `/auth/callback` already handles the OAuth redirect.
+ */
 export function SignInForm({ next }: { next?: string }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [state, setState] = useState<"idle" | "submitting" | "sent" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -81,9 +97,13 @@ export function SignInForm({ next }: { next?: string }) {
   const disabled = state === "submitting" || !email || (mode === "password" && !password);
 
   return (
-    <form onSubmit={mode === "password" ? submitPassword : submitMagic}>
-      <Field label="Email">
-        <Input
+    <form onSubmit={mode === "password" ? submitPassword : submitMagic} className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="email" className={authLabel}>
+          Email
+        </label>
+        <input
+          id="email"
           type="email"
           required
           autoFocus
@@ -91,37 +111,66 @@ export function SignInForm({ next }: { next?: string }) {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
           autoComplete="email"
+          className={authInput}
         />
-      </Field>
+      </div>
 
       {mode === "password" && (
-        <Field label="Password">
-          <Input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-          />
-        </Field>
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-baseline">
+            <label htmlFor="password" className={authLabel}>
+              Password
+            </label>
+            <Link href="/auth/reset" className="ml-auto text-xs text-green-deep">
+              Forgot?
+            </Link>
+          </div>
+          <div className="relative">
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              className={`${authInput} pr-16`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-medium text-muted hover:text-ink"
+            >
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          </div>
+        </div>
       )}
 
-      <Button type="submit" variant="primary" disabled={disabled} className="w-full justify-center">
+      <Button
+        type="submit"
+        variant="ink"
+        size="big"
+        disabled={disabled}
+        className="mt-1 w-full justify-center"
+      >
         {state === "submitting"
-          ? mode === "password" ? "Signing in…" : "Sending link…"
-          : mode === "password" ? "Sign in" : "Email me a sign-in link"}
+          ? mode === "password"
+            ? "Signing in…"
+            : "Sending link…"
+          : mode === "password"
+            ? "Sign in"
+            : "Email me a sign-in link"}
       </Button>
 
-      {/* The `or` divider — the ::before/::after rule pattern from the mockup. */}
-      <div className="my-5 flex items-center gap-3 text-[11.5px] font-semibold tracking-[0.1em] text-faint uppercase before:h-px before:flex-1 before:bg-line before:content-[''] after:h-px after:flex-1 after:bg-line after:content-['']">
+      <div className="flex items-center gap-3 text-xs text-muted before:h-px before:flex-1 before:bg-line before:content-[''] after:h-px after:flex-1 after:bg-line after:content-['']">
         or
       </div>
 
-      {/* This slot is where "Continue with Google" goes when OAuth is enabled. */}
       <Button
         type="button"
         variant="secondary"
-        className="w-full justify-center"
+        size="big"
+        className="w-full justify-center font-medium"
         onClick={() => {
           setMode(mode === "password" ? "magic" : "password");
           setState("idle");
@@ -132,16 +181,10 @@ export function SignInForm({ next }: { next?: string }) {
       </Button>
 
       {errorMsg && (
-        <p className="mt-4 text-center text-[13px] text-amber" role="alert">
+        <p className="text-center text-[13px] text-amber" role="alert">
           {errorMsg}
         </p>
       )}
-
-      <div className="mt-5 text-center text-[12.5px]">
-        <Link href="/auth/reset" className="text-muted hover:text-ink">
-          Forgot password?
-        </Link>
-      </div>
     </form>
   );
 }
