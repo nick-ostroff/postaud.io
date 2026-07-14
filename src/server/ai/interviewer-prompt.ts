@@ -143,17 +143,23 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
           return `- ${t.name} (coverage: ${pct}%)${tag}`;
         })
       : ["- No topics are queued — follow the goal and let the conversation breathe."];
-  sections.push(
-    [
-      "EXPLORE NEXT (lowest coverage first)",
-      "These are the topics still worth exploring across the WHOLE series, least-covered first. They are a " +
+  // `light` depth's own DEPTH text explicitly asks to "touch many topics
+  // lightly in a single session" — the pre-feature intro contradicted that
+  // ("NOT a checklist... Only reach for the next topic once the current one
+  // is truly exhausted"), so it's the one thing here that has to flex with
+  // depth. `balanced` and `deep` keep the exact original wording.
+  const exploreIntro =
+    series.depth === "light"
+      ? "These are the topics still worth exploring across the WHOLE series, least-covered first. They are a " +
+        "background compass for where to steer next — this series is dialed to light depth (see DEPTH " +
+        "below), so moving briskly between several of them in a session is expected, not something to " +
+        "resist:"
+      : "These are the topics still worth exploring across the WHOLE series, least-covered first. They are a " +
         "background compass for where to steer when a thread genuinely runs dry — NOT a checklist to march " +
         "through, and NOT a reason to move on. Covering fewer topics in rich detail beats touching all of them " +
         "shallowly. Only reach for the next topic once the current one is truly exhausted (see STAY ON THE " +
-        "THREAD below):",
-      ...topicLines,
-    ].join("\n"),
-  );
+        "THREAD below):";
+  sections.push(["EXPLORE NEXT (lowest coverage first)", exploreIntro, ...topicLines].join("\n"));
 
   // ---- RETELL REQUESTS ----
   const retellLines =
@@ -210,16 +216,38 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
           "Do not rush to move the conversation forward — lingering IS the work."
         : "It is completely fine to spend the entire session on one or two rich memories. Do not rush to move " +
           "the conversation forward — lingering IS the work.";
-  sections.push(
-    [
-      "STAY ON THE THREAD (the default posture)",
-      "Your default job is depth, not coverage. When the subject shares a memory, STAY THERE and mine it " +
+  // `balanced` (every series that existed before this feature) must keep the
+  // ORIGINAL header and intro sentence, character for character — no wording
+  // drift for the default depth. `light` and `deep` get the reworded
+  // header/intro that names DEPTH as the dial that overrides this default.
+  const sectionHeader =
+    series.depth === "balanced"
+      ? "STAY ON THE THREAD (this matters most)"
+      : "STAY ON THE THREAD (the default posture)";
+  const introLine =
+    series.depth === "balanced"
+      ? "Your job is depth, not coverage. When the subject shares a memory, STAY THERE and mine it before " +
+        "going anywhere else. A single story is worth several follow-ups in a row:"
+      : "Your default job is depth, not coverage. When the subject shares a memory, STAY THERE and mine it " +
         "before going anywhere else — a single story is worth several follow-ups in a row. DEPTH below is " +
         "the dial that sets exactly how hard to push that instinct for THIS series; read the rest of this " +
-        "section as the shape good thread-mining takes, and let DEPTH decide how far to take it.",
-      "- Chase the specifics they just mentioned: every name, place, date, and object is a door — open it. " +
+        "section as the shape good thread-mining takes, and let DEPTH decide how far to take it.";
+  // The "chase the specifics" bullet is in mild tension with `light` depth's
+  // "touch many topics lightly" instruction, so it's softened for `light`
+  // only — `balanced` and `deep` keep the exact original wording.
+  const chaseLine =
+    series.depth === "light"
+      ? "- Chase the specifics they just mentioned when a detail feels alive — a name, place, date, or " +
+        "object can be worth opening — but this series is dialed light: don't feel obligated to open every " +
+        "door, and don't let one thread crowd out the rest of the session."
+      : "- Chase the specifics they just mentioned: every name, place, date, and object is a door — open it. " +
         'If they say "we moved to Big Rock," ask what the house was like, who else was there, what a normal ' +
-        "day looked like — before you go anywhere new.",
+        "day looked like — before you go anywhere new.";
+  sections.push(
+    [
+      sectionHeader,
+      introLine,
+      chaseLine,
       "- Ask for the senses and the feeling: what it looked, sounded, smelled like; what they felt in the " +
         "moment; what they remember most vividly.",
       '- Use short, warm continuers to keep them going: "What happened next?", "Tell me more about that", ' +

@@ -66,3 +66,51 @@ it("DEPTH states its precedence over STAY ON THE THREAD, but never over NEVER BR
   expect(p).toMatch(/DEPTH[\s\S]*outrank[\s\S]*STAY ON THE THREAD/i);
   expect(p).toContain("Guardrails always outrank depth.");
 });
+it("balanced STAY ON THE THREAD section is byte-identical to the pre-feature prompt", () => {
+  const p = buildInterviewerInstructions(base); // base.series.depth === "balanced"
+  const section = p.split("\n\n").find((s) => s.startsWith("STAY ON THE THREAD"));
+  expect(section).toBe(
+    [
+      "STAY ON THE THREAD (this matters most)",
+      "Your job is depth, not coverage. When the subject shares a memory, STAY THERE and mine it before " +
+        "going anywhere else. A single story is worth several follow-ups in a row:",
+      "- Chase the specifics they just mentioned: every name, place, date, and object is a door — open it. " +
+        'If they say "we moved to Big Rock," ask what the house was like, who else was there, what a normal ' +
+        "day looked like — before you go anywhere new.",
+      "- Ask for the senses and the feeling: what it looked, sounded, smelled like; what they felt in the " +
+        "moment; what they remember most vividly.",
+      '- Use short, warm continuers to keep them going: "What happened next?", "Tell me more about that", ' +
+        '"What was that like?", "Who else was there?".',
+      "- Assume there is always more in a memory than the first pass. Ask at least two or three follow-ups on " +
+        "a thread before even considering a new topic — and let THEM signal it's exhausted (they trail off, " +
+        'repeat themselves, or say some version of "that\'s about it").',
+      "- Never stack several questions into one breath, and never announce a topic change like an agenda. " +
+        "Let the next thread grow out of something they just said whenever you can.",
+      "It is completely fine to spend the entire session on one or two rich memories. Do not rush to move the " +
+        "conversation forward — lingering IS the work.",
+      "One hard exception: NEVER chase anything listed under NEVER BRING UP below. If a door the subject " +
+        "opens leads to one of those topics, do not walk through it — follow the NEVER BRING UP guardrail " +
+        "instead (listen briefly, respond with care, gently move on). That guardrail always outranks this one.",
+    ].join("\n"),
+  );
+});
+it("balanced EXPLORE NEXT section is byte-identical to the pre-feature prompt", () => {
+  const p = buildInterviewerInstructions(base); // base.series.depth === "balanced"
+  const section = p.split("\n\n").find((s) => s.startsWith("EXPLORE NEXT"));
+  expect(section).toBe(
+    [
+      "EXPLORE NEXT (lowest coverage first)",
+      "These are the topics still worth exploring across the WHOLE series, least-covered first. They are a " +
+        "background compass for where to steer when a thread genuinely runs dry — NOT a checklist to march " +
+        "through, and NOT a reason to move on. Covering fewer topics in rich detail beats touching all of them " +
+        "shallowly. Only reach for the next topic once the current one is truly exhausted (see STAY ON THE " +
+        "THREAD below):",
+      "- Health & habits (coverage: 0%) [must cover]",
+    ].join("\n"),
+  );
+});
+it("light depth's EXPLORE NEXT no longer fights its own DEPTH dial", () => {
+  const p = buildInterviewerInstructions({ ...base, series: { ...base.series, depth: "light" } });
+  expect(p).not.toContain("NOT a checklist to march through");
+  expect(p).not.toContain("Only reach for the next topic once the current one is truly exhausted");
+});
