@@ -3,6 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/db/client";
+import { Button } from "@/components/ui/Button";
+import { Field } from "@/components/ui/Field";
+import { Input } from "@/components/ui/Input";
 
 export function UpdatePasswordForm() {
   const router = useRouter();
@@ -33,12 +36,9 @@ export function UpdatePasswordForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5">
-      <div>
-        <label className="block text-[15px] font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-          New Password
-        </label>
-        <input
+    <form onSubmit={onSubmit}>
+      <Field label="New Password">
+        <Input
           type="password"
           required
           minLength={8}
@@ -46,20 +46,22 @@ export function UpdatePasswordForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="new-password"
-          className="w-full rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-[#1c1c1e] px-4 py-3.5 text-[15px] font-medium text-neutral-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all shadow-sm"
         />
-      </div>
-      <button
+      </Field>
+
+      <Button
         type="submit"
+        variant="primary"
         disabled={state === "submitting" || password.length < 8}
-        className="mt-6 flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-3.5 text-[15px] font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 transition-colors shadow-sm"
+        className="w-full justify-center"
       >
         {state === "submitting" ? "Saving…" : "Save new password"}
-      </button>
+      </Button>
+
       {errorMsg && (
-        <div className="mt-2 text-[15px] font-medium text-rose-700 dark:text-rose-400 text-center">
+        <p className="mt-4 text-center text-[13px] text-amber" role="alert">
           {errorMsg}
-        </div>
+        </p>
       )}
     </form>
   );

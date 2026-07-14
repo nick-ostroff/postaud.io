@@ -23,6 +23,25 @@ const sizeClasses: Record<ButtonSize, string> = {
   big: "text-[15.5px] px-[28px] py-[14px]",
 };
 
+/**
+ * Single source of truth for button styling — used both by the `<Button>`
+ * element below and by anywhere else that needs the same look on a
+ * non-`<button>` element (e.g. a `<Link>` that should look like a button
+ * without nesting an actual `<button>` inside an `<a>`, which is invalid
+ * HTML).
+ */
+export function buttonClasses({
+  variant = "secondary",
+  size = "md",
+  className = "",
+}: {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  className?: string;
+} = {}) {
+  return `${base} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`;
+}
+
 /** Pill-shaped button matching `.btn`/`.btn-primary`/`.btn-ghost`/`.btn-quiet-danger` in postaudio-mockups.css. */
 export function Button({
   variant = "secondary",
@@ -30,10 +49,5 @@ export function Button({
   className = "",
   ...buttonProps
 }: ButtonProps) {
-  return (
-    <button
-      className={`${base} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
-      {...buttonProps}
-    />
-  );
+  return <button className={buttonClasses({ variant, size, className })} {...buttonProps} />;
 }

@@ -5,9 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/db/client";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
-
-const inputClasses =
-  "w-full rounded-sm border border-line-strong bg-card px-[13px] py-2.5 text-[14px] text-ink focus:border-green focus:outline focus:outline-2 focus:-outline-offset-1 focus:outline-green";
+import { inputClasses } from "@/components/ui/Input";
 
 export function AcceptForm({ orgId }: { orgId: string }) {
   const router = useRouter();

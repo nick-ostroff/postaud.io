@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { inputBase } from "@/components/ui/Input";
 import type { MemberRole } from "@/db/types";
 
 const ROLE_OPTIONS: { value: MemberRole; label: string }[] = [
@@ -11,9 +12,6 @@ const ROLE_OPTIONS: { value: MemberRole; label: string }[] = [
   { value: "viewer", label: "Viewer" },
   { value: "admin", label: "Admin" },
 ];
-
-const inputClasses =
-  "rounded-sm border border-line-strong bg-card px-[13px] py-2.5 text-[14px] text-ink focus:border-green focus:outline focus:outline-2 focus:-outline-offset-1 focus:outline-green";
 
 // Typed error codes from `POST /api/members` (see `InviteMemberError` in
 // src/server/members/invite.ts) mapped to user-facing copy.
@@ -68,12 +66,12 @@ export function InviteForm() {
             setErrorMsg(null);
           }}
           placeholder="Invite someone — name@email.com"
-          className={`w-full max-w-[380px] flex-1 ${inputClasses}`}
+          className={`w-full max-w-[380px] flex-1 ${inputBase}`}
         />
         <select
           value={role}
           onChange={(e) => setRole(e.target.value as MemberRole)}
-          className={`w-[160px] ${inputClasses}`}
+          className={`w-[160px] ${inputBase}`}
         >
           {ROLE_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
