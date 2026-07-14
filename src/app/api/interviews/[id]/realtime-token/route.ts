@@ -4,6 +4,7 @@ import { serviceClient } from "@/db/service";
 import { canInterviewSeries } from "@/server/interviews/access";
 import { buildInterviewerInstructions } from "@/server/ai/interviewer-prompt";
 import { openaiClient } from "@/server/ai/openai";
+import { personaFor } from "@/lib/voices";
 
 type Params = Promise<{ id: string }>;
 
@@ -28,7 +29,7 @@ export async function POST(_request: Request, { params }: { params: Params }) {
 
   const { data: interview, error: interviewErr } = await svc
     .from("interviews")
-    .select("id, series_id, status, hand_the_mic, organization_id")
+    .select("id, series_id, status, hand_the_mic, organization_id, started_at")
     .eq("id", id)
     .maybeSingle();
   if (interviewErr) {
@@ -41,7 +42,7 @@ export async function POST(_request: Request, { params }: { params: Params }) {
   const { data: series, error: seriesErr } = await svc
     .from("series")
     .select(
-      "id, subject_user_id, title, subject_name, subject_relationship, goal, opening_prompt, dont_bring_up, tone, session_minutes",
+      "id, subject_user_id, title, subject_name, subject_relationship, goal, opening_prompt, dont_bring_up, tone, session_minutes, voice, interviewer_name, depth, planned_sessions",
     )
     .eq("id", interview.series_id)
     .maybeSingle();
@@ -66,7 +67,7 @@ export async function POST(_request: Request, { params }: { params: Params }) {
     return NextResponse.json({ error: "not_in_progress" }, { status: 409 });
   }
 
-  const [topicsRes, activeFactsRes, retellFactsRes] = await Promise.all([
+  const [topicsRes, activeFactsRes, retellFactsRes, priorRes] = await Promise.all([
     svc
       .from("topics")
       .select("id, name, coverage_score, must_cover, suggested")
@@ -85,6 +86,15 @@ export async function POST(_request: Request, { params }: { params: Params }) {
       .eq("series_id", series.id)
       .eq("status", "retell_queued")
       .order("created_at", { ascending: false }),
+    // Session number, derived the same way `listSeriesSessions` does it
+    // (src/db/queries.ts:414): order by started_at, 1-based. Only needed when
+    // the series has a planned-session target to pace against — but it's one
+    // indexed count, so we always fetch it rather than branch the Promise.all.
+    svc
+      .from("interviews")
+      .select("id", { count: "exact", head: true })
+      .eq("series_id", series.id)
+      .lt("started_at", interview.started_at),
   ]);
   if (topicsRes.error) {
     return NextResponse.json({ error: topicsRes.error.message }, { status: 500 });
@@ -95,6 +105,9 @@ export async function POST(_request: Request, { params }: { params: Params }) {
   if (retellFactsRes.error) {
     return NextResponse.json({ error: retellFactsRes.error.message }, { status: 500 });
   }
+  // A failed count shouldn't kill the interview — degrade to "unknown session
+  // number", which just drops the pacing line from the prompt.
+  const sessionNumber = priorRes.error ? null : (priorRes.count ?? 0) + 1;
 
   const topicNameById = new Map((topicsRes.data ?? []).map((t) => [t.id, t.name] as const));
   const knownFacts = (activeFactsRes.data ?? []).map((f) => ({
@@ -112,6 +125,8 @@ export async function POST(_request: Request, { params }: { params: Params }) {
     ? series.dont_bring_up.filter((v): v is string => typeof v === "string")
     : [];
 
+  const persona = personaFor(series.voice);
+
   const instructions = buildInterviewerInstructions({
     series: {
       title: series.title,
@@ -122,11 +137,17 @@ export async function POST(_request: Request, { params }: { params: Params }) {
       dontBringUp,
       tone: series.tone,
       sessionMinutes: series.session_minutes,
+      // Prefer the stored name (it's what the series was created with) and
+      // fall back to the registry only if the column is somehow empty.
+      interviewerName: series.interviewer_name || persona.name,
+      depth: series.depth,
+      plannedSessions: series.planned_sessions,
     },
     handTheMic: interview.hand_the_mic,
     knownFacts,
     topics,
     retellQueue,
+    sessionNumber,
   });
 
   try {
@@ -145,7 +166,7 @@ export async function POST(_request: Request, { params }: { params: Params }) {
             // rush the conversation forward.
             turn_detection: { type: "semantic_vad", eagerness: "low" },
           },
-          output: { voice: "marin" },
+          output: { voice: persona.id },
         },
       },
     });

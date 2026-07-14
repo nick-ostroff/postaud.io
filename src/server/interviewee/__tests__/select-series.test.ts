@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { pickIntervieweeSeries } from "../select-series";
 import type { Series } from "@/db/types";
 import type { SeriesSummary } from "@/db/queries";
+import { DEFAULT_VOICE } from "@/lib/voices";
 
 function series(overrides: Partial<Series> & Pick<Series, "id">): Series {
   return {
@@ -16,7 +17,7 @@ function series(overrides: Partial<Series> & Pick<Series, "id">): Series {
     dont_bring_up: [],
     tone: "warm",
     session_minutes: 20,
-    voice: "marin",
+    voice: DEFAULT_VOICE,
     interviewer_name: "Anna",
     depth: "balanced",
     planned_sessions: null,

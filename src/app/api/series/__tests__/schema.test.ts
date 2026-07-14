@@ -1,5 +1,6 @@
 import { it, expect } from "vitest";
 import { createSeriesSchema } from "../route";
+import { DEFAULT_VOICE } from "@/lib/voices";
 
 const valid = {
   title: "Dad's Story",
@@ -15,7 +16,7 @@ const valid = {
 
 it("defaults voice, name, and depth so old clients keep working", () => {
   const parsed = createSeriesSchema.parse(valid);
-  expect(parsed.voice).toBe("marin");
+  expect(parsed.voice).toBe(DEFAULT_VOICE);
   expect(parsed.interviewerName).toBe("Anna");
   expect(parsed.depth).toBe("balanced");
   expect(parsed.plannedSessions).toBeNull();

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/db/types";
 import { type CreateSeriesInput, createSeries } from "../create";
+import { DEFAULT_VOICE } from "@/lib/voices";
 
 /**
  * Minimal chainable stand-in for the two query shapes createSeries() uses
@@ -107,7 +108,7 @@ describe("createSeries", () => {
     expect(result).toEqual({ id: "series-1" });
     expect(calls.seriesInserts).toHaveLength(1);
     expect(calls.seriesInserts[0]).toMatchObject({
-      voice: "marin",
+      voice: DEFAULT_VOICE,
       interviewer_name: "Anna",
       depth: "balanced",
       planned_sessions: null,
