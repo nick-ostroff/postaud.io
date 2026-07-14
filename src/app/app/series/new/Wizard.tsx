@@ -285,7 +285,10 @@ export function Wizard({
       voice,
       interviewerName: persona.name,
       depth,
-      plannedSessions: plannedSessions.trim() ? Number(plannedSessions) : null,
+      plannedSessions: (() => {
+        const n = Number(plannedSessions);
+        return plannedSessions.trim() && !Number.isNaN(n) ? n : null;
+      })(),
       access: Object.entries(access)
         .filter(([, level]) => level !== "none")
         .map(([userId, level]) => ({ userId, canView: true, canInterview: level === "interview" })),
@@ -560,7 +563,7 @@ export function Wizard({
 
             <Field label="Don't bring up">
               <ChipEditor items={dontBringUp} onChange={setDontBringUp} placeholder="＋ Add" tone="amber" />
-              <div className="mt-[5px] text-xs text-faint">
+              <div className="mt-[5px] text-xs text-muted">
                 {persona.name} will never raise these — if they come up, the answer gets heard, then the
                 conversation moves gently on.
               </div>
