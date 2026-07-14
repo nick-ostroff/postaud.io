@@ -214,6 +214,13 @@ describe("listPlatformUsers — network + factsCount", () => {
     // n4 is the subject of ns1, not its creator -> not credited with its facts.
     expect(rows.find((r) => r.id === "n4")!.factsCount).toBe(0);
   });
+
+  it("counts seriesCount as series this user created only", async () => {
+    const { rows } = await listPlatformUsers({});
+    expect(rows.find((r) => r.id === "n1")!.seriesCount).toBe(1);
+    // n4 is the subject of ns1, not its creator -> doesn't own any series.
+    expect(rows.find((r) => r.id === "n4")!.seriesCount).toBe(0);
+  });
 });
 
 // -----------------------------------------------------------------------

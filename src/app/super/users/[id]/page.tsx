@@ -32,7 +32,7 @@ export default async function SuperUserDetailPage({ params }: { params: Params }
   return (
     <div className="space-y-7">
       <div>
-        <Link href="/super" className="text-[12.5px] text-neutral-500 hover:text-neutral-900 dark:hover:text-white">
+        <Link href="/super/users" className="text-[12.5px] text-neutral-500 hover:text-neutral-900 dark:hover:text-white">
           Users
         </Link>
         <span className="mx-1.5 text-[12.5px] text-neutral-400">/</span>
