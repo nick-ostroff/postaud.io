@@ -30,7 +30,11 @@ export default async function UsagePage() {
   const [stats, growth, { rows: users }] = await Promise.all([
     getPlatformStats(),
     getPlatformGrowth(),
-    listPlatformUsers({ limit: 500 }),
+    // listPlatformUsers returns rows sorted by recency, then paginated — so we
+    // must pull the full set (the query caps its own users read at 2000) before
+    // re-ranking by factsCount, or a dormant high-facts user past the page
+    // boundary would be silently dropped from this ranking.
+    listPlatformUsers({ limit: 2000 }),
   ]);
 
   const dormantPct = stats.totalUsers > 0 ? Math.round((growth.dormantCount / stats.totalUsers) * 100) : 0;
