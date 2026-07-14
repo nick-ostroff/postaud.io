@@ -91,6 +91,9 @@ export function DashboardUsers({ rows }: { rows: DashboardUserRow[] }) {
   // current selection, not a separately-set flag, so selecting a row never
   // needs an synchronous setState to kick off the loading UI.
   const [fetchState, setFetchState] = useState<DetailFetch | null>(null);
+  // Bumped by "Try again" to re-run the effect below for the same
+  // selectedId (the effect only re-runs on an actual dependency change).
+  const [retryToken, setRetryToken] = useState(0);
 
   const selectedRow = rows.find((r) => r.id === selectedId) ?? null;
   const detail = fetchState?.id === selectedId && fetchState.status === "loaded" ? (fetchState.detail ?? null) : null;
@@ -116,7 +119,17 @@ export function DashboardUsers({ rows }: { rows: DashboardUserRow[] }) {
     return () => {
       cancelled = true;
     };
-  }, [selectedId]);
+  }, [selectedId, retryToken]);
+
+  // Re-triggers the fetch for whichever user is currently selected. Clearing
+  // fetchState first makes detailLoading derive true immediately (same
+  // "loading" UI as the initial load), then retryToken forces the effect to
+  // re-run since selectedId itself hasn't changed.
+  function retryDetail() {
+    if (!selectedId) return;
+    setFetchState(null);
+    setRetryToken((t) => t + 1);
+  }
 
   return (
     <>
@@ -204,59 +217,71 @@ export function DashboardUsers({ rows }: { rows: DashboardUserRow[] }) {
               </button>
             </div>
 
-            <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-[22px] py-4">
-              <div className="flex gap-2.5">
-                <StatTile label="Series" value={detail?.seriesOwned.length} loading={detailLoading} />
-                <StatTile label="Facts" value={detail?.factCount} loading={detailLoading} />
-                <StatTile label="Sessions" value={detail?.interviewCount} loading={detailLoading} />
+            {detailError ? (
+              <div className="flex flex-1 flex-col items-center justify-center gap-3 px-[22px] py-4 text-center">
+                <div className="text-[12.5px] text-muted">Couldn&rsquo;t load this user&rsquo;s details.</div>
+                <button
+                  type="button"
+                  onClick={retryDetail}
+                  className="rounded-full border border-line-strong px-4 py-1.5 text-[12.5px] font-medium text-ink-soft hover:bg-paper-2"
+                >
+                  Try again
+                </button>
               </div>
-
-              <div className="flex flex-col gap-2">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted">
-                  Network · invited {selectedRow.network.invited}
+            ) : (
+              <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-[22px] py-4">
+                <div className="flex gap-2.5">
+                  <StatTile label="Series" value={detail?.seriesOwned.length} loading={detailLoading} />
+                  <StatTile label="Facts" value={detail?.factCount} loading={detailLoading} />
+                  <StatTile label="Sessions" value={detail?.interviewCount} loading={detailLoading} />
                 </div>
-                <div className="text-[12.5px] text-ink-soft">{networkLabel(selectedRow)}</div>
-              </div>
 
-              <div className="flex flex-col gap-2">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted">Top series</div>
-                {detailLoading && <div className="text-[12.5px] text-muted">Loading…</div>}
-                {!detailLoading && detail && detail.topSeries.length === 0 && (
-                  <div className="text-[12.5px] text-muted">No series created.</div>
-                )}
-                {!detailLoading && detail && detail.topSeries.length > 0 && (
-                  <div className="flex flex-col overflow-hidden rounded-[10px] bg-paper">
-                    {detail.topSeries.map((s) => (
-                      <div
-                        key={s.id}
-                        className="flex items-center gap-2 border-b border-line px-3.5 py-2.5 text-[12.5px] last:border-b-0"
-                      >
-                        <div className="min-w-0 flex-1 truncate font-serif">{s.title}</div>
-                        <div className="flex-none text-[11.5px] text-muted">{s.facts.toLocaleString()} facts</div>
-                      </div>
-                    ))}
+                <div className="flex flex-col gap-2">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted">
+                    Network · invited {selectedRow.network.invited}
                   </div>
-                )}
-              </div>
+                  <div className="text-[12.5px] text-ink-soft">{networkLabel(selectedRow)}</div>
+                </div>
 
-              <div className="flex flex-col gap-2">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted">Recent</div>
-                {detailLoading && <div className="text-[12.5px] text-muted">Loading…</div>}
-                {!detailLoading && detail && detail.auditLog.length === 0 && (
-                  <div className="text-[12.5px] text-muted">No recent activity.</div>
-                )}
-                {!detailLoading && detail && detail.auditLog.length > 0 && (
-                  <div className="flex flex-col gap-1.5 text-[12.5px] leading-relaxed text-ink-soft">
-                    {detail.auditLog.slice(0, 6).map((a) => (
-                      <div key={a.id} className="truncate">
-                        {relativeTime(a.at)} · {a.action}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {detailError && <div className="text-[12.5px] text-amber">Could not load recent activity.</div>}
+                <div className="flex flex-col gap-2">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted">Top series</div>
+                  {detailLoading && <div className="text-[12.5px] text-muted">Loading…</div>}
+                  {!detailLoading && detail && detail.topSeries.length === 0 && (
+                    <div className="text-[12.5px] text-muted">No series created.</div>
+                  )}
+                  {!detailLoading && detail && detail.topSeries.length > 0 && (
+                    <div className="flex flex-col overflow-hidden rounded-[10px] bg-paper">
+                      {detail.topSeries.map((s) => (
+                        <div
+                          key={s.id}
+                          className="flex items-center gap-2 border-b border-line px-3.5 py-2.5 text-[12.5px] last:border-b-0"
+                        >
+                          <div className="min-w-0 flex-1 truncate font-serif">{s.title}</div>
+                          <div className="flex-none text-[11.5px] text-muted">{s.facts.toLocaleString()} facts</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted">Recent</div>
+                  {detailLoading && <div className="text-[12.5px] text-muted">Loading…</div>}
+                  {!detailLoading && detail && detail.auditLog.length === 0 && (
+                    <div className="text-[12.5px] text-muted">No recent activity.</div>
+                  )}
+                  {!detailLoading && detail && detail.auditLog.length > 0 && (
+                    <div className="flex flex-col gap-1.5 text-[12.5px] leading-relaxed text-ink-soft">
+                      {detail.auditLog.slice(0, 6).map((a) => (
+                        <div key={a.id} className="truncate">
+                          {relativeTime(a.at)} · {a.action}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="flex items-center gap-2 border-t border-line px-[22px] py-3.5">
               <Link
@@ -265,7 +290,11 @@ export function DashboardUsers({ rows }: { rows: DashboardUserRow[] }) {
               >
                 Full profile
               </Link>
-              <ImpersonateButton userId={selectedRow.id} label="Impersonate" />
+              <ImpersonateButton
+                userId={selectedRow.id}
+                label="Impersonate"
+                className="w-full rounded-full border border-line-strong py-2 text-center text-[12.5px] font-medium text-ink-soft hover:bg-paper-2 disabled:opacity-60"
+              />
               <a
                 href={`mailto:${selectedRow.email}`}
                 className="flex-1 rounded-full border border-line-strong py-2 text-center text-[12.5px] font-medium text-ink-soft hover:bg-paper-2"

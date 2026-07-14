@@ -2,7 +2,20 @@
 
 import { useState } from "react";
 
-export function ImpersonateButton({ userId, label = "⚿ Log in as user" }: { userId: string; label?: string }) {
+export function ImpersonateButton({
+  userId,
+  label = "⚿ Log in as user",
+  className,
+}: {
+  userId: string;
+  label?: string;
+  /** Overrides the button's own visual classes (border/radius/color/etc).
+   *  Omit to keep the default emerald pill used by the table and profile
+   *  header call sites — passing this only swaps the button's look, the
+   *  wrapper switches to a stretch layout so it can share width with
+   *  sibling buttons (e.g. an equal-width action row). */
+  className?: string;
+}) {
   const [state, setState] = useState<"idle" | "loading" | "error">("idle");
 
   async function handleClick() {
@@ -25,12 +38,15 @@ export function ImpersonateButton({ userId, label = "⚿ Log in as user" }: { us
   }
 
   return (
-    <div className="inline-flex flex-col items-end gap-1">
+    <div className={className ? "flex flex-1 flex-col items-stretch gap-1" : "inline-flex flex-col items-end gap-1"}>
       <button
         type="button"
         onClick={handleClick}
         disabled={state === "loading"}
-        className="rounded-lg border border-emerald-600/50 bg-white px-3.5 py-2 text-[13px] font-medium text-emerald-800 hover:border-emerald-700 disabled:opacity-60 dark:bg-[#111] dark:text-emerald-300"
+        className={
+          className ??
+          "rounded-lg border border-emerald-600/50 bg-white px-3.5 py-2 text-[13px] font-medium text-emerald-800 hover:border-emerald-700 disabled:opacity-60 dark:bg-[#111] dark:text-emerald-300"
+        }
       >
         {state === "loading" ? "Starting…" : label}
       </button>
