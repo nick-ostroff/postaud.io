@@ -159,7 +159,11 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
             <div className="flex items-center justify-between">
               <h3>Sessions</h3>
               <span className="text-[12.5px] text-faint">
-                {sessions.length === 0 ? "none yet" : `${sessions.length} so far`}
+                {series.planned_sessions
+                  ? `${sessions.length} of ${series.planned_sessions} planned`
+                  : sessions.length === 0
+                    ? "none yet"
+                    : `${sessions.length} so far`}
               </span>
             </div>
 
