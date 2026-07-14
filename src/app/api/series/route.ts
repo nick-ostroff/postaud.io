@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getViewer } from "@/db/queries";
-import { VOICE_IDS, DEFAULT_VOICE, DEFAULT_INTERVIEWER_NAME } from "@/lib/voices";
+import { VOICE_IDS, DEFAULT_VOICE } from "@/lib/voices";
 import { CreateSeriesError, createSeries } from "@/server/series/create";
 
 const accessEntrySchema = z.object({
@@ -23,9 +23,6 @@ export const createSeriesSchema = z.object({
   tone: z.enum(["warm", "neutral", "playful"]),
   sessionMinutes: z.union([z.literal(10), z.literal(20), z.literal(45)]),
   voice: z.enum(VOICE_IDS).default(DEFAULT_VOICE),
-  // Accepted for symmetry with the wizard's payload, but never trusted —
-  // createSeries() re-derives the name from the voice so the two can't disagree.
-  interviewerName: z.string().trim().min(1).default(DEFAULT_INTERVIEWER_NAME),
   depth: z.enum(["light", "balanced", "deep"]).default("balanced"),
   plannedSessions: z.number().int().min(1).max(50).nullable().default(null),
   access: z.array(accessEntrySchema).default([]),

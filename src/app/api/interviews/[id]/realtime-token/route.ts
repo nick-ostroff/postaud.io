@@ -143,9 +143,13 @@ export async function POST(_request: Request, { params }: { params: Params }) {
       dontBringUp,
       tone: series.tone,
       sessionMinutes: series.session_minutes,
-      // Prefer the stored name (it's what the series was created with) and
-      // fall back to the registry only if the column is somehow empty.
-      interviewerName: series.interviewer_name || persona.name,
+      // The name always follows the voice, by construction — never the
+      // stored `interviewer_name` column. If a voice is ever retired from
+      // VOICES, personaFor() degrades the audio to the default (marin/Anna);
+      // preferring the stored name here would let a retired series still say
+      // "You are Ellis" while speaking in Anna's voice, exactly the
+      // voice/name mismatch this feature exists to prevent.
+      interviewerName: persona.name,
       depth: series.depth,
       plannedSessions: series.planned_sessions,
     },

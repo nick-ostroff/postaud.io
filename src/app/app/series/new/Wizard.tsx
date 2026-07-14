@@ -192,6 +192,20 @@ export function Wizard({
 
   const canContinueStep1 = title.trim().length > 0 && goal.trim().length > 0 && subjectValid;
 
+  // Keeps `plannedSessions` state limited to "" (open-ended) or an integer
+  // 1-50 at all times, so an out-of-range value can never survive to submit
+  // and 400 at the end of step 4 — after the question-plan LLM call has
+  // already run and burned a model call.
+  function handlePlannedSessionsChange(raw: string) {
+    if (raw.trim() === "") {
+      setPlannedSessions("");
+      return;
+    }
+    const n = Math.floor(Number(raw));
+    if (!Number.isFinite(n)) return; // not a number yet (e.g. a bare "-") — ignore the keystroke
+    setPlannedSessions(String(Math.min(50, Math.max(1, n))));
+  }
+
   function selectTemplate(id: TemplateId) {
     setTemplate(id);
     const tpl = TEMPLATES.find((t) => t.id === id);
@@ -283,7 +297,6 @@ export function Wizard({
       tone,
       sessionMinutes,
       voice,
-      interviewerName: persona.name,
       depth,
       plannedSessions: (() => {
         const n = Number(plannedSessions);
@@ -599,7 +612,7 @@ export function Wizard({
                   max={50}
                   className={`${inputClasses} max-w-[140px]`}
                   value={plannedSessions}
-                  onChange={(e) => setPlannedSessions(e.target.value)}
+                  onChange={(e) => handlePlannedSessionsChange(e.target.value)}
                   placeholder="—"
                 />
               </Field>

@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import { inputClasses, textareaClasses } from "./formkit";
 import type { MemberOption } from "./formkit";
-import { DEFAULT_INTERVIEWER_NAME, DEFAULT_VOICE } from "@/lib/voices";
+import { DEFAULT_VOICE } from "@/lib/voices";
 
 /**
  * Condensed create form per `Postaudio Admin.dc.html#1d` — title/subject/goal
@@ -52,7 +52,6 @@ export function QuickCreate({
       tone: "warm",
       sessionMinutes: 20,
       voice: DEFAULT_VOICE,
-      interviewerName: DEFAULT_INTERVIEWER_NAME,
       depth: "balanced",
       plannedSessions: null,
       access: [],

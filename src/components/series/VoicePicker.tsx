@@ -67,21 +67,12 @@ export function VoicePicker({
     setPlaying(id);
     el.src = sample;
     el.currentTime = 0;
-    void el.play().then(
-      () => {
-        // A newer toggle() may have already reassigned el.src (or stopped
-        // playback) while this promise was pending. Only a matching token
-        // means we're still the current request; otherwise there's nothing
-        // to reconcile — the newer call already set the state that matters.
-        if (tokenRef.current !== token) return;
-      },
-      () => {
-        // Autoplay blocked or the file is missing — fail quiet, but only
-        // clear state if nothing newer has since taken over the audio
-        // element (a stale rejection must not stomp a fresh play).
-        if (tokenRef.current === token) setPlaying(null);
-      },
-    );
+    void el.play().catch(() => {
+      // Autoplay blocked or the file is missing — fail quiet, but only
+      // clear state if nothing newer has since taken over the audio
+      // element (a stale rejection must not stomp a fresh play).
+      if (tokenRef.current === token) setPlaying(null);
+    });
   }
 
   return (

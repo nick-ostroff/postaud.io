@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DEFAULT_VOICE } from "@/lib/voices";
 
 const mocks = vi.hoisted(() => ({
   getViewer: vi.fn(),
@@ -151,8 +150,11 @@ function makeSvcStub() {
       dont_bring_up: [],
       tone: "warm",
       session_minutes: 30,
-      voice: DEFAULT_VOICE,
-      interviewer_name: null,
+      // Deliberately a non-default voice with a stale/wrong stored name — the
+      // route must derive the spoken name from `voice` (persona.name), never
+      // from this column, so a mismatch here can't leak into the prompt.
+      voice: "cedar",
+      interviewer_name: "Some Stale Name",
       depth: "balanced",
       planned_sessions: 6,
     },
@@ -206,4 +208,17 @@ describe("POST /api/interviews/[id]/realtime-token", () => {
       expect(sessionArg.session.instructions).not.toContain("session 3 of");
     },
   );
+
+  it("sends the persona's voice and name together, ignoring the stored interviewer_name column", async () => {
+    const res = await POST(new Request("http://localhost/x", { method: "POST" }), ctx());
+
+    expect(res.status).toBe(200);
+    const sessionArg = mocks.createClientSecret.mock.calls[0][0];
+    // series.voice is "cedar" — the persona registry says that voice is
+    // "Ellis". The fixture's stored interviewer_name column is deliberately
+    // a stale, different value; the route must ignore it and derive the
+    // spoken name from the voice, not the column.
+    expect(sessionArg.session.audio.output.voice).toBe("cedar");
+    expect(sessionArg.session.instructions).toContain("You are Ellis,");
+  });
 });
