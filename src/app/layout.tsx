@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Newsreader, Instrument_Sans } from "next/font/google";
 import { ServiceWorkerRegistrar } from "@/components/pwa/ServiceWorkerRegistrar";
+import { ICONS } from "@/lib/pwa/icons";
 import { APPLE_STARTUP_IMAGES } from "@/lib/pwa/splash";
 import { SITE_URL } from "./(marketing)/content";
 import "./globals.css";
@@ -38,8 +39,7 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     startupImage: APPLE_STARTUP_IMAGES,
   },
-  // iOS ignores the manifest's icons and reads this instead.
-  icons: { apple: "/apple-touch-icon.png" },
+  icons: ICONS,
   other: {
     // Next emits only the standardized `mobile-web-app-capable`. Safari before
     // iOS 16.4 doesn't read `display` off the manifest and honors just this
