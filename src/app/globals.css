@@ -28,8 +28,8 @@
   --amber: oklch(0.50 0.10 50);
   --amber-tint: oklch(0.50 0.10 50 / 0.12);
   --card: #FFFFFF;
-  --line: rgba(33, 30, 26, 0.12);
-  --line-strong: rgba(33, 30, 26, 0.24);
+  --line: rgba(33, 30, 26, 0.2);
+  --line-strong: rgba(33, 30, 26, 0.34);
   --dark: #211E1A;
   --dark-2: #2A2620;
   --dark-line: rgba(247, 245, 240, 0.12);
