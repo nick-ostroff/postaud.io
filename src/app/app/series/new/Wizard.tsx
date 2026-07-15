@@ -499,7 +499,7 @@ export function Wizard({
                     <Avatar name={m.name} tone="warm" />
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[13.5px] font-semibold text-ink">{m.name}</div>
-                      <div className="truncate text-xs text-faint">
+                      <div className="truncate text-xs text-muted">
                         {m.email}
                         {m.pending ? " · invited" : ""}
                       </div>
@@ -518,7 +518,7 @@ export function Wizard({
                 ))}
               </Card>
               {subjectChoice.startsWith("member:") && pickedMember && (
-                <div className="mt-2 text-xs text-faint">
+                <div className="mt-2 text-xs text-muted">
                   {pickedMember.name} is the subject of this series — they can always join their own sessions.
                 </div>
               )}
