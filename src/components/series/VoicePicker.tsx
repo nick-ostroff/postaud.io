@@ -102,7 +102,7 @@ export function VoicePicker({
                   className="sr-only"
                 />
                 <span className="text-[14px] font-semibold text-ink">{v.name}</span>
-                <div className="mt-1 text-xs leading-snug text-muted">{v.blurb}</div>
+                <div className="mt-1 text-xs leading-snug text-ink-soft">{v.blurb}</div>
               </label>
               <button
                 type="button"

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { KeyboardEvent } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import { inputClasses } from "@/components/ui/Input";
 
 /** A pickable subject/access-list candidate — the org roster, pre-shaped for this UI. */
@@ -15,6 +15,22 @@ export type MemberOption = {
 export { inputClasses };
 
 export const textareaClasses = `${inputClasses} min-h-[92px] resize-y`;
+
+/**
+ * The wizard's own Field. Uppercase, slightly larger labels and darker hints
+ * than the shared <Field>, matching the Create Series Mobile design doc's
+ * "larger labels, darker secondary text" treatment. Scoped to this flow on
+ * purpose so the rest of the app's forms keep their mixed-case labels.
+ */
+export function WizardField({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+  return (
+    <label className="mb-[18px] block">
+      <span className="mb-1.5 block text-[13px] font-semibold uppercase tracking-[0.04em] text-ink-soft">{label}</span>
+      {children}
+      {hint && <div className="mt-[5px] text-[13px] leading-snug text-ink-soft">{hint}</div>}
+    </label>
+  );
+}
 
 /** Matches `.steps`/`.st`/`.st.now`/`.st.done`/`.bar` in postaudio-mockups.css. */
 export function StepsIndicator({ step }: { step: 1 | 2 | 3 | 4 }) {
@@ -76,7 +92,7 @@ export function RadioCard({
       }
     >
       <div className="text-[14px] font-semibold text-ink">{title}</div>
-      <div className="mt-1 text-[12.5px] leading-snug text-muted">{description}</div>
+      <div className="mt-1 text-[12.5px] leading-snug text-ink-soft">{description}</div>
     </label>
   );
 }

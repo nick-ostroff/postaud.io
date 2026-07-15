@@ -7,13 +7,12 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Field } from "@/components/ui/Field";
 import { Segmented } from "@/components/ui/Segmented";
 import type { MemberRole, SeriesDepth, SeriesTone, SubjectKind } from "@/db/types";
 import { DEFAULT_VOICE, personaFor } from "@/lib/voices";
 import type { VoiceId } from "@/lib/voices";
 import { VoicePicker } from "@/components/series/VoicePicker";
-import { ChipEditor, RadioCard, StepsIndicator, inputClasses, textareaClasses } from "./formkit";
+import { ChipEditor, RadioCard, StepsIndicator, WizardField, inputClasses, textareaClasses } from "./formkit";
 import type { MemberOption } from "./formkit";
 
 type AccessLevel = "view" | "interview" | "none";
@@ -105,7 +104,7 @@ function WizardActions({ onBack, children }: { onBack?: () => void; children: Re
 function KV({ k, edit, children }: { k: string; edit?: () => void; children: ReactNode }) {
   return (
     <div className="border-b border-line py-2.5 last:border-b-0">
-      <div className="mb-0.5 flex items-center justify-between text-[10.5px] font-bold uppercase tracking-[0.1em] text-faint">
+      <div className="mb-0.5 flex items-center justify-between text-[10.5px] font-bold uppercase tracking-[0.1em] text-ink-soft">
         <span>{k}</span>
         {edit && (
           <button
@@ -351,10 +350,10 @@ export function Wizard({
 
   return (
     <div className="w-full">
-      <div className="mb-1 text-[13px] text-muted">Home / New series</div>
+      <div className="mb-1 text-[13px] text-ink-soft">Home / New series</div>
       <div className="mb-5">
         <h1 className="text-[26px]">New series</h1>
-        <div className="mt-[3px] text-[13.5px] text-muted">Four quick steps — Anna handles the rest.</div>
+        <div className="mt-[3px] text-[13.5px] text-ink-soft">Four quick steps — Anna handles the rest.</div>
       </div>
 
       <StepsIndicator step={step} />
@@ -362,7 +361,7 @@ export function Wizard({
       <div className={step === 4 ? "w-full" : "max-w-3xl"}>
         {step === 1 && (
           <div>
-            <Field
+            <WizardField
               label="Start from a template"
               hint="Only pre-fills the goal placeholder and suggests a few must-cover topics — change anything you like."
             >
@@ -377,19 +376,19 @@ export function Wizard({
                   />
                 ))}
               </div>
-            </Field>
+            </WizardField>
 
-            <Field label="Series title">
+            <WizardField label="Series title">
               <input
                 className={inputClasses}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="What should we call it?"
               />
-            </Field>
+            </WizardField>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field
+              <WizardField
                 label="Who is this about?"
                 hint="Pick a member — or someone without an account; you can hand them the mic in person."
               >
@@ -407,8 +406,8 @@ export function Wizard({
                   ))}
                   <option value="new">Someone without an account…</option>
                 </select>
-              </Field>
-              <Field label="Your relationship">
+              </WizardField>
+              <WizardField label="Your relationship">
                 <input
                   className={inputClasses}
                   value={subjectChoice === "self" ? "" : subjectRelationship}
@@ -416,7 +415,7 @@ export function Wizard({
                   disabled={subjectChoice === "self"}
                   placeholder={subjectChoice === "self" ? "—" : 'e.g. "My father", "Our founder"'}
                 />
-              </Field>
+              </WizardField>
             </div>
 
             {subjectChoice === "new" && (
@@ -436,16 +435,16 @@ export function Wizard({
                     }}
                   />
                 </div>
-                <Field label="Their name">
+                <WizardField label="Their name">
                   <input
                     className={inputClasses}
                     value={newSubjectName}
                     onChange={(e) => setNewSubjectName(e.target.value)}
                     placeholder={subjectKindNew === "organization" ? "The family bakery" : "Full name"}
                   />
-                </Field>
+                </WizardField>
                 {subjectKindNew === "person" && (
-                  <Field
+                  <WizardField
                     label="Invite them by email (optional)"
                     hint="Sends an invite so they can sign in and join their own sessions later."
                   >
@@ -456,19 +455,19 @@ export function Wizard({
                       onChange={(e) => setInviteSubjectEmail(e.target.value)}
                       placeholder="name@email.com"
                     />
-                  </Field>
+                  </WizardField>
                 )}
               </Card>
             )}
 
-            <Field label="What do you want Anna to learn?" hint="This goal shapes every question Anna asks. Plain words work best.">
+            <WizardField label="What do you want Anna to learn?" hint="This goal shapes every question Anna asks. Plain words work best.">
               <textarea
                 className={textareaClasses}
                 value={goal}
                 onChange={(e) => setGoal(e.target.value)}
                 placeholder={goalPlaceholder}
               />
-            </Field>
+            </WizardField>
 
             <WizardActions>
               <Button type="button" variant="primary" disabled={!canContinueStep1} onClick={() => setStep(2)}>
@@ -480,26 +479,26 @@ export function Wizard({
 
         {step === 2 && (
           <div>
-            <Field label="Series owner" hint="The owner runs the guide, the topic queue, and access.">
+            <WizardField label="Series owner" hint="The owner runs the guide, the topic queue, and access.">
               <div className="flex max-w-[340px] items-center gap-2.5 rounded-sm border border-line-strong bg-card px-[13px] py-2.5">
                 <Avatar name={viewer.name} />
                 <span className="text-[14px] text-ink">
-                  {viewer.name} <span className="text-[12.5px] text-faint">· you</span>
+                  {viewer.name} <span className="text-[12.5px] text-muted">· you</span>
                 </span>
               </div>
-            </Field>
+            </WizardField>
 
-            <Field label="Who else can be part of this?">
+            <WizardField label="Who else can be part of this?">
               <Card className="px-4">
                 {accessCandidates.length === 0 && (
-                  <div className="py-4 text-[13px] text-muted">No other members yet — invite someone below.</div>
+                  <div className="py-4 text-[13px] text-ink-soft">No other members yet — invite someone below.</div>
                 )}
                 {accessCandidates.map((m) => (
                   <div key={m.userId} className="flex flex-wrap items-center gap-3 border-b border-line py-3 last:border-b-0">
                     <Avatar name={m.name} tone="warm" />
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[13.5px] font-semibold text-ink">{m.name}</div>
-                      <div className="truncate text-xs text-muted">
+                      <div className="truncate text-xs text-ink-soft">
                         {m.email}
                         {m.pending ? " · invited" : ""}
                       </div>
@@ -518,11 +517,11 @@ export function Wizard({
                 ))}
               </Card>
               {subjectChoice.startsWith("member:") && pickedMember && (
-                <div className="mt-2 text-xs text-muted">
+                <div className="mt-2 text-xs text-ink-soft">
                   {pickedMember.name} is the subject of this series — they can always join their own sessions.
                 </div>
               )}
-            </Field>
+            </WizardField>
 
             <div className="mt-1 flex flex-wrap items-center gap-2.5 rounded-card border border-dashed border-line-strong px-4 py-3.5">
               <input
@@ -557,55 +556,55 @@ export function Wizard({
 
         {step === 3 && (
           <div>
-            <Field label="Who should do the interviewing?" hint="Pick a voice — the name comes with it. Press ▶ to hear each one.">
+            <WizardField label="Who should do the interviewing?" hint="Pick a voice — the name comes with it. Press ▶ to hear each one.">
               <VoicePicker value={voice} onChange={setVoice} />
-            </Field>
+            </WizardField>
 
-            <Field label="Opening prompt" hint={`How ${persona.name} should open the very first session.`}>
+            <WizardField label="Opening prompt" hint={`How ${persona.name} should open the very first session.`}>
               <input
                 className={inputClasses}
                 value={openingPrompt}
                 onChange={(e) => setOpeningPrompt(e.target.value)}
                 placeholder="Start warm — ask about the easy stuff before the hard stories."
               />
-            </Field>
+            </WizardField>
 
-            <Field label={`Topics ${persona.name} must cover`}>
+            <WizardField label={`Topics ${persona.name} must cover`}>
               <ChipEditor items={mustCover} onChange={setMustCover} placeholder="＋ Add a topic" />
-            </Field>
+            </WizardField>
 
-            <Field label="Don't bring up">
+            <WizardField label="Don't bring up">
               <ChipEditor items={dontBringUp} onChange={setDontBringUp} placeholder="＋ Add" tone="amber" />
-              <div className="mt-[5px] text-xs text-muted">
+              <div className="mt-[5px] text-xs text-ink-soft">
                 {persona.name} will never raise these — if they come up, the answer gets heard, then the
                 conversation moves gently on.
               </div>
-            </Field>
+            </WizardField>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Tone">
+              <WizardField label="Tone">
                 <Segmented name="tone" options={TONE_OPTIONS} value={tone} onChange={(v) => setTone(v as SeriesTone)} />
-              </Field>
-              <Field label="Session length">
+              </WizardField>
+              <WizardField label="Session length">
                 <Segmented
                   name="session-length"
                   options={LENGTH_OPTIONS}
                   value={String(sessionMinutes)}
                   onChange={(v) => setSessionMinutes(Number(v) as 10 | 20 | 45)}
                 />
-              </Field>
+              </WizardField>
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Depth" hint="How long the questions run, and how hard each thread gets mined.">
+              <WizardField label="Depth" hint="How long the questions run, and how hard each thread gets mined.">
                 <Segmented
                   name="depth"
                   options={DEPTH_OPTIONS}
                   value={depth}
                   onChange={(v) => setDepth(v as SeriesDepth)}
                 />
-              </Field>
-              <Field label="Planned sessions (optional)" hint="Leave blank for open-ended. Setting it lets the interviewer pace the topics.">
+              </WizardField>
+              <WizardField label="Planned sessions (optional)" hint="Leave blank for open-ended. Setting it lets the interviewer pace the topics.">
                 <input
                   type="number"
                   min={1}
@@ -615,7 +614,7 @@ export function Wizard({
                   onChange={(e) => handlePlannedSessionsChange(e.target.value)}
                   placeholder="—"
                 />
-              </Field>
+              </WizardField>
             </div>
 
             <WizardActions onBack={() => setStep(2)}>
@@ -631,15 +630,15 @@ export function Wizard({
             <div>
               <Card className="px-5 py-5">
                 <h3 className="serif text-[18px]">{persona.name} drafted the first session</h3>
-                <p className="mt-1 text-[13px] text-muted">
+                <p className="mt-1 text-[13px] text-ink-soft">
                   Reorder, edit, or remove anything — this is a starting point. {persona.name} improvises follow-ups
                   from whatever {subjectName || "they"} say.
                 </p>
 
                 <div className="mt-3">
-                  {questionPlanLoading && <div className="py-4 text-[13px] text-muted">Drafting the first session…</div>}
+                  {questionPlanLoading && <div className="py-4 text-[13px] text-ink-soft">Drafting the first session…</div>}
                   {!questionPlanLoading && questionPlan.length === 0 && (
-                    <div className="py-3 text-[13px] text-muted">No questions yet — add your own below.</div>
+                    <div className="py-3 text-[13px] text-ink-soft">No questions yet — add your own below.</div>
                   )}
                   {questionPlan.map((q, i) => (
                     <div key={i} className="flex items-center gap-3 border-b border-line py-3 last:border-b-0">
@@ -667,7 +666,7 @@ export function Wizard({
                 <button
                   type="button"
                   onClick={() => setQuestionPlan((prev) => [...prev, ""])}
-                  className="mt-3 block w-full rounded-card border border-dashed border-line-strong py-3 text-center text-[13px] font-semibold text-muted hover:border-green hover:text-green-deep"
+                  className="mt-3 block w-full rounded-card border border-dashed border-line-strong py-3 text-center text-[13px] font-semibold text-ink-soft hover:border-green hover:text-green-deep"
                 >
                   ＋ Add a question
                 </button>
