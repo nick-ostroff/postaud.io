@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { Avatar } from "@/components/ui/Avatar";
+import { ProfileNameEditor } from "@/components/profile/ProfileNameEditor";
+import { ProfilePhotoEditor } from "@/components/profile/ProfilePhotoEditor";
 import { Card } from "@/components/ui/Card";
 import { getSeriesForUser, getSeriesSummaries, getViewer } from "@/db/queries";
 import { isPlatformAdmin } from "@/lib/auth/is-platform-admin";
 import { ROLE_LABELS } from "@/lib/roles";
+import { profilePhotoUrl } from "@/server/profile/photo-url";
 
 /**
  * Profile (mobile mockup 2a) — the account view the top-nav avatar opens:
@@ -19,8 +21,9 @@ export default async function SettingsPage() {
   const roleLabel = role ? (ROLE_LABELS[role] ?? role) : "Member";
   const platformAdmin = await isPlatformAdmin();
 
-  const name =
-    (user.user_metadata?.full_name as string | undefined) || user.email?.split("@")[0] || "You";
+  const emailPrefix = user.email?.split("@")[0] || "You";
+  const name = (user.user_metadata?.full_name as string | undefined) || emailPrefix;
+  const photoUrl = profilePhotoUrl(user.user_metadata?.avatar_path as string | undefined);
 
   const series = organization
     ? (await getSeriesForUser(supabase)).filter((s) => s.status !== "archived")
@@ -32,11 +35,9 @@ export default async function SettingsPage() {
   return (
     <div className="mx-auto w-full max-w-3xl">
       <div className="flex flex-col items-center gap-2.5 lg:items-start">
-        <span className="lg:hidden">
-          <Avatar name={name} tone="warm" size="lg" />
-        </span>
+        <ProfilePhotoEditor name={name} photoUrl={photoUrl} />
         <div className="text-center lg:text-left">
-          <h1 className="text-[26px]">{name}</h1>
+          <ProfileNameEditor name={name} fallback={emailPrefix} />
           <div className="mt-0.5 text-[13px] text-muted">
             {user.email} · {roleLabel}
           </div>

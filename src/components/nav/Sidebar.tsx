@@ -16,6 +16,7 @@ type Props = {
   name: string;
   role: string;
   isPlatformAdmin?: boolean;
+  avatarUrl?: string | null;
 };
 
 function NavItem({ href, label, icon }: { href: string; label: string; icon: string }) {
@@ -37,7 +38,7 @@ function NavItem({ href, label, icon }: { href: string; label: string; icon: str
   );
 }
 
-export function Sidebar({ name, role, isPlatformAdmin = false }: Props) {
+export function Sidebar({ name, role, isPlatformAdmin = false, avatarUrl }: Props) {
   return (
     <aside className="hidden w-[232px] shrink-0 flex-col gap-1 border-r border-line bg-paper-2 py-[22px] px-3.5 lg:flex">
       <div className="serif px-2.5 pb-[18px] text-[19px]">
@@ -70,7 +71,7 @@ export function Sidebar({ name, role, isPlatformAdmin = false }: Props) {
       <div className="flex-1" />
 
       <div className="flex items-center gap-2.5 border-t border-line p-2.5">
-        <Avatar name={name} />
+        <Avatar name={name} src={avatarUrl} />
         <div className="min-w-0">
           <div className="truncate text-[13.5px] font-medium text-ink">{name}</div>
           <div className="text-xs text-faint">{role}</div>

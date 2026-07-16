@@ -23,7 +23,7 @@ function parentOf(pathname: string): string | null {
  * avatar into the profile. The desktop sidebar covers the same ground at
  * `lg` and up, so this hides there — the two are never both on screen.
  */
-export function AppTopNav({ name }: { name: string }) {
+export function AppTopNav({ name, avatarUrl }: { name: string; avatarUrl?: string | null }) {
   const pathname = usePathname();
   const parent = parentOf(pathname);
 
@@ -42,7 +42,7 @@ export function AppTopNav({ name }: { name: string }) {
         <LogoLockup size="md" />
       </Link>
       <Link href="/app/settings" aria-label="Your profile" className="ml-auto hover:no-underline">
-        <Avatar name={name} tone="warm" size="lg" />
+        <Avatar name={name} tone="warm" size="lg" src={avatarUrl} />
       </Link>
     </header>
   );

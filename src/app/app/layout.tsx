@@ -8,6 +8,7 @@ import { getViewer } from "@/db/queries";
 import { isPlatformAdmin } from "@/lib/auth/is-platform-admin";
 import { resolveImpersonationBanner } from "@/lib/auth/impersonation-banner";
 import { ROLE_LABELS } from "@/lib/roles";
+import { profilePhotoUrl } from "@/server/profile/photo-url";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, organization, role, acceptedAt } = await getViewer();
@@ -25,6 +26,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     (user.user_metadata?.full_name as string | undefined) ||
     user.email?.split("@")[0] ||
     "You";
+  const avatarUrl = profilePhotoUrl(user.user_metadata?.avatar_path as string | undefined);
   const roleLabel = role ? (ROLE_LABELS[role] ?? role) : "Member";
 
   const cookieStore = await cookies();
@@ -40,10 +42,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="flex min-h-screen w-full flex-col bg-paper">
       {banner && <ImpersonationBanner session={banner.session} expired={banner.expired} />}
       <div className="flex min-h-0 flex-1">
-        <Sidebar name={name} role={roleLabel} isPlatformAdmin={platformAdmin} />
+        <Sidebar name={name} role={roleLabel} isPlatformAdmin={platformAdmin} avatarUrl={avatarUrl} />
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Below `lg` the sidebar is hidden and this carries the nav instead. */}
-          <AppTopNav name={name} />
+          <AppTopNav name={name} avatarUrl={avatarUrl} />
           {/* The bottom padding clears the floating story bar on mobile. */}
           <main className="min-w-0 flex-1 px-5 py-6 pb-28 lg:px-9 lg:py-[30px] lg:pb-11">
             <InstallPrompt />
