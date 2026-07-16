@@ -1,5 +1,25 @@
 # Profile Editor — Avatar Upload + Display Name — Implementation Plan
 
+> **Implementation note (2026-07-15, superseded approach below):** During
+> execution the repo turned out to already have the entire photo-upload
+> pattern — `Avatar` takes a `src` prop, `ImageCropperModal` is a
+> zero-dependency circular cropper that emits a 512² WebP, and
+> `SeriesPhotoEditor` + `/api/series/[id]/photo` are a proven template. The
+> feature was therefore built by **mirroring the series-photo pattern**, not
+> by the react-easy-crop / client-upload design below:
+> - Migration `0013_profile_photo.sql` (public `profile-avatars` bucket;
+>   `0012` was already taken by series photos).
+> - `src/server/profile/photo-url.ts` (`PROFILE_AVATAR_BUCKET` + `profilePhotoUrl`).
+> - `POST /api/profile/photo` — service-role upload + `user_metadata.avatar_path`.
+> - `ProfilePhotoEditor` (reuses `ImageCropperModal`) + `ProfileNameEditor`
+>   (inline, via `updateProfileNameAction`).
+> - Photo shown on settings header, top nav, and sidebar via `Avatar src`.
+> No `react-easy-crop` dependency was added. The sections below are retained
+> for design history.
+
+---
+
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Let a signed-in user edit their display name and upload/crop a headshot from `/app/settings`, and show that photo on the current user's own avatars.
