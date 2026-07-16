@@ -19,10 +19,8 @@ import { pickIntervieweeSeries } from "@/server/interviewee/select-series";
 import { staleness } from "@/server/series/staleness";
 import { pickPersonalPromptTopic } from "@/server/topics/pick";
 import { IntervieweeHome } from "./IntervieweeHome";
-import { MobileHome, type MobileStory } from "./MobileHome";
-
-/** Recent memories shown on the mobile dashboard before "All memories →". */
-const RECENT_MEMORIES = 2;
+import { MobileHome } from "./MobileHome";
+import { buildMobileStory, type MobileStory } from "./stories";
 
 function greeting(now: Date): string {
   const hour = now.getHours();
@@ -92,7 +90,11 @@ export default async function DashboardHome({ searchParams }: { searchParams: Se
   const subtitle = `The ${organization?.name ?? "workspace"} workspace — ${series.length} ${storyWord} in motion.`;
   const isAdmin = role === "admin";
 
-  // ---- the mobile dashboard's selected story (`?story=`, first one by default) ----
+  // ---- the mobile dashboard ----
+  // Build every story up front so the rail can switch between them client-side
+  // with no per-tap server round-trip (see MobileHome). Memories come back in
+  // one batched query and are grouped per series; knowledge + access are the
+  // only per-series fetches, run in parallel.
   const now = new Date();
   const railStories = series.map((s) => ({
     id: s.id,
@@ -103,39 +105,42 @@ export default async function DashboardHome({ searchParams }: { searchParams: Se
     ).stale,
   }));
 
-  const activeSeries = series.find((s) => s.id === storyParam) ?? series[0] ?? null;
-  let activeStory: MobileStory | null = null;
-  if (activeSeries) {
-    const [knowledge, memories, access] = await Promise.all([
-      getSeriesKnowledge(supabase, activeSeries.id),
-      getMemoriesForSeries(supabase, [activeSeries.id]),
-      getSeriesAccessSummary(supabase, activeSeries.id),
-    ]);
-    const s = summaries[activeSeries.id];
-    const isOwnStory =
-      activeSeries.subject_kind === "self" || activeSeries.subject_user_id === user.id;
-    activeStory = {
-      id: activeSeries.id,
-      title: activeSeries.title,
-      subtitle: isOwnStory
-        ? "about you"
-        : [`about ${activeSeries.subject_name}`, activeSeries.subject_relationship]
-            .filter(Boolean)
-            .join(" · "),
-      memoriesCount: s.memoriesCount,
-      coveragePct: Math.round(s.meanCoverage * 100),
-      // The owner is always in the access summary — "shared" counts everyone else.
-      sharedCount: Math.max(0, access.length - 1),
-      sessionsCount: s.sessionsCount,
-      nextTopic: pickPersonalPromptTopic(knowledge.topics)?.name ?? null,
-      recentMemories: memories.slice(0, RECENT_MEMORIES).map((m) => m.statement),
-      handoff: activeSeries.subject_user_id == null,
-    };
+  const allMemories = await getMemoriesForSeries(supabase, series.map((s) => s.id));
+  const memoriesBySeries = new Map<string, typeof allMemories>();
+  for (const m of allMemories) {
+    const list = memoriesBySeries.get(m.seriesId);
+    if (list) list.push(m);
+    else memoriesBySeries.set(m.seriesId, [m]);
   }
+
+  const mobileStories: MobileStory[] = await Promise.all(
+    series.map(async (s) => {
+      const [knowledge, access] = await Promise.all([
+        getSeriesKnowledge(supabase, s.id),
+        getSeriesAccessSummary(supabase, s.id),
+      ]);
+      return buildMobileStory({
+        series: s,
+        summary: summaries[s.id],
+        topics: knowledge.topics,
+        access,
+        memories: memoriesBySeries.get(s.id) ?? [],
+        viewerUserId: user.id,
+      });
+    }),
+  );
+
+  const initialStoryId =
+    mobileStories.find((s) => s.id === storyParam)?.id ?? mobileStories[0]?.id ?? null;
 
   return (
     <div>
-      <MobileHome stories={railStories} active={activeStory} canCreate={isAdmin} />
+      <MobileHome
+        railStories={railStories}
+        stories={mobileStories}
+        initialActiveId={initialStoryId}
+        canCreate={isAdmin}
+      />
 
       <div className="hidden lg:block">
       <div className="mb-[22px] flex items-end justify-between gap-4">

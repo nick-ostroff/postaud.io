@@ -1,24 +1,14 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { StoryBar } from "@/components/nav/StoryBar";
 import { StoryRail, type RailStory } from "@/components/nav/StoryRail";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import type { MobileStory } from "./stories";
 
-export type MobileStory = {
-  id: string;
-  title: string;
-  /** "about Marta · by Sam" */
-  subtitle: string;
-  memoriesCount: number;
-  coveragePct: number;
-  sharedCount: number;
-  sessionsCount: number;
-  /** The topic Anna wants next — drives the "Next up" line on the continue card. */
-  nextTopic: string | null;
-  recentMemories: string[];
-  /** Subject has no account: the owner starts the session by handing them the phone. */
-  handoff: boolean;
-};
+export type { MobileStory };
 
 /**
  * The mobile home dashboard (Home mockup 1a/1b): the story rail switches
@@ -26,19 +16,41 @@ export type MobileStory = {
  * tiles, and the most recent memories — with the floating Talk bar scoped to
  * the selected story. The desktop card grid on `/app` is the same data, laid
  * out for a mouse; only one of the two is ever visible.
+ *
+ * Every story arrives fully built, so switching is instant client state — no
+ * server round-trip per tap. The URL's `?story=` is kept in sync via
+ * history.replaceState (no navigation) so a reload or shared link lands on the
+ * same story.
  */
 export function MobileHome({
+  railStories,
   stories,
-  active,
+  initialActiveId,
   canCreate,
 }: {
-  stories: RailStory[];
-  active: MobileStory | null;
+  railStories: RailStory[];
+  stories: MobileStory[];
+  initialActiveId: string | null;
   canCreate: boolean;
 }) {
+  const [activeId, setActiveId] = useState(initialActiveId);
+  const active = stories.find((s) => s.id === activeId) ?? stories[0] ?? null;
+
+  function selectStory(id: string) {
+    setActiveId(id);
+    if (typeof window !== "undefined") {
+      window.history.replaceState(window.history.state, "", `/app?story=${id}`);
+    }
+  }
+
   return (
     <div className="lg:hidden">
-      <StoryRail stories={stories} activeId={active?.id ?? null} canCreate={canCreate} />
+      <StoryRail
+        stories={railStories}
+        activeId={active?.id ?? null}
+        canCreate={canCreate}
+        onSelect={selectStory}
+      />
 
       {active === null ? (
         <Card className="mt-5 flex flex-col items-center gap-3 px-6 py-12 text-center">

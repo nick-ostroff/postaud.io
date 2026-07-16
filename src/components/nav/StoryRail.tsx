@@ -16,30 +16,30 @@ function initials(title: string): string {
 
 /**
  * The story rail (Home mockup 1a/1b) — circular avatars under the top nav,
- * one per series, the active one ringed. Tapping one repaints the whole
- * dashboard: it's a plain link back to `/app?story=<id>`, so switching is a
- * server render with no client state to keep in sync.
+ * one per series, the active one ringed. With `onSelect` the whole dashboard
+ * is already loaded, so tapping switches the active story in client state
+ * instantly (no navigation); without it each avatar is a plain link back to
+ * `/app?story=<id>` that re-renders the page on the server.
  */
 export function StoryRail({
   stories,
   activeId,
   canCreate = false,
+  onSelect,
 }: {
   stories: RailStory[];
   activeId: string | null;
   canCreate?: boolean;
+  /** Switch stories client-side instead of navigating. */
+  onSelect?: (id: string) => void;
 }) {
+  const avatarClass = "flex shrink-0 flex-col items-center gap-1.5 hover:no-underline";
   return (
     <nav aria-label="Your stories" className="-mx-5 flex gap-4 overflow-x-auto px-5 pb-1 pt-4">
       {stories.map((s) => {
         const active = s.id === activeId;
-        return (
-          <Link
-            key={s.id}
-            href={`/app?story=${s.id}`}
-            aria-current={active ? "true" : undefined}
-            className="flex shrink-0 flex-col items-center gap-1.5 hover:no-underline"
-          >
+        const inner = (
+          <>
             <span
               className={
                 "relative grid h-[52px] w-[52px] place-items-center rounded-full bg-green-tint text-base font-semibold text-green-deep " +
@@ -59,6 +59,26 @@ export function StoryRail({
             >
               {s.title}
             </span>
+          </>
+        );
+        return onSelect ? (
+          <button
+            key={s.id}
+            type="button"
+            onClick={() => onSelect(s.id)}
+            aria-current={active ? "true" : undefined}
+            className={avatarClass}
+          >
+            {inner}
+          </button>
+        ) : (
+          <Link
+            key={s.id}
+            href={`/app?story=${s.id}`}
+            aria-current={active ? "true" : undefined}
+            className={avatarClass}
+          >
+            {inner}
           </Link>
         );
       })}
