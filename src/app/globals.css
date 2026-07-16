@@ -138,6 +138,12 @@ body {
   font-size: 14.5px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  /* The whole UI is authored in fixed px, so raising the base font-size alone
+     wouldn't scale it. zoom enlarges everything — type, spacing, icons, borders
+     — uniformly, the way a browser zoom would, without touching 600+ call
+     sites. No element uses vw-based widths, so this can't cause H-overflow.
+     One knob: raise/lower to taste (1 = original density). */
+  zoom: 1.15;
 }
 
 h1, h2, h3, .serif {
@@ -151,8 +157,13 @@ h1, h2, h3, .serif {
   font-size: 1.06em;
 }
 
-a { color: var(--green-deep); text-decoration: none; }
-a:hover { text-decoration: underline; }
+/* Kept in @layer base so Tailwind text-color utilities (text-white, etc.)
+   win over this default — an unlayered rule would beat every layered utility
+   regardless of specificity, forcing links like the Talk buttons green. */
+@layer base {
+  a { color: var(--green-deep); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+}
 
 /* ---------- dark live-session surfaces ---------- */
 
