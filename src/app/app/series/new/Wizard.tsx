@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { ImageCropperModal } from "@/components/ui/ImageCropperModal";
 import { Segmented } from "@/components/ui/Segmented";
 import type { MemberRole, SeriesDepth, SeriesTone, SubjectKind } from "@/db/types";
 import { DEFAULT_VOICE, personaFor } from "@/lib/voices";
@@ -142,6 +143,13 @@ export function Wizard({
   const [goal, setGoal] = useState("");
   const [goalPlaceholder, setGoalPlaceholder] = useState(DEFAULT_GOAL_PLACEHOLDER);
 
+  // Photo (optional) — cropped client-side, held as a webp Blob and uploaded
+  // to the new series right after it's created (the row must exist first).
+  const photoInput = useRef<HTMLInputElement | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null); // pending crop
+  const [photoBlob, setPhotoBlob] = useState<Blob | null>(null); // cropped, ready to upload
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
   // Step 2 — Assign
   const [members, setMembers] = useState<MemberOption[]>(initialMembers);
   const [access, setAccess] = useState<Record<string, AccessLevel>>({});
@@ -211,6 +219,25 @@ export function Wizard({
     if (!tpl) return;
     setGoalPlaceholder(tpl.goalPlaceholder);
     setMustCover((prev) => (prev.length === 0 ? [...tpl.mustCover] : prev));
+  }
+
+  function onPhotoPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const chosen = e.target.files?.[0] ?? null;
+    e.target.value = ""; // allow re-picking the same file
+    if (chosen) setPhotoFile(chosen);
+  }
+
+  function onPhotoCropped(blob: Blob) {
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    setPhotoBlob(blob);
+    setPhotoPreview(URL.createObjectURL(blob));
+    setPhotoFile(null);
+  }
+
+  function removePhoto() {
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    setPhotoBlob(null);
+    setPhotoPreview(null);
   }
 
   const accessCandidates = members.filter(
@@ -324,6 +351,20 @@ export function Wizard({
         setSubmitError(body?.message ?? body?.error ?? "Could not create series.");
         return;
       }
+      // Series exists now — upload the photo (if any) before leaving. Kept
+      // non-blocking: a failed upload shouldn't strand a created series; the
+      // photo can be added later from the detail page.
+      if (photoBlob) {
+        try {
+          await fetch(`/api/series/${body.id}/photo`, {
+            method: "POST",
+            headers: { "Content-Type": "image/webp" },
+            body: photoBlob,
+          });
+        } catch {
+          /* non-blocking */
+        }
+      }
       router.push(startInterview ? `/app/series/${body.id}/interview` : `/app/series/${body.id}`);
     } catch (err) {
       setSubmitState("error");
@@ -417,6 +458,37 @@ export function Wizard({
                 />
               </WizardField>
             </div>
+
+            <WizardField
+              label="Photo"
+              hint="Optional — shown in the series avatar. You can add or change it later."
+            >
+              <div className="flex items-center gap-3.5">
+                <Avatar name={subjectName || "?"} size="lg" tone="plain" src={photoPreview} />
+                <Button type="button" variant="secondary" onClick={() => photoInput.current?.click()}>
+                  {photoPreview ? "Change photo" : "Add photo"}
+                </Button>
+                {photoPreview && (
+                  <button
+                    type="button"
+                    onClick={removePhoto}
+                    className="text-[12.5px] font-medium text-muted hover:text-ink"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              <input ref={photoInput} type="file" accept="image/*" hidden onChange={onPhotoPick} />
+            </WizardField>
+
+            {photoFile && (
+              <ImageCropperModal
+                file={photoFile}
+                title="Crop photo"
+                onCancel={() => setPhotoFile(null)}
+                onCropped={onPhotoCropped}
+              />
+            )}
 
             {subjectChoice === "new" && (
               <Card className="mb-[18px] px-4 py-4">

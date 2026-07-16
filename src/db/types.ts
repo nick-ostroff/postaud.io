@@ -176,6 +176,7 @@ export type Database = {
           interviewer_name: string
           depth: SeriesDepth
           planned_sessions: number | null
+          photo_path: string | null
           status: SeriesStatus
           created_by: string | null
           created_at: string
@@ -197,6 +198,7 @@ export type Database = {
           interviewer_name?: string
           depth?: SeriesDepth
           planned_sessions?: number | null
+          photo_path?: string | null
           status?: SeriesStatus
           created_by?: string | null
           created_at?: string
@@ -218,6 +220,7 @@ export type Database = {
           interviewer_name?: string
           depth?: SeriesDepth
           planned_sessions?: number | null
+          photo_path?: string | null
           status?: SeriesStatus
           created_by?: string | null
           created_at?: string

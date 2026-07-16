@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { CoverageBar } from "@/components/ui/CoverageBar";
+import { SeriesPhotoEditor } from "@/components/series/SeriesPhotoEditor";
+import { seriesPhotoUrl } from "@/server/series/photo-url";
 import {
   getSeries,
   getSeriesAccessSummary,
@@ -124,7 +126,12 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
           <h1 className="text-[28px]">{series.title}</h1>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <Chip>
-              <Avatar name={series.subject_name} size="md" tone="plain" />
+              <SeriesPhotoEditor
+                seriesId={series.id}
+                name={series.subject_name}
+                photoUrl={seriesPhotoUrl(series.photo_path)}
+                canEdit={isAdmin}
+              />
               {subjectSubtitle}
             </Chip>
             <Chip kicker="covered">

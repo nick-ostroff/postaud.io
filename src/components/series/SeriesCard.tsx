@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { CoverageBar } from "@/components/ui/CoverageBar";
 import type { Series } from "@/db/types";
 import type { SeriesSummary } from "@/db/queries";
+import { seriesPhotoUrl } from "@/server/series/photo-url";
 import { staleness } from "@/server/series/staleness";
 
 /** Coverage below this reads as amber in the bar — matches the detail page's
@@ -34,9 +36,12 @@ export function SeriesCard({ series, summary }: { series: Series; summary: Serie
     <Link href={`/app/series/${series.id}`} className="block">
       <Card className="h-full px-[22px] py-5 transition-colors hover:border-line-strong">
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="serif truncate text-[19px]">{series.title}</div>
-            <div className="mt-0.5 truncate text-[12.5px] text-muted">{subjectLine(series)}</div>
+          <div className="flex min-w-0 items-center gap-3">
+            <Avatar name={series.subject_name} size="lg" tone="plain" src={seriesPhotoUrl(series.photo_path)} />
+            <div className="min-w-0">
+              <div className="serif truncate text-[19px]">{series.title}</div>
+              <div className="mt-0.5 truncate text-[12.5px] text-muted">{subjectLine(series)}</div>
+            </div>
           </div>
           {stale && (
             <Badge tone="amber">

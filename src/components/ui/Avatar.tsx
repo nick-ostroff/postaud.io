@@ -19,13 +19,30 @@ function initials(name: string): string {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
-/** Initials avatar matching `.avatar`/`.avatar.lg`/`.avatar.warm`/`.avatar.plain` in postaudio-mockups.css. */
-export function Avatar({ name, tone = "green", size = "md" }: { name: string; tone?: AvatarTone; size?: AvatarSize }) {
-  return (
-    <span
-      className={`inline-flex shrink-0 items-center justify-center rounded-full font-bold ${toneClasses[tone]} ${sizeClasses[size]}`}
-    >
-      {initials(name)}
-    </span>
-  );
+/**
+ * Initials avatar matching `.avatar`/`.avatar.lg`/`.avatar.warm`/`.avatar.plain`
+ * in postaudio-mockups.css. Pass `src` to show a cropped photo instead — it
+ * fills the same circle and falls back to initials when absent.
+ */
+export function Avatar({
+  name,
+  tone = "green",
+  size = "md",
+  src,
+}: {
+  name: string;
+  tone?: AvatarTone;
+  size?: AvatarSize;
+  src?: string | null;
+}) {
+  const base = `inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-bold ${sizeClasses[size]}`;
+  if (src) {
+    return (
+      <span className={base}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt={name} className="h-full w-full object-cover" />
+      </span>
+    );
+  }
+  return <span className={`${base} ${toneClasses[tone]}`}>{initials(name)}</span>;
 }
