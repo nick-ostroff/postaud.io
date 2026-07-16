@@ -39,10 +39,10 @@ export function AppTopNav({ name }: { name: string }) {
         </Link>
       )}
       <Link href="/app" className="hover:no-underline">
-        <LogoLockup />
+        <LogoLockup size="md" />
       </Link>
       <Link href="/app/settings" aria-label="Your profile" className="ml-auto hover:no-underline">
-        <Avatar name={name} tone="warm" />
+        <Avatar name={name} tone="warm" size="lg" />
       </Link>
     </header>
   );

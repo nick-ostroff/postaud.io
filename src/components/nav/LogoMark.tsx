@@ -23,12 +23,16 @@ export function LogoMark({ size = 24, className = "" }: { size?: number; classNa
   );
 }
 
-/** Mark + lowercase wordmark, as it appears in the mobile top nav. */
-export function LogoLockup({ dark = false }: { dark?: boolean }) {
+/** Mark + lowercase wordmark, as it appears in the mobile top nav. `size="md"`
+ *  scales both the mark and wordmark up a notch for the app header; the default
+ *  keeps the auth/welcome/offline lockups untouched. */
+export function LogoLockup({ dark = false, size = "sm" }: { dark?: boolean; size?: "sm" | "md" }) {
+  const markSize = size === "md" ? 28 : 24;
+  const wordSize = size === "md" ? "text-base" : "text-sm";
   return (
     <span className="flex items-center gap-2">
-      <LogoMark />
-      <span className={`text-sm font-semibold tracking-[-0.02em] ${dark ? "text-paper" : "text-ink"}`}>
+      <LogoMark size={markSize} />
+      <span className={`${wordSize} font-semibold tracking-[-0.02em] ${dark ? "text-paper" : "text-ink"}`}>
         postaud<span className={dark ? "text-mint" : "text-green"}>.io</span>
       </span>
     </span>
