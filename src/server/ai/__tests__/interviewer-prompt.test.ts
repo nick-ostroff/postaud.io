@@ -30,9 +30,33 @@ it("deep depth tells it to exhaust the thread", () => {
   expect(p.toLowerCase()).toContain("until it is genuinely exhausted");
 });
 it("each depth produces different instructions", () => {
-  const of = (depth: "light" | "balanced" | "deep") =>
+  const of = (depth: "single" | "light" | "balanced" | "deep") =>
     buildInterviewerInstructions({ ...base, series: { ...base.series, depth } });
-  expect(new Set([of("light"), of("balanced"), of("deep")]).size).toBe(3);
+  expect(new Set([of("single"), of("light"), of("balanced"), of("deep")]).size).toBe(4);
+});
+it("single depth swaps thread-mining for a one-question-one-answer posture", () => {
+  const p = buildInterviewerInstructions({ ...base, series: { ...base.series, depth: "single" } });
+  expect(p).toContain("ONE QUESTION, ONE ANSWER");
+  expect(p).not.toContain("STAY ON THE THREAD");
+  expect(p.toLowerCase()).toContain("no follow-ups");
+});
+it("single depth carries none of the conversational mining instructions", () => {
+  const p = buildInterviewerInstructions({ ...base, series: { ...base.series, depth: "single" } });
+  expect(p).not.toContain("lingering IS the work");
+  expect(p).not.toContain("follow-ups on a thread");
+  expect(p).not.toContain("mine it before");
+});
+it("single depth treats EXPLORE NEXT as the agenda, not a background compass", () => {
+  const p = buildInterviewerInstructions({ ...base, series: { ...base.series, depth: "single" } });
+  expect(p).not.toContain("background compass");
+  expect(p).not.toContain("NOT a checklist to march through");
+  expect(p).toContain("they ARE the agenda");
+});
+it("single depth still keeps the NEVER BRING UP guardrail supreme", () => {
+  const p = buildInterviewerInstructions({ ...base, series: { ...base.series, depth: "single" } });
+  expect(p).toContain("NEVER BRING UP");
+  expect(p).toContain("Guardrails always outrank depth.");
+  expect(p).toContain("Pieter's accident");
 });
 it("paces across the planned sessions when a target is set", () => {
   const p = buildInterviewerInstructions({

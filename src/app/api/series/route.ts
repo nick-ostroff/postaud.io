@@ -23,7 +23,7 @@ export const createSeriesSchema = z.object({
   tone: z.enum(["warm", "neutral", "playful"]),
   sessionMinutes: z.union([z.literal(10), z.literal(20), z.literal(45)]),
   voice: z.enum(VOICE_IDS).default(DEFAULT_VOICE),
-  depth: z.enum(["light", "balanced", "deep"]).default("balanced"),
+  depth: z.enum(["single", "light", "balanced", "deep"]).default("balanced"),
   plannedSessions: z.number().int().min(1).max(50).nullable().default(null),
   access: z.array(accessEntrySchema).default([]),
   inviteSubjectEmail: z.string().email().optional(),

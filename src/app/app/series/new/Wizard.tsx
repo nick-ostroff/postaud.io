@@ -65,12 +65,14 @@ const LENGTH_OPTIONS = [
 ];
 
 const DEPTH_OPTIONS: { value: SeriesDepth; label: string }[] = [
+  { value: "single", label: "Single Q&A" },
   { value: "light", label: "Light touch" },
   { value: "balanced", label: "Balanced" },
   { value: "deep", label: "Go deep" },
 ];
 
 const DEPTH_LABELS: Record<SeriesDepth, string> = {
+  single: "Single Q&A",
   light: "Light touch",
   balanced: "Balanced",
   deep: "Go deep",
@@ -668,7 +670,14 @@ export function Wizard({
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <WizardField label="Depth" hint="How long the questions run, and how hard each thread gets mined.">
+              <WizardField
+                label="Depth"
+                hint={
+                  depth === "single"
+                    ? `One question, one answer — ${persona.name} collects each answer and moves on, no follow-ups. A simple way to gather information.`
+                    : "How long the questions run, and how hard each thread gets mined. Single Q&A skips follow-ups entirely."
+                }
+              >
                 <Segmented
                   name="depth"
                   options={DEPTH_OPTIONS}
@@ -703,8 +712,9 @@ export function Wizard({
               <Card className="px-5 py-5">
                 <h3 className="serif text-[18px]">{persona.name} drafted the first session</h3>
                 <p className="mt-1 text-[13px] text-ink-soft">
-                  Reorder, edit, or remove anything — this is a starting point. {persona.name} improvises follow-ups
-                  from whatever {subjectName || "they"} say.
+                  {depth === "single"
+                    ? `Reorder, edit, or remove anything — this is the list ${persona.name} will work through, one question and one answer at a time, with no follow-ups.`
+                    : `Reorder, edit, or remove anything — this is a starting point. ${persona.name} improvises follow-ups from whatever ${subjectName || "they"} say.`}
                 </p>
 
                 <div className="mt-3">

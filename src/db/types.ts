@@ -15,7 +15,7 @@ export type MemberRole = "admin" | "interviewer" | "viewer"
 export type SeriesStatus = "active" | "paused" | "archived"
 export type SubjectKind = "member" | "self" | "person" | "organization"
 export type SeriesTone = "warm" | "neutral" | "playful"
-export type SeriesDepth = "light" | "balanced" | "deep"
+export type SeriesDepth = "single" | "light" | "balanced" | "deep"
 export type InterviewStatus = "in_progress" | "completed" | "processed" | "abandoned"
 export type MessageRole = "interviewer" | "subject"
 export type FactStatus = "active" | "needs_review" | "superseded" | "retell_queued"
@@ -772,7 +772,7 @@ export type Database = {
       series_status: "active" | "paused" | "archived"
       subject_kind: "member" | "self" | "person" | "organization"
       series_tone: "warm" | "neutral" | "playful"
-      series_depth: "light" | "balanced" | "deep"
+      series_depth: "single" | "light" | "balanced" | "deep"
       interview_status: "in_progress" | "completed" | "processed" | "abandoned"
       message_role: "interviewer" | "subject"
       fact_status: "active" | "needs_review" | "superseded" | "retell_queued"
@@ -910,7 +910,7 @@ export const Constants = {
       series_status: ["active", "paused", "archived"],
       subject_kind: ["member", "self", "person", "organization"],
       series_tone: ["warm", "neutral", "playful"],
-      series_depth: ["light", "balanced", "deep"],
+      series_depth: ["single", "light", "balanced", "deep"],
       interview_status: ["in_progress", "completed", "processed", "abandoned"],
       message_role: ["interviewer", "subject"],
       fact_status: ["active", "needs_review", "superseded", "retell_queued"],
