@@ -1,9 +1,11 @@
-type AvatarTone = "green" | "warm" | "plain";
+type AvatarTone = "green" | "warm" | "warm-dark" | "plain";
 type AvatarSize = "md" | "lg";
 
 const toneClasses: Record<AvatarTone, string> = {
   green: "bg-green-tint text-green-deep",
   warm: "bg-amber-tint text-amber",
+  /* amber legible on the dark sidebar (`.acct` avatar in the desktop mockups) */
+  "warm-dark": "bg-[oklch(0.52_0.06_50_/_0.35)] text-[oklch(0.85_0.05_50)]",
   plain: "bg-[rgba(33,30,26,0.08)] text-muted",
 };
 
