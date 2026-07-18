@@ -13,7 +13,7 @@ const updateSeriesSchema = z.object({
   tone: z.enum(["warm", "neutral", "playful"]).optional(),
   sessionMinutes: z.union([z.literal(10), z.literal(20), z.literal(45)]).optional(),
   voice: z.enum(VOICE_IDS).optional(),
-  depth: z.enum(["light", "balanced", "deep"]).optional(),
+  depth: z.enum(["single", "light", "balanced", "deep"]).optional(),
   plannedSessions: z.number().int().min(1).max(50).nullable().optional(),
 });
 

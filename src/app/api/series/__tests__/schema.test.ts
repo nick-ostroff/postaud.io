@@ -21,6 +21,11 @@ it("defaults voice and depth so old clients keep working", () => {
   expect(parsed.plannedSessions).toBeNull();
 });
 
+it("accepts the single Q&A depth", () => {
+  const parsed = createSeriesSchema.parse({ ...valid, depth: "single" });
+  expect(parsed.depth).toBe("single");
+});
+
 it("accepts a known voice and depth", () => {
   const parsed = createSeriesSchema.parse({ ...valid, voice: "cedar", depth: "deep", plannedSessions: 6 });
   expect(parsed.voice).toBe("cedar");

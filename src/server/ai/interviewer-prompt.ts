@@ -48,6 +48,11 @@ const TONE_REGISTER: Record<SeriesTone, string> = {
  * was implicit before the dial existed.
  */
 const DEPTH_REGISTER: Record<SeriesDepth, string[]> = {
+  single: [
+    "Ask exactly one question per topic and take the answer as given — no follow-ups, no mining.",
+    "Acknowledge each answer briefly and warmly, then move straight to the next question.",
+    "Only ask again if an answer was inaudible or genuinely ambiguous — one short clarification at most.",
+  ],
   light: [
     "Keep your questions short and simple — a sentence, not a paragraph.",
     "Ask one or two follow-ups on a thread, then move on. Do not mine a memory to exhaustion.",
@@ -147,18 +152,23 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
   // lightly in a single session" — the pre-feature intro contradicted that
   // ("NOT a checklist... Only reach for the next topic once the current one
   // is truly exhausted"), so it's the one thing here that has to flex with
-  // depth. `balanced` and `deep` keep the exact original wording.
+  // depth. `single` goes further: the queue IS the agenda. `balanced` and
+  // `deep` keep the exact original wording.
   const exploreIntro =
-    series.depth === "light"
-      ? "These are the topics still worth exploring across the WHOLE series, least-covered first. They are a " +
-        "background compass for where to steer next — this series is dialed to light depth (see DEPTH " +
-        "below), so moving briskly between several of them in a session is expected, not something to " +
-        "resist:"
-      : "These are the topics still worth exploring across the WHOLE series, least-covered first. They are a " +
-        "background compass for where to steer when a thread genuinely runs dry — NOT a checklist to march " +
-        "through, and NOT a reason to move on. Covering fewer topics in rich detail beats touching all of them " +
-        "shallowly. Only reach for the next topic once the current one is truly exhausted (see STAY ON THE " +
-        "THREAD below):";
+    series.depth === "single"
+      ? "These are the questions still to be answered, least-covered first. This series is a single Q&A " +
+        "(see ONE QUESTION, ONE ANSWER below), so they ARE the agenda — work through them in order, one " +
+        "question and one answer each, and it is fine to get through all of them in a session:"
+      : series.depth === "light"
+        ? "These are the topics still worth exploring across the WHOLE series, least-covered first. They are a " +
+          "background compass for where to steer next — this series is dialed to light depth (see DEPTH " +
+          "below), so moving briskly between several of them in a session is expected, not something to " +
+          "resist:"
+        : "These are the topics still worth exploring across the WHOLE series, least-covered first. They are a " +
+          "background compass for where to steer when a thread genuinely runs dry — NOT a checklist to march " +
+          "through, and NOT a reason to move on. Covering fewer topics in rich detail beats touching all of them " +
+          "shallowly. Only reach for the next topic once the current one is truly exhausted (see STAY ON THE " +
+          "THREAD below):";
   sections.push(["EXPLORE NEXT (lowest coverage first)", exploreIntro, ...topicLines].join("\n"));
 
   // ---- RETELL REQUESTS ----
@@ -187,95 +197,128 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
     ].join("\n"),
   );
 
-  // ---- STAY ON THE THREAD ----
-  // This is the DEFAULT posture, not an absolute — DEPTH below is the dial
-  // that decides how hard to push it for THIS series, and a `light` series
-  // must not be told the opposite of what it asked for. The "at least two or
-  // three follow-ups" line and the "lingering IS the work" line are the two
-  // places this section used to speak in absolutes, so they're the two
-  // places that flex with depth. `balanced` keeps the exact wording this
-  // section has always used (no regression); `deep` leans in further;
-  // `light` gets an alternative that doesn't contradict its own DEPTH text.
-  const followUpLine =
-    series.depth === "light"
-      ? "- This series is dialed to light depth (see DEPTH below): don't default to mining a thread for " +
-        "several follow-ups in a row — ask enough to feel like a real conversation, then let THEM signal " +
-        'it\'s time to move on (they trail off, repeat themselves, or say some version of "that\'s about it").'
-      : series.depth === "deep"
-        ? "- Assume there is always more in a memory than the first pass, and for this series lean into that: " +
-          "ask at least two or three follow-ups on a thread before even considering a new topic, and don't " +
-          'take a first "that\'s about it" at face value — let THEM signal it\'s truly exhausted.'
-        : "- Assume there is always more in a memory than the first pass. Ask at least two or three follow-ups " +
-          "on a thread before even considering a new topic — and let THEM signal it's exhausted (they trail " +
-          'off, repeat themselves, or say some version of "that\'s about it").';
-  const lingerLine =
-    series.depth === "light"
-      ? null
-      : series.depth === "deep"
-        ? "It is completely fine — expected, even — to spend the entire session on one or two rich memories. " +
-          "Do not rush to move the conversation forward — lingering IS the work."
-        : "It is completely fine to spend the entire session on one or two rich memories. Do not rush to move " +
-          "the conversation forward — lingering IS the work.";
-  // `balanced` (every series that existed before this feature) must keep the
-  // ORIGINAL header and intro sentence, character for character — no wording
-  // drift for the default depth. `light` and `deep` get the reworded
-  // header/intro that names DEPTH as the dial that overrides this default.
-  const sectionHeader =
-    series.depth === "balanced"
-      ? "STAY ON THE THREAD (this matters most)"
-      : "STAY ON THE THREAD (the default posture)";
-  const introLine =
-    series.depth === "balanced"
-      ? "Your job is depth, not coverage. When the subject shares a memory, STAY THERE and mine it before " +
-        "going anywhere else. A single story is worth several follow-ups in a row:"
-      : "Your default job is depth, not coverage. When the subject shares a memory, STAY THERE and mine it " +
-        "before going anywhere else — a single story is worth several follow-ups in a row. DEPTH below is " +
-        "the dial that sets exactly how hard to push that instinct for THIS series; read the rest of this " +
-        "section as the shape good thread-mining takes, and let DEPTH decide how far to take it.";
-  // The "chase the specifics" bullet is in mild tension with `light` depth's
-  // "touch many topics lightly" instruction, so it's softened for `light`
-  // only — `balanced` and `deep` keep the exact original wording.
-  const chaseLine =
-    series.depth === "light"
-      ? "- Chase the specifics they just mentioned when a detail feels alive — a name, place, date, or " +
-        "object can be worth opening — but this series is dialed light: don't feel obligated to open every " +
-        "door, and don't let one thread crowd out the rest of the session."
-      : "- Chase the specifics they just mentioned: every name, place, date, and object is a door — open it. " +
-        'If they say "we moved to Big Rock," ask what the house was like, who else was there, what a normal ' +
-        "day looked like — before you go anywhere new.";
-  sections.push(
-    [
-      sectionHeader,
-      introLine,
-      chaseLine,
-      "- Ask for the senses and the feeling: what it looked, sounded, smelled like; what they felt in the " +
-        "moment; what they remember most vividly.",
-      '- Use short, warm continuers to keep them going: "What happened next?", "Tell me more about that", ' +
-        '"What was that like?", "Who else was there?".',
-      followUpLine,
-      "- Never stack several questions into one breath, and never announce a topic change like an agenda. " +
-        "Let the next thread grow out of something they just said whenever you can.",
-      ...(lingerLine ? [lingerLine] : []),
-      "One hard exception: NEVER chase anything listed under NEVER BRING UP below. If a door the subject " +
-        "opens leads to one of those topics, do not walk through it — follow the NEVER BRING UP guardrail " +
-        "instead (listen briefly, respond with care, gently move on). That guardrail always outranks this one.",
-    ].join("\n"),
-  );
+  // ---- STAY ON THE THREAD / ONE QUESTION, ONE ANSWER ----
+  // A `single` series isn't a conversation at all — every line of the
+  // thread-mining posture would fight it, so the section is swapped
+  // wholesale rather than flexed line by line. The NEVER BRING UP
+  // exception still closes the section: guardrails outrank format too.
+  if (series.depth === "single") {
+    sections.push(
+      [
+        "ONE QUESTION, ONE ANSWER (this series is a Q&A, not a conversation)",
+        "The owner set this series to single Q&A: the aim is to collect a clear answer to each question, " +
+          "not to mine stories. This replaces the thread-mining posture a conversational series would use.",
+        "- Ask one clear, specific question at a time, drawn from EXPLORE NEXT, and let them answer in " +
+          "full without interrupting.",
+        "- When they finish, do not dig further — no follow-ups. Acknowledge briefly and warmly " +
+          '("Got it — thank you."), then move to the next question.',
+        "- One exception: if an answer was inaudible, empty, or genuinely ambiguous, ask once for a short " +
+          "clarification, then move on.",
+        "- Never stack several questions into one breath, and keep your own turns short — the subject " +
+          "should do nearly all the talking.",
+        "One hard exception: NEVER ask about anything listed under NEVER BRING UP below. If an answer " +
+          "drifts into one of those topics, follow the NEVER BRING UP guardrail (listen briefly, respond " +
+          "with care, gently move on). That guardrail always outranks this one.",
+      ].join("\n"),
+    );
+  } else {
+    // This is the DEFAULT posture, not an absolute — DEPTH below is the dial
+    // that decides how hard to push it for THIS series, and a `light` series
+    // must not be told the opposite of what it asked for. The "at least two or
+    // three follow-ups" line and the "lingering IS the work" line are the two
+    // places this section used to speak in absolutes, so they're the two
+    // places that flex with depth. `balanced` keeps the exact wording this
+    // section has always used (no regression); `deep` leans in further;
+    // `light` gets an alternative that doesn't contradict its own DEPTH text.
+    const followUpLine =
+      series.depth === "light"
+        ? "- This series is dialed to light depth (see DEPTH below): don't default to mining a thread for " +
+          "several follow-ups in a row — ask enough to feel like a real conversation, then let THEM signal " +
+          'it\'s time to move on (they trail off, repeat themselves, or say some version of "that\'s about it").'
+        : series.depth === "deep"
+          ? "- Assume there is always more in a memory than the first pass, and for this series lean into that: " +
+            "ask at least two or three follow-ups on a thread before even considering a new topic, and don't " +
+            'take a first "that\'s about it" at face value — let THEM signal it\'s truly exhausted.'
+          : "- Assume there is always more in a memory than the first pass. Ask at least two or three follow-ups " +
+            "on a thread before even considering a new topic — and let THEM signal it's exhausted (they trail " +
+            'off, repeat themselves, or say some version of "that\'s about it").';
+    const lingerLine =
+      series.depth === "light"
+        ? null
+        : series.depth === "deep"
+          ? "It is completely fine — expected, even — to spend the entire session on one or two rich memories. " +
+            "Do not rush to move the conversation forward — lingering IS the work."
+          : "It is completely fine to spend the entire session on one or two rich memories. Do not rush to move " +
+            "the conversation forward — lingering IS the work.";
+    // `balanced` (every series that existed before this feature) must keep the
+    // ORIGINAL header and intro sentence, character for character — no wording
+    // drift for the default depth. `light` and `deep` get the reworded
+    // header/intro that names DEPTH as the dial that overrides this default.
+    const sectionHeader =
+      series.depth === "balanced"
+        ? "STAY ON THE THREAD (this matters most)"
+        : "STAY ON THE THREAD (the default posture)";
+    const introLine =
+      series.depth === "balanced"
+        ? "Your job is depth, not coverage. When the subject shares a memory, STAY THERE and mine it before " +
+          "going anywhere else. A single story is worth several follow-ups in a row:"
+        : "Your default job is depth, not coverage. When the subject shares a memory, STAY THERE and mine it " +
+          "before going anywhere else — a single story is worth several follow-ups in a row. DEPTH below is " +
+          "the dial that sets exactly how hard to push that instinct for THIS series; read the rest of this " +
+          "section as the shape good thread-mining takes, and let DEPTH decide how far to take it.";
+    // The "chase the specifics" bullet is in mild tension with `light` depth's
+    // "touch many topics lightly" instruction, so it's softened for `light`
+    // only — `balanced` and `deep` keep the exact original wording.
+    const chaseLine =
+      series.depth === "light"
+        ? "- Chase the specifics they just mentioned when a detail feels alive — a name, place, date, or " +
+          "object can be worth opening — but this series is dialed light: don't feel obligated to open every " +
+          "door, and don't let one thread crowd out the rest of the session."
+        : "- Chase the specifics they just mentioned: every name, place, date, and object is a door — open it. " +
+          'If they say "we moved to Big Rock," ask what the house was like, who else was there, what a normal ' +
+          "day looked like — before you go anywhere new.";
+    sections.push(
+      [
+        sectionHeader,
+        introLine,
+        chaseLine,
+        "- Ask for the senses and the feeling: what it looked, sounded, smelled like; what they felt in the " +
+          "moment; what they remember most vividly.",
+        '- Use short, warm continuers to keep them going: "What happened next?", "Tell me more about that", ' +
+          '"What was that like?", "Who else was there?".',
+        followUpLine,
+        "- Never stack several questions into one breath, and never announce a topic change like an agenda. " +
+          "Let the next thread grow out of something they just said whenever you can.",
+        ...(lingerLine ? [lingerLine] : []),
+        "One hard exception: NEVER chase anything listed under NEVER BRING UP below. If a door the subject " +
+          "opens leads to one of those topics, do not walk through it — follow the NEVER BRING UP guardrail " +
+          "instead (listen briefly, respond with care, gently move on). That guardrail always outranks this one.",
+      ].join("\n"),
+    );
+  }
 
   // ---- DEPTH ----
-  // Sits directly after STAY ON THE THREAD so it reads as a modifier on it:
-  // that section describes the default thread-mining instinct; this one is
-  // the series owner's explicit dial on how hard to apply it, and it
+  // Sits directly after STAY ON THE THREAD (or its `single` replacement) so
+  // it reads as a modifier on it: that section describes the posture; this
+  // one is the series owner's explicit dial on how hard to apply it, and it
   // outranks that default — a `light` series is not overruled by the
   // "matters most" framing that section used to carry. NEVER BRING UP still
-  // sits above both.
+  // sits above both. A `single` series has no STAY ON THE THREAD section, so
+  // its header and footer can't reference one.
   sections.push(
-    [
-      "DEPTH (how this series wants to be interviewed — outranks STAY ON THE THREAD's default posture)",
-      ...DEPTH_REGISTER[series.depth].map((line) => `- ${line}`),
-      "This dial tunes and can override the default posture in STAY ON THE THREAD above, but it never " +
-        "overrides NEVER BRING UP. Guardrails always outrank depth.",
-    ].join("\n"),
+    series.depth === "single"
+      ? [
+          "DEPTH (how this series wants to be interviewed)",
+          ...DEPTH_REGISTER.single.map((line) => `- ${line}`),
+          "This dial restates ONE QUESTION, ONE ANSWER above, and it never overrides NEVER BRING UP. " +
+            "Guardrails always outrank depth.",
+        ].join("\n")
+      : [
+          "DEPTH (how this series wants to be interviewed — outranks STAY ON THE THREAD's default posture)",
+          ...DEPTH_REGISTER[series.depth].map((line) => `- ${line}`),
+          "This dial tunes and can override the default posture in STAY ON THE THREAD above, but it never " +
+            "overrides NEVER BRING UP. Guardrails always outrank depth.",
+        ].join("\n"),
   );
 
   // ---- STYLE ----
