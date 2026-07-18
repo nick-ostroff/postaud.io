@@ -118,21 +118,33 @@ export async function getViewer() {
 // intend to bypass row-level security.)
 // =========================================================
 
+/**
+ * The subject's live profile, embedded via the `series.subject_user_id → users`
+ * FK. Null when the subject has no account (person/organization subjects) or
+ * their `users` row isn't visible under RLS. `subject_name` on the series is a
+ * creation-time snapshot; this is the current name/photo for account-holding
+ * subjects, used as the avatar fallback when the series has no photo of its own.
+ */
+export type SeriesSubjectProfile = { display_name: string | null; avatar_path: string | null } | null;
+export type SeriesWithSubject = Series & { subject: SeriesSubjectProfile };
+
+const SERIES_WITH_SUBJECT = "*, subject:users!series_subject_user_id_fkey ( display_name, avatar_path )";
+
 /** All series visible to the current user (per `can_view_series` RLS). */
-export async function getSeriesForUser(sb: SupabaseClient<Database>): Promise<Series[]> {
+export async function getSeriesForUser(sb: SupabaseClient<Database>): Promise<SeriesWithSubject[]> {
   const { data, error } = await sb
     .from("series")
-    .select("*")
+    .select(SERIES_WITH_SUBJECT)
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
-  return data ?? [];
+  return (data ?? []) as unknown as SeriesWithSubject[];
 }
 
 /** A single series by id, or null if not found / not visible to the caller. */
-export async function getSeries(sb: SupabaseClient<Database>, id: string): Promise<Series | null> {
-  const { data, error } = await sb.from("series").select("*").eq("id", id).maybeSingle();
+export async function getSeries(sb: SupabaseClient<Database>, id: string): Promise<SeriesWithSubject | null> {
+  const { data, error } = await sb.from("series").select(SERIES_WITH_SUBJECT).eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);
-  return data;
+  return data as unknown as SeriesWithSubject | null;
 }
 
 export type SeriesKnowledge = {

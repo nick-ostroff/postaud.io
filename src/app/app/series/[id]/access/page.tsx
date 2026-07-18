@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { getSeries, getSeriesSummaries, getViewer, listMembers } from "@/db/queries";
 import { profilePhotoUrl } from "@/server/profile/photo-url";
+import { subjectPhotoUrl } from "@/server/series/photo-url";
 import { AccessManager, type AccessLevel, type AccessMember } from "./AccessManager";
 
 type Params = Promise<{ id: string }>;
@@ -87,7 +88,7 @@ export default async function SeriesAccessPage({ params }: { params: Params }) {
         <h1 className="text-[28px]">Who can see {series.title}</h1>
         <div className="mt-1.5 flex flex-wrap items-center gap-2">
           <Chip>
-            <Avatar name={series.subject_name} size="md" tone="plain" />
+            <Avatar name={series.subject_name} size="md" tone="plain" src={subjectPhotoUrl(series)} />
             {subjectSubtitle}
           </Chip>
           <Chip>
@@ -127,11 +128,7 @@ export default async function SeriesAccessPage({ params }: { params: Params }) {
 
             {showSubjectPinned && (
               <div className="flex items-center gap-3 border-b border-line py-3">
-                <Avatar
-                  name={series.subject_name}
-                  src={profilePhotoUrl(subjectMember?.users?.avatar_path)}
-                  tone="plain"
-                />
+                <Avatar name={series.subject_name} src={subjectPhotoUrl(series)} tone="plain" />
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[13.5px] font-semibold">
                     {subjectMember?.users?.display_name || subjectMember?.users?.email || series.subject_name}

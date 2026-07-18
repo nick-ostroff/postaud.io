@@ -34,6 +34,8 @@ describe("updateProfileNameAction", () => {
     expect(mocks.updateUser).toHaveBeenCalledWith({ data: { full_name: "Nick Ostroff" } });
     expect(mocks.mirrorUpdate).toHaveBeenCalledWith({ display_name: "Nick Ostroff" });
     expect(mocks.mirrorEq).toHaveBeenCalledWith("id", "user-1");
+    expect(mocks.mirrorUpdate).toHaveBeenCalledWith({ subject_name: "Nick Ostroff" });
+    expect(mocks.mirrorEq).toHaveBeenCalledWith("subject_user_id", "user-1");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/app", "layout");
   });
 

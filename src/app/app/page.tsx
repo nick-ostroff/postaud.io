@@ -16,7 +16,7 @@ import {
 } from "@/db/queries";
 import { firstNameOf } from "@/lib/names";
 import { pickIntervieweeSeries } from "@/server/interviewee/select-series";
-import { seriesPhotoUrl } from "@/server/series/photo-url";
+import { subjectPhotoUrl } from "@/server/series/photo-url";
 import { staleness } from "@/server/series/staleness";
 import { pickPersonalPromptTopic } from "@/server/topics/pick";
 import { IntervieweeHome } from "./IntervieweeHome";
@@ -100,7 +100,7 @@ export default async function DashboardHome({ searchParams }: { searchParams: Se
   const railStories = series.map((s) => ({
     id: s.id,
     title: s.title,
-    photoUrl: seriesPhotoUrl(s.photo_path),
+    photoUrl: subjectPhotoUrl(s),
     waiting: staleness(
       summaries[s.id]?.lastSessionAt ? new Date(summaries[s.id].lastSessionAt as string) : null,
       now,
