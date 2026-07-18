@@ -184,3 +184,42 @@ describe("GET /api/series/[id]/export?format=json", () => {
     expect(body3.contentHash).not.toBe(body1.contentHash);
   });
 });
+
+/**
+ * IMPORTANT 3 (final review): a caller who presents a Bearer token but whose
+ * token resolves to null (invalid, revoked, unknown) must get a normal 401,
+ * never a fall-through to `getViewer()` — which throws "Not authenticated"
+ * with no cookies present, surfacing as an unhandled 500 since middleware
+ * doesn't gate `/api/*`. This is the exact shape of "user revokes a token,
+ * plugin gets an opaque 500 it can't tell apart from an outage."
+ */
+describe("GET /api/series/[id]/export — bearer auth resolution (IMPORTANT 3)", () => {
+  it("a present but unresolvable Bearer token (invalid/revoked/unknown) returns 401, not 500, and never falls back to cookies", async () => {
+    mocks.resolveApiToken.mockResolvedValue(null);
+    // getViewer would throw "Not authenticated" with no cookies — proving
+    // resolveCaller must not reach it once an Authorization header is
+    // present at all.
+    mocks.getViewer.mockRejectedValue(new Error("Not authenticated"));
+
+    const res = await GET(
+      req("http://localhost:3000/api/series/series-1/export", { authorization: "Bearer pat_revoked" }),
+      ctx(),
+    );
+
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: "unauthorized" });
+    expect(mocks.getViewer).not.toHaveBeenCalled();
+    expect(mocks.buildSeriesExportData).not.toHaveBeenCalled();
+  });
+
+  it("no Authorization header at all + a valid cookie session still works (no regression)", async () => {
+    mocks.resolveApiToken.mockResolvedValue(null);
+    mocks.getViewer.mockResolvedValue({ supabase: SUPABASE_COOKIE_STUB });
+
+    const res = await GET(req("http://localhost:3000/api/series/series-1/export"), ctx());
+
+    expect(res.status).toBe(200);
+    expect(mocks.getViewer).toHaveBeenCalled();
+    expect(mocks.buildSeriesExportData).toHaveBeenCalledWith(SUPABASE_COOKIE_STUB, "series-1", expect.any(Object));
+  });
+});

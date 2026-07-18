@@ -57,7 +57,7 @@ type Params = Promise<{ id: string }>;
 
 export default async function SeriesDetailPage({ params }: { params: Params }) {
   const { id } = await params;
-  const { supabase, role } = await getViewer();
+  const { supabase, role, user } = await getViewer();
   const isAdmin = role === "admin";
 
   const series = await getSeries(supabase, id);
@@ -68,7 +68,7 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
     getSeriesKnowledge(supabase, id),
     listInterviewsForSeries(supabase, id),
     getSeriesAccessSummary(supabase, id),
-    getVaultLink(supabase, id),
+    getVaultLink(supabase, id, user.id),
   ]);
 
   const summary = summaries[id];

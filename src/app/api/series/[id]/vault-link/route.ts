@@ -49,20 +49,29 @@ export async function POST(request: Request, { params }: { params: Params }) {
 }
 
 /**
- * DELETE /api/series/[id]/vault-link — unlink. No explicit user_id filter
- * is needed: RLS (`user_id = auth.uid()`) already scopes this to the
- * caller's own row, and deleting zero rows (already unlinked, or a
- * series_id the caller never linked) is not an error — DELETE is
- * idempotent by nature, so this doesn't need the getSeries visibility check
- * POST has: there is nothing to insert, and matching zero rows leaks
- * nothing.
+ * DELETE /api/series/[id]/vault-link — unlink. Nothing calls this today;
+ * it is the documented plugin-facing unlink for the (not-yet-built)
+ * Obsidian plugin — see the module comment. Do not remove it just because
+ * it's currently unreferenced.
+ *
+ * The explicit `user_id` filter below is defence in depth alongside RLS
+ * (`user_id = auth.uid()`, see IMPORTANT 4 in the final review) rather than
+ * the only thing scoping this to the caller's own row — deleting zero rows
+ * (already unlinked, a series_id the caller never linked, or one owned by
+ * someone else) is not an error — DELETE is idempotent by nature, so this
+ * doesn't need the getSeries visibility check POST has: there is nothing to
+ * insert, and matching zero rows leaks nothing.
  */
 export async function DELETE(request: Request, { params }: { params: Params }) {
   const { id } = await params;
   const caller = await resolveApiToken(request);
   if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const { error } = await caller.supabase.from("series_vault_links").delete().eq("series_id", id);
+  const { error } = await caller.supabase
+    .from("series_vault_links")
+    .delete()
+    .eq("series_id", id)
+    .eq("user_id", caller.userId);
   if (error) return NextResponse.json({ error: "unlink_failed" }, { status: 500 });
 
   return NextResponse.json({ ok: true });

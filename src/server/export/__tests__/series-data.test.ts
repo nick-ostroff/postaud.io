@@ -236,4 +236,47 @@ describe("buildSeriesExportData", () => {
       { sessionLabel: "Session 1", turns: [{ role: "Anna", text: "Tell me about Ohio." }] },
     ]);
   });
+
+  /**
+   * ORDERING (final review): `getSeriesKnowledge`'s `fact_entities (
+   * entities ( * ) )` embed has no ORDER BY of its own — a doubly-nested
+   * embed that PostgREST/supabase-js's `.order(..., { foreignTable })`
+   * can't reliably target — so a fact's linked-entities join order isn't
+   * guaranteed stable across requests. This array feeds the vault sync's
+   * per-topic `stableHash`, so an unstable order would make the Obsidian
+   * plugin rewrite notes on every sync for no real content change.
+   * `buildSeriesExportData` sorts it deterministically (name, then id) at
+   * the point of use instead.
+   */
+  it("sorts a fact's linked entities deterministically (name, then id) regardless of join order, so the hash is stable", async () => {
+    const entityZebra = { id: "entity-2", series_id: "series-1", kind: "date", name: "Zebra", detail: null };
+    const entityApple = { id: "entity-1", series_id: "series-1", kind: "date", name: "Apple", detail: null };
+
+    const factsJoinOrderA = [
+      {
+        ...FACTS[0],
+        entities: [entityZebra, entityApple], // join returned Zebra before Apple
+      },
+    ];
+    const factsJoinOrderB = [
+      {
+        ...FACTS[0],
+        entities: [entityApple, entityZebra], // join returned Apple before Zebra — same content, different order
+      },
+    ];
+
+    mocks.getSeriesKnowledge.mockResolvedValueOnce({ topics: TOPICS, facts: factsJoinOrderA, entities: ENTITIES });
+    const dataA = await buildSeriesExportData(SUPABASE_STUB, "series-1", FULL_SCOPE);
+
+    mocks.getSeriesKnowledge.mockResolvedValueOnce({ topics: TOPICS, facts: factsJoinOrderB, entities: ENTITIES });
+    const dataB = await buildSeriesExportData(SUPABASE_STUB, "series-1", FULL_SCOPE);
+
+    const entitiesA = dataA!.factsByTopic[0]!.facts[0]!.entities;
+    const entitiesB = dataB!.factsByTopic[0]!.facts[0]!.entities;
+
+    // Both orderings of the same underlying data must resolve to the same
+    // (sorted) output order — Apple before Zebra either way.
+    expect(entitiesA.map((e) => e.name)).toEqual(["Apple", "Zebra"]);
+    expect(entitiesB).toEqual(entitiesA);
+  });
 });

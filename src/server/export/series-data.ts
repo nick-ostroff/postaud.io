@@ -123,11 +123,24 @@ export async function buildSeriesExportData(
     // JSON export (Task 6) needs it to wikilink a fact to its entity notes.
     // renderSeriesMarkdown never reads it, so this doesn't touch Markdown
     // output.
+    //
+    // Sorted here (not at the query level): `getSeriesKnowledge`'s
+    // `fact_entities ( entities ( * ) )` embed is doubly-nested, and
+    // PostgREST/supabase-js's `.order(..., { foreignTable })` only reliably
+    // targets a single embedded relation, not a nested-within-nested one —
+    // so join order for this array isn't guaranteed stable across requests.
+    // This array feeds an ORDER-SENSITIVE content hash (`stableHash` in
+    // buildJsonPayload below) that the Obsidian plugin uses to decide
+    // whether to rewrite a note; an unstable order would make it rewrite
+    // the user's notes on every sync for no real content change.
+    const sortedEntities = [...fact.entities].sort(
+      (a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id),
+    );
     const entry: SeriesExportFactWithEntities = {
       statement: fact.statement,
       sessionLabel,
       timestamp: formatOffset(fact.audio_offset_sec),
-      entities: fact.entities.map((e) => ({ id: e.id, name: e.name, kind: e.kind })),
+      entities: sortedEntities.map((e) => ({ id: e.id, name: e.name, kind: e.kind })),
     };
     if (fact.topic_id && topicName.has(fact.topic_id)) {
       if (!groupsById.has(fact.topic_id)) {

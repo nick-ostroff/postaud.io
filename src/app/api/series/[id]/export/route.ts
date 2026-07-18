@@ -38,10 +38,20 @@ function parseScope(raw: string | null): SeriesExportScope {
  * (Bearer token, Task 3) and the browser export card (session cookies).
  * Bearer is tried first — a present, valid token always wins — so the same
  * route can serve both without the plugin ever touching cookie auth.
+ *
+ * If the caller presented an Authorization header at all, we do NOT fall
+ * back to cookies: `resolveApiToken` already returns null for every bearer
+ * failure mode (missing, malformed, unknown, revoked), and middleware does
+ * not gate `/api/*`, so falling through to `getViewer()` here previously hit
+ * its `throw new Error("Not authenticated")` (no cookies) as an unhandled
+ * 500 — the exact case a plugin whose token was just revoked would hit,
+ * with no way to distinguish it from an outage. Returning null instead lets
+ * the route respond a normal 401, matching every other bearer endpoint.
  */
 async function resolveCaller(request: Request) {
   const apiCaller = await resolveApiToken(request);
   if (apiCaller) return apiCaller.supabase;
+  if (request.headers.get("authorization")) return null;
   const { supabase } = await getViewer();
   return supabase;
 }
@@ -60,6 +70,9 @@ async function resolveCaller(request: Request) {
 export async function GET(request: Request, { params }: { params: Params }) {
   const { id } = await params;
   const supabase = await resolveCaller(request);
+  if (!supabase) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
 
   const url = new URL(request.url);
   const wantsJson = url.searchParams.get("format") === "json";

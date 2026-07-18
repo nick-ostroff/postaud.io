@@ -1,15 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { inputBase } from "@/components/ui/Input";
+import { formatShortDate as formatDate } from "@/lib/time";
 import { createToken, revokeToken } from "./token-actions";
 import type { ApiTokenRow } from "./page";
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-}
 
 /**
  * Owns both halves of the token screen: the create form and the list.
@@ -31,8 +28,23 @@ export function TokenManager({ tokens }: { tokens: ApiTokenRow[] }) {
   const [createError, setCreateError] = useState<string | null>(null);
   const [revealedToken, setRevealedToken] = useState<{ name: string; value: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copyFallback, setCopyFallback] = useState(false);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [revokeError, setRevokeError] = useState<string | null>(null);
+  const tokenCodeRef = useRef<HTMLElement>(null);
+
+  /** Selects the revealed token's text so the user can copy it with
+   * Ctrl/Cmd+C even when the Clipboard API isn't available. */
+  function selectTokenText() {
+    const node = tokenCodeRef.current;
+    if (!node || typeof window === "undefined") return;
+    const selection = window.getSelection();
+    if (!selection) return;
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
 
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -53,6 +65,7 @@ export function TokenManager({ tokens }: { tokens: ApiTokenRow[] }) {
 
   async function onCopy() {
     if (!revealedToken) return;
+    setCopyFallback(false);
     try {
       // navigator.clipboard requires a secure context; this runs only from a
       // click handler inside a client component, so it's never touched
@@ -61,10 +74,17 @@ export function TokenManager({ tokens }: { tokens: ApiTokenRow[] }) {
       if (typeof navigator !== "undefined" && navigator.clipboard) {
         await navigator.clipboard.writeText(revealedToken.value);
         setCopied(true);
+        return;
       }
     } catch {
-      setCopied(false);
+      // fall through to the manual-select fallback below
     }
+    // The button must not appear dead at the exact moment the user cannot
+    // afford to lose this value (it's shown only once) — select the text so
+    // Ctrl/Cmd+C works, and say so.
+    setCopied(false);
+    setCopyFallback(true);
+    selectTokenText();
   }
 
   async function onRevoke(id: string) {
@@ -110,13 +130,22 @@ export function TokenManager({ tokens }: { tokens: ApiTokenRow[] }) {
             postaud.io keeps a one-way hash of it — not the token itself.
           </div>
           <div className="mt-2.5 flex flex-wrap items-center gap-2">
-            <code className="min-w-0 flex-1 break-all rounded-sm border border-line-strong bg-card px-3 py-2 text-[12.5px] text-ink">
+            <code
+              ref={tokenCodeRef}
+              className="min-w-0 flex-1 break-all rounded-sm border border-line-strong bg-card px-3 py-2 text-[12.5px] text-ink"
+            >
               {revealedToken.value}
             </code>
             <Button type="button" size="md" onClick={onCopy}>
               {copied ? "Copied" : "Copy"}
             </Button>
           </div>
+          {copyFallback && (
+            <div className="mt-1.5 text-[12px] font-medium text-amber">
+              Couldn&apos;t copy automatically — the token above is selected, so press Ctrl/Cmd+C to copy it
+              manually.
+            </div>
+          )}
           <button
             type="button"
             onClick={() => setRevealedToken(null)}

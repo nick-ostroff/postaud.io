@@ -85,4 +85,35 @@ describe("resolveApiToken", () => {
     expect(svc.updates).toHaveLength(1);
     expect(typeof svc.updates[0].last_used_at).toBe("string");
   });
+
+  /**
+   * MINOR 5 (final review): supabase-js resolves `{ error }` for HTTP-level
+   * failures, but a fetch-level rejection (network error, DNS failure)
+   * THROWS. The doc comment above the stamp says "a failed stamp must not
+   * fail the request" — this test proves that holds even when the update
+   * call rejects outright, not just when it resolves with an error object.
+   */
+  it("does not throw/reject when the last_used_at stamp rejects at the fetch level (best-effort, must not fail auth)", async () => {
+    const rows = [{ id: "t1", user_id: "u1", revoked_at: null, token_hash: hashApiToken(VALID) }];
+    const svc = {
+      from(table: string) {
+        if (table !== "api_tokens") throw new Error(`unexpected table ${table}`);
+        return {
+          select: () => ({
+            eq: (_col: string, value: unknown) => ({
+              maybeSingle: async () => ({ data: rows.find((r) => r.token_hash === value) ?? null, error: null }),
+            }),
+          }),
+          update: () => ({
+            eq: () => Promise.reject(new Error("network error")),
+          }),
+        };
+      },
+    };
+    mocks.serviceClient.mockReturnValue(svc);
+
+    const caller = await resolveApiToken(request(`Bearer ${VALID}`));
+
+    expect(caller?.userId).toBe("u1");
+  });
 });

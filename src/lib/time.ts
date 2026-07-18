@@ -25,3 +25,12 @@ export function relativeTime(iso: string | null): string {
 export function daysSince(iso: string): number {
   return (Date.now() - new Date(iso).getTime()) / 86_400_000;
 }
+
+/**
+ * "Jul 18, 2026" — the short display date shared by every "Created …" /
+ * "Last used …" / "Last synced …" style timestamp in the app (tokens list,
+ * vault card, etc.). Previously duplicated byte-for-byte in both places.
+ */
+export function formatShortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}

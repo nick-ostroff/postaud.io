@@ -31,7 +31,7 @@ export default async function TokensPage() {
   const tokens: ApiTokenRow[] = data ?? [];
 
   return (
-    <div className="mx-auto w-full">
+    <div className="w-full">
       <div className="mb-[22px]">
         <Link href="/app/settings" className="text-[12.5px] font-medium text-muted hover:text-ink">
           ‹ Settings

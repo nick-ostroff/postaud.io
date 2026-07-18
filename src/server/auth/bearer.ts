@@ -37,8 +37,20 @@ export async function resolveApiToken(request: Request): Promise<ApiCaller | nul
 
   if (!data || data.revoked_at) return null;
 
-  // Best-effort: a failed stamp must not fail the request.
-  await svc.from("api_tokens").update({ last_used_at: new Date().toISOString() }).eq("id", data.id);
+  // Best-effort: a failed stamp must not fail the request. supabase-js
+  // resolves `{ error }` for HTTP-level failures, but a fetch-level
+  // rejection (network error, DNS failure, etc.) THROWS — awaiting this
+  // would take down auth for every bearer route on exactly the kind of
+  // transient failure this comment says must not matter. Fire-and-forget
+  // with no-op handlers instead.
+  void svc
+    .from("api_tokens")
+    .update({ last_used_at: new Date().toISOString() })
+    .eq("id", data.id)
+    .then(
+      () => {},
+      () => {},
+    );
 
   return { userId: data.user_id, supabase: userScopedClient(data.user_id) };
 }

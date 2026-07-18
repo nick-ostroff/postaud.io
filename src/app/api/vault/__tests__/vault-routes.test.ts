@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/db/types";
@@ -22,6 +22,14 @@ import type { VaultLink } from "@/db/queries/vault";
  * idempotent-upsert test is a genuine behavioral check: if the route ever
  * started sending `linked_at` in its upsert payload, this stub would
  * overwrite it and the test would fail for real, not just assert a call arg.
+ *
+ * `select`/`update`/`delete` build a small chainable filter (supporting one
+ * or more `.eq()` calls plus, for `select`, `.order()`) rather than a fixed
+ * single-filter shape — the routes now add an explicit `user_id` filter
+ * alongside `series_id` (defence in depth, final review IMPORTANT 4), so the
+ * stub has to apply BOTH filters for real, the same way real RLS-plus-filter
+ * queries would, or the cross-tenant tests below would pass for the wrong
+ * reason (never actually checking user_id).
  */
 
 const mocks = vi.hoisted(() => ({
@@ -43,6 +51,42 @@ import { GET as pendingGET } from "../pending/route";
 
 type SeriesTitleRow = { id: string; title: string };
 
+/** A minimal chainable `.eq(...).eq(...)...` filter shared by select/update/delete below. */
+function makeFilterBuilder<T extends Record<string, unknown>>(
+  rows: () => T[],
+  finish: (predicate: (r: T) => boolean) => { data?: T[] | T | null; error: null },
+) {
+  let predicate: (r: T) => boolean = () => true;
+  let ordered: ((r: T[]) => T[]) | null = null;
+  const builder = {
+    eq(col: keyof T, val: unknown) {
+      const prev = predicate;
+      predicate = (r) => prev(r) && r[col] === val;
+      return builder;
+    },
+    order(col: keyof T, opts?: { ascending?: boolean }) {
+      const dir = opts?.ascending === false ? -1 : 1;
+      ordered = (list) =>
+        [...list].sort((a, b) => {
+          const av = (a[col] as string | null) ?? "";
+          const bv = (b[col] as string | null) ?? "";
+          return av < bv ? -dir : av > bv ? dir : 0;
+        });
+      return builder;
+    },
+    maybeSingle() {
+      const matched = rows().filter(predicate);
+      return Promise.resolve({ data: matched[0] ?? null, error: null });
+    },
+    then(onFulfilled: (v: unknown) => unknown, onRejected?: (e: unknown) => unknown) {
+      const result = finish(predicate);
+      const data = ordered && Array.isArray(result.data) ? ordered(result.data) : result.data;
+      return Promise.resolve({ ...result, data }).then(onFulfilled, onRejected);
+    },
+  };
+  return builder;
+}
+
 function makeCallerSupabase(opts: { vaultLinks?: VaultLink[]; seriesTitles?: SeriesTitleRow[] } = {}) {
   let links = [...(opts.vaultLinks ?? [])];
   const titles = opts.seriesTitles ?? [];
@@ -53,10 +97,10 @@ function makeCallerSupabase(opts: { vaultLinks?: VaultLink[]; seriesTitles?: Ser
 
   const vaultLinksTable = {
     select() {
-      // Mirrors `listPendingVaultLinks`'s bare `select("*")` — no filters,
-      // RLS (simulated here by only ever seeding the caller's own rows) is
-      // what would normally scope this in production.
-      return Promise.resolve({ data: links, error: null });
+      return makeFilterBuilder<VaultLink>(
+        () => links,
+        (predicate) => ({ data: links.filter(predicate), error: null }),
+      );
     },
     upsert(payload: Partial<VaultLink> & { series_id: string; user_id: string }) {
       const existing = links.find((r) => r.series_id === payload.series_id && r.user_id === payload.user_id);
@@ -77,22 +121,24 @@ function makeCallerSupabase(opts: { vaultLinks?: VaultLink[]; seriesTitles?: Ser
       return Promise.resolve({ error: null });
     },
     update(patch: Partial<VaultLink>) {
-      return {
-        eq: (col: keyof VaultLink, val: string) => {
+      return makeFilterBuilder<VaultLink>(
+        () => links,
+        (predicate) => {
           links.forEach((r) => {
-            if (r[col] === val) Object.assign(r, patch);
+            if (predicate(r)) Object.assign(r, patch);
           });
-          return Promise.resolve({ error: null });
+          return { error: null };
         },
-      };
+      );
     },
     delete() {
-      return {
-        eq: (col: keyof VaultLink, val: string) => {
-          links = links.filter((r) => r[col] !== val);
-          return Promise.resolve({ error: null });
+      return makeFilterBuilder<VaultLink>(
+        () => links,
+        (predicate) => {
+          links = links.filter((r) => !predicate(r));
+          return { error: null };
         },
-      };
+      );
     },
   };
 
@@ -290,18 +336,46 @@ describe("DELETE /api/series/[id]/vault-link", () => {
     expect(await res.json()).toEqual({ error: "unauthorized" });
     expect(links()).toHaveLength(1);
   });
+
+  it("defence in depth (IMPORTANT 4): a caller cannot delete another user's link for the same series, even though RLS is only simulated here", async () => {
+    const { stub, links } = makeCallerSupabase({
+      vaultLinks: [
+        {
+          series_id: "series-1",
+          user_id: "user-B",
+          label: "User B's vault",
+          linked_at: "2026-01-01T00:00:00.000Z",
+          push_requested_at: null,
+          last_acked_at: null,
+        },
+      ],
+    });
+    // User A calls it, but only user B's row exists for this series_id.
+    mocks.resolveApiToken.mockResolvedValue({ userId: "user-A", supabase: stub });
+
+    const res = await linkDELETE(
+      jsonReq("http://localhost:3000/api/series/series-1/vault-link", "DELETE"),
+      ctx(),
+    );
+
+    // Idempotent DELETE: matching zero rows is still a 200, but the other
+    // user's row must survive untouched — this is the whole point of the
+    // explicit user_id filter.
+    expect(res.status).toBe(200);
+    expect(links()).toHaveLength(1);
+    expect(links()[0]?.user_id).toBe("user-B");
+  });
 });
 
 describe("POST /api/series/[id]/vault-ack", () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-07-18T12:00:00.000Z"));
-  });
-  afterEach(() => {
-    vi.useRealTimers();
-  });
+  /**
+   * `last_acked_at` is now stamped from the request body's `requestedAt`
+   * (the value the plugin fetched from `/api/vault/pending`), not from
+   * `now()` — see the route's doc comment for the race this fixes.
+   */
+  const REQUESTED_AT = "2026-07-18T10:00:00.000Z";
 
-  it("stamps last_acked_at to now", async () => {
+  it("stamps last_acked_at to the echoed requestedAt, not now", async () => {
     const { stub, links } = makeCallerSupabase({
       vaultLinks: [
         {
@@ -309,18 +383,132 @@ describe("POST /api/series/[id]/vault-ack", () => {
           user_id: "user-1",
           label: "My Vault",
           linked_at: "2026-01-01T00:00:00.000Z",
-          push_requested_at: "2026-07-18T10:00:00.000Z",
+          push_requested_at: REQUESTED_AT,
           last_acked_at: null,
         },
       ],
     });
     mocks.resolveApiToken.mockResolvedValue({ userId: "user-1", supabase: stub });
 
-    const res = await ackPOST(jsonReq("http://localhost:3000/api/series/series-1/vault-ack", "POST"), ctx());
+    const res = await ackPOST(
+      jsonReq("http://localhost:3000/api/series/series-1/vault-ack", "POST", { requestedAt: REQUESTED_AT }),
+      ctx(),
+    );
 
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true });
-    expect(links()[0]?.last_acked_at).toBe("2026-07-18T12:00:00.000Z");
+    expect(links()[0]?.last_acked_at).toBe(REQUESTED_AT);
+  });
+
+  it("a Send that lands mid-sync (after fetch, before ack) remains pending: acking with a stale requestedAt does not swallow it", async () => {
+    const staleRequestedAt = "2026-07-18T09:00:00.000Z"; // T-1, what the plugin fetched
+    const midSyncSend = "2026-07-18T11:00:00.000Z"; // T2, user pressed Send after the fetch
+    const { stub, links } = makeCallerSupabase({
+      vaultLinks: [
+        {
+          series_id: "series-1",
+          user_id: "user-1",
+          label: "My Vault",
+          linked_at: "2026-01-01T00:00:00.000Z",
+          // Simulates: plugin fetched at T-1, then the user pressed Send
+          // again at T2 before the plugin's ack (T3) arrives.
+          push_requested_at: midSyncSend,
+          last_acked_at: null,
+        },
+      ],
+    });
+    mocks.resolveApiToken.mockResolvedValue({ userId: "user-1", supabase: stub });
+
+    const res = await ackPOST(
+      jsonReq("http://localhost:3000/api/series/series-1/vault-ack", "POST", {
+        requestedAt: staleRequestedAt,
+      }),
+      ctx(),
+    );
+
+    expect(res.status).toBe(200);
+    const link = links()[0];
+    expect(link?.last_acked_at).toBe(staleRequestedAt);
+    // The T2 Send must still read as pending after this ack.
+    const { isPushPending } = await import("@/db/queries/vault");
+    expect(isPushPending(link!)).toBe(true);
+  });
+
+  it("returns 400 requested_at_required when requestedAt is missing, and does not stamp", async () => {
+    const { stub, links } = makeCallerSupabase({
+      vaultLinks: [
+        {
+          series_id: "series-1",
+          user_id: "user-1",
+          label: "My Vault",
+          linked_at: "2026-01-01T00:00:00.000Z",
+          push_requested_at: REQUESTED_AT,
+          last_acked_at: null,
+        },
+      ],
+    });
+    mocks.resolveApiToken.mockResolvedValue({ userId: "user-1", supabase: stub });
+
+    const res = await ackPOST(
+      jsonReq("http://localhost:3000/api/series/series-1/vault-ack", "POST", {}),
+      ctx(),
+    );
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "requested_at_required" });
+    expect(links()[0]?.last_acked_at).toBeNull();
+  });
+
+  it("returns 400 requested_at_required for a malformed (unparseable) requestedAt", async () => {
+    const { stub, links } = makeCallerSupabase({
+      vaultLinks: [
+        {
+          series_id: "series-1",
+          user_id: "user-1",
+          label: "My Vault",
+          linked_at: "2026-01-01T00:00:00.000Z",
+          push_requested_at: REQUESTED_AT,
+          last_acked_at: null,
+        },
+      ],
+    });
+    mocks.resolveApiToken.mockResolvedValue({ userId: "user-1", supabase: stub });
+
+    const res = await ackPOST(
+      jsonReq("http://localhost:3000/api/series/series-1/vault-ack", "POST", { requestedAt: "not-a-date" }),
+      ctx(),
+    );
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "requested_at_required" });
+    expect(links()[0]?.last_acked_at).toBeNull();
+  });
+
+  it("returns 400 requested_at_required for malformed JSON, never 500", async () => {
+    const { stub } = makeCallerSupabase({
+      vaultLinks: [
+        {
+          series_id: "series-1",
+          user_id: "user-1",
+          label: "My Vault",
+          linked_at: "2026-01-01T00:00:00.000Z",
+          push_requested_at: REQUESTED_AT,
+          last_acked_at: null,
+        },
+      ],
+    });
+    mocks.resolveApiToken.mockResolvedValue({ userId: "user-1", supabase: stub });
+
+    const req = new NextRequest("http://localhost:3000/api/series/series-1/vault-ack", {
+      method: "POST",
+      headers: { authorization: "Bearer pat_test", "content-type": "application/json" },
+      body: "{not valid json",
+    });
+
+    const res = await ackPOST(req, ctx());
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "requested_at_required" });
   });
 
   it("returns 401 with no/unresolvable Bearer token and never stamps", async () => {
@@ -331,17 +519,47 @@ describe("POST /api/series/[id]/vault-ack", () => {
           user_id: "user-1",
           label: "My Vault",
           linked_at: "2026-01-01T00:00:00.000Z",
-          push_requested_at: "2026-07-18T10:00:00.000Z",
+          push_requested_at: REQUESTED_AT,
           last_acked_at: null,
         },
       ],
     });
     mocks.resolveApiToken.mockResolvedValue(null);
 
-    const res = await ackPOST(jsonReq("http://localhost:3000/api/series/series-1/vault-ack", "POST"), ctx());
+    const res = await ackPOST(
+      jsonReq("http://localhost:3000/api/series/series-1/vault-ack", "POST", { requestedAt: REQUESTED_AT }),
+      ctx(),
+    );
 
     expect(res.status).toBe(401);
     expect(await res.json()).toEqual({ error: "unauthorized" });
+    expect(links()[0]?.last_acked_at).toBeNull();
+  });
+
+  it("defence in depth (IMPORTANT 4): a caller cannot ack another user's link for the same series", async () => {
+    const { stub, links } = makeCallerSupabase({
+      vaultLinks: [
+        {
+          series_id: "series-1",
+          user_id: "user-B",
+          label: "User B's vault",
+          linked_at: "2026-01-01T00:00:00.000Z",
+          push_requested_at: REQUESTED_AT,
+          last_acked_at: null,
+        },
+      ],
+    });
+    mocks.resolveApiToken.mockResolvedValue({ userId: "user-A", supabase: stub });
+
+    const res = await ackPOST(
+      jsonReq("http://localhost:3000/api/series/series-1/vault-ack", "POST", { requestedAt: REQUESTED_AT }),
+      ctx(),
+    );
+
+    // Matching zero rows is still a 200 (same idempotent-update reasoning
+    // as vault-link's DELETE), but user B's row must be untouched.
+    expect(res.status).toBe(200);
+    expect(links()[0]?.user_id).toBe("user-B");
     expect(links()[0]?.last_acked_at).toBeNull();
   });
 });
@@ -390,6 +608,71 @@ describe("GET /api/vault/pending", () => {
     expect(await res.json()).toEqual({
       pending: [{ seriesId: "series-1", title: "Dad's Stories", requestedAt: "2026-07-18T11:00:00.000Z" }],
     });
+  });
+
+  it("orders multiple pending links by push_requested_at ascending (MINOR 9: deterministic plugin processing)", async () => {
+    const { stub } = makeCallerSupabase({
+      vaultLinks: [
+        {
+          series_id: "series-newest",
+          user_id: "user-1",
+          label: "Newest",
+          linked_at: "2026-01-01T00:00:00.000Z",
+          push_requested_at: "2026-07-18T12:00:00.000Z",
+          last_acked_at: null,
+        },
+        {
+          series_id: "series-oldest",
+          user_id: "user-1",
+          label: "Oldest",
+          linked_at: "2026-01-01T00:00:00.000Z",
+          push_requested_at: "2026-07-18T08:00:00.000Z",
+          last_acked_at: null,
+        },
+        {
+          series_id: "series-middle",
+          user_id: "user-1",
+          label: "Middle",
+          linked_at: "2026-01-01T00:00:00.000Z",
+          push_requested_at: "2026-07-18T10:00:00.000Z",
+          last_acked_at: null,
+        },
+      ],
+    });
+    mocks.resolveApiToken.mockResolvedValue({ userId: "user-1", supabase: stub });
+
+    const res = await pendingGET(new NextRequest("http://localhost:3000/api/vault/pending", {
+      headers: { authorization: "Bearer pat_test" },
+    }));
+
+    const body = await res.json();
+    expect(body.pending.map((p: { seriesId: string }) => p.seriesId)).toEqual([
+      "series-oldest",
+      "series-middle",
+      "series-newest",
+    ]);
+  });
+
+  it("defence in depth (IMPORTANT 4): another user's pending link never appears, even one that would otherwise match", async () => {
+    const { stub } = makeCallerSupabase({
+      vaultLinks: [
+        {
+          series_id: "series-other-user",
+          user_id: "user-B",
+          label: "User B's vault",
+          linked_at: "2026-01-01T00:00:00.000Z",
+          push_requested_at: "2026-07-18T11:00:00.000Z",
+          last_acked_at: null,
+        },
+      ],
+    });
+    mocks.resolveApiToken.mockResolvedValue({ userId: "user-A", supabase: stub });
+
+    const res = await pendingGET(new NextRequest("http://localhost:3000/api/vault/pending", {
+      headers: { authorization: "Bearer pat_test" },
+    }));
+
+    expect(await res.json()).toEqual({ pending: [] });
   });
 
   it("falls back to 'Untitled series' when the title lookup has no row for a pending link", async () => {

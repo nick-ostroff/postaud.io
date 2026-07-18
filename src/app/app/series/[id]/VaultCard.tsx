@@ -1,11 +1,8 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { isPushPending, type VaultLink } from "@/db/queries/vault";
+import { formatShortDate } from "@/lib/time";
 import { VaultActions } from "./VaultActions";
-
-function formatVaultDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-}
 
 /**
  * The series page's "Vault" card — the user-facing half of Obsidian sync.
@@ -45,7 +42,10 @@ export function VaultCard({ seriesId, link }: { seriesId: string; link: VaultLin
       <h3>Obsidian vault</h3>
       <p className="mt-1 text-[13px] text-muted">Linked to {link.label}.</p>
       <p className="mt-0.5 text-[12.5px] text-faint">
-        {link.last_acked_at ? `Last sent ${formatVaultDate(link.last_acked_at)}` : "Never sent"}
+        {/* `last_acked_at` is stamped by the untrusted plugin after it writes
+            files locally, not by the server sending anything — "synced",
+            not "sent". */}
+        {link.last_acked_at ? `Last synced ${formatShortDate(link.last_acked_at)}` : "Never synced"}
       </p>
       <VaultActions seriesId={seriesId} pending={isPushPending(link)} />
     </Card>

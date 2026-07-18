@@ -160,12 +160,28 @@ export async function getSeriesKnowledge(
 ): Promise<SeriesKnowledge> {
   const [topicsRes, factsRes, entitiesRes] = await Promise.all([
     sb.from("topics").select("*").eq("series_id", seriesId).order("position", { ascending: true }),
+    // The `fact_entities ( entities ( * ) )` embed has no ORDER BY of its
+    // own: it's doubly-nested, and PostgREST/supabase-js's
+    // `.order(..., { foreignTable })` only reliably targets a single
+    // embedded relation. Each fact's `entities` array (also
+    // ORDER-SENSITIVE for the vault-sync content hash) is instead sorted
+    // deterministically in JS at the point of use — see the comment in
+    // `buildSeriesExportData` (src/server/export/series-data.ts).
     sb
       .from("facts")
       .select("*, fact_entities ( entities ( * ) )")
       .eq("series_id", seriesId)
       .order("created_at", { ascending: false }),
-    sb.from("entities").select("*").eq("series_id", seriesId).order("name", { ascending: true }),
+    sb
+      .from("entities")
+      .select("*")
+      .eq("series_id", seriesId)
+      // `name` alone isn't a unique key — two entities can share a name —
+      // so this feeds an ORDER-SENSITIVE content hash (vault sync) an `id`
+      // tiebreaker for a fully deterministic order, not just a mostly-stable
+      // one.
+      .order("name", { ascending: true })
+      .order("id", { ascending: true }),
   ]);
   if (topicsRes.error) throw new Error(topicsRes.error.message);
   if (factsRes.error) throw new Error(factsRes.error.message);

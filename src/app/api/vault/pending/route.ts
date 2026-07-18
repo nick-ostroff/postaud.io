@@ -20,7 +20,7 @@ export async function GET(request: Request) {
   const caller = await resolveApiToken(request);
   if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const links = await listPendingVaultLinks(caller.supabase);
+  const links = await listPendingVaultLinks(caller.supabase, caller.userId);
   if (links.length === 0) return NextResponse.json({ pending: [] });
 
   const { data: rows } = await caller.supabase
