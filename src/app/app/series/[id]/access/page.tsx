@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { getSeries, getSeriesSummaries, getViewer, listMembers } from "@/db/queries";
+import { profilePhotoUrl } from "@/server/profile/photo-url";
 import { AccessManager, type AccessLevel, type AccessMember } from "./AccessManager";
 
 type Params = Promise<{ id: string }>;
@@ -49,6 +50,7 @@ export default async function SeriesAccessPage({ params }: { params: Params }) {
       userId: m.user_id,
       name: m.users?.display_name || m.users?.email || "Unknown",
       email: m.users?.email ?? "",
+      photoUrl: profilePhotoUrl(m.users?.avatar_path),
       pending: !m.accepted_at,
       level: levelByUser.get(m.user_id) ?? "none",
     }));
@@ -103,7 +105,7 @@ export default async function SeriesAccessPage({ params }: { params: Params }) {
               const name = o.users?.display_name || o.users?.email || "Unknown";
               return (
                 <div key={o.user_id} className="flex items-center gap-3 border-b border-line py-3 last:border-b-0 last:pb-1">
-                  <Avatar name={name} />
+                  <Avatar name={name} src={profilePhotoUrl(o.users?.avatar_path)} />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[13.5px] font-semibold">
                       {name} {o.user_id === user.id && <span className="text-xs font-normal text-faint">· you</span>}
@@ -125,7 +127,11 @@ export default async function SeriesAccessPage({ params }: { params: Params }) {
 
             {showSubjectPinned && (
               <div className="flex items-center gap-3 border-b border-line py-3">
-                <Avatar name={series.subject_name} tone="plain" />
+                <Avatar
+                  name={series.subject_name}
+                  src={profilePhotoUrl(subjectMember?.users?.avatar_path)}
+                  tone="plain"
+                />
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[13.5px] font-semibold">
                     {subjectMember?.users?.display_name || subjectMember?.users?.email || series.subject_name}

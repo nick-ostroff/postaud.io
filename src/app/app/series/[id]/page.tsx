@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { CoverageBar } from "@/components/ui/CoverageBar";
 import { SeriesPhotoEditor } from "@/components/series/SeriesPhotoEditor";
+import { profilePhotoUrl } from "@/server/profile/photo-url";
 import { seriesPhotoUrl } from "@/server/series/photo-url";
 import {
   getSeries,
@@ -326,7 +327,11 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
                     key={a.userId}
                     className="flex items-center gap-3 border-b border-line py-3 last:border-b-0 last:pb-1"
                   >
-                    <Avatar name={a.name} tone={a.badge === "owner" ? "green" : "plain"} />
+                    <Avatar
+                      name={a.name}
+                      src={profilePhotoUrl(a.avatarPath)}
+                      tone={a.badge === "owner" ? "green" : "plain"}
+                    />
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[13.5px] font-semibold">{a.name}</div>
                       {a.badge === "owner" && <div className="text-xs text-faint">owner</div>}

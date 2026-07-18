@@ -4,18 +4,25 @@ const mocks = vi.hoisted(() => ({
   getViewer: vi.fn(),
   revalidatePath: vi.fn(),
   updateUser: vi.fn(),
+  mirrorEq: vi.fn(),
+  mirrorUpdate: vi.fn(),
 }));
 
 vi.mock("@/db/queries", () => ({ getViewer: mocks.getViewer }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
+vi.mock("@/db/service", () => ({
+  serviceClient: () => ({ from: () => ({ update: mocks.mirrorUpdate }) }),
+}));
 
 import { updateProfileNameAction } from "../profile-actions";
 
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.updateUser.mockResolvedValue({ error: null });
+  mocks.mirrorEq.mockResolvedValue({ error: null });
+  mocks.mirrorUpdate.mockReturnValue({ eq: mocks.mirrorEq });
   mocks.getViewer.mockResolvedValue({
-    user: { email: "nick@ostroff.la" },
+    user: { id: "user-1", email: "nick@ostroff.la" },
     supabase: { auth: { updateUser: mocks.updateUser } },
   });
 });
@@ -25,6 +32,8 @@ describe("updateProfileNameAction", () => {
     const res = await updateProfileNameAction("  Nick Ostroff  ");
     expect(res).toEqual({ ok: true });
     expect(mocks.updateUser).toHaveBeenCalledWith({ data: { full_name: "Nick Ostroff" } });
+    expect(mocks.mirrorUpdate).toHaveBeenCalledWith({ display_name: "Nick Ostroff" });
+    expect(mocks.mirrorEq).toHaveBeenCalledWith("id", "user-1");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/app", "layout");
   });
 

@@ -115,8 +115,8 @@ describe("buildMobileStory", () => {
   });
 
   it("counts everyone but the owner as shared, never below zero", () => {
-    const owner: SeriesAccessRow = { userId: "viewer", name: "Me", email: "", badge: "owner" };
-    const guest: SeriesAccessRow = { userId: "g", name: "Guest", email: "", badge: "can_view" };
+    const owner: SeriesAccessRow = { userId: "viewer", name: "Me", email: "", avatarPath: null, badge: "owner" };
+    const guest: SeriesAccessRow = { userId: "g", name: "Guest", email: "", avatarPath: null, badge: "can_view" };
     expect(buildMobileStory({ ...base, access: [owner, guest] }).sharedCount).toBe(1);
     expect(buildMobileStory({ ...base, access: [] }).sharedCount).toBe(0);
   });

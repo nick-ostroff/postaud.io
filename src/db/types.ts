@@ -64,18 +64,21 @@ export type Database = {
           id: string
           email: string
           display_name: string | null
+          avatar_path: string | null
           created_at: string
         }
         Insert: {
           id: string
           email: string
           display_name?: string | null
+          avatar_path?: string | null
           created_at?: string
         }
         Update: {
           id?: string
           email?: string
           display_name?: string | null
+          avatar_path?: string | null
           created_at?: string
         }
         Relationships: []

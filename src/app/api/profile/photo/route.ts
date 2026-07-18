@@ -61,6 +61,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: updateErr.message }, { status: 500 });
   }
 
+  // Mirror onto `public.users` so roster joins (series "Who's involved",
+  // access page, members page) see the photo too — auth metadata isn't
+  // joinable from those queries. Best-effort ordering matches the metadata
+  // write above; a failure here would strand only the mirror, so surface it.
+  const { error: mirrorErr } = await svc.from("users").update({ avatar_path: path }).eq("id", user.id);
+  if (mirrorErr) {
+    return NextResponse.json({ error: mirrorErr.message }, { status: 500 });
+  }
+
   // Prior photo is now unreferenced — remove it (best-effort; a leftover
   // object is harmless).
   if (oldPath && oldPath !== path) {

@@ -1,4 +1,5 @@
 import { getViewer, listMembers } from "@/db/queries";
+import { profilePhotoUrl } from "@/server/profile/photo-url";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
@@ -47,7 +48,7 @@ export default async function MembersPage() {
           const name = m.users?.display_name || email;
           return (
             <div key={m.user_id} className="flex items-center gap-3 border-b border-line px-4 py-3.5 last:border-b-0">
-              <Avatar name={name} />
+              <Avatar name={name} src={profilePhotoUrl(m.users?.avatar_path)} />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-[13.5px] font-semibold text-ink">{name}</div>
                 <div className="truncate text-xs text-faint">{email}</div>
@@ -92,7 +93,7 @@ export default async function MembersPage() {
                 <tr key={m.user_id} className="hover:bg-[rgba(33,30,26,0.02)] [&:last-child>td]:border-b-0">
                   <td className="border-b border-line px-3.5 py-[13px] align-middle">
                     <div className="flex items-center gap-3">
-                      <Avatar name={name} />
+                      <Avatar name={name} src={profilePhotoUrl(m.users?.avatar_path)} />
                       <div>
                         <div className="font-semibold text-ink">{name}</div>
                         <div className="text-xs text-faint">{email}</div>

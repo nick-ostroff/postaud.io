@@ -427,6 +427,7 @@ export type SeriesAccessRow = {
   userId: string;
   name: string;
   email: string;
+  avatarPath: string | null;
   badge: SeriesAccessBadge;
 };
 
@@ -434,7 +435,7 @@ type AccessJoinRow = {
   user_id: string;
   can_view: boolean;
   can_interview: boolean;
-  users: { email: string; display_name: string | null } | null;
+  users: { email: string; display_name: string | null; avatar_path: string | null } | null;
 };
 
 /**
@@ -452,7 +453,7 @@ export async function getSeriesAccessSummary(
     listMembers(sb),
     sb
       .from("series_access")
-      .select("user_id, can_view, can_interview, users ( email, display_name )")
+      .select("user_id, can_view, can_interview, users ( email, display_name, avatar_path )")
       .eq("series_id", seriesId),
   ]);
   if (accessRes.error) throw new Error(accessRes.error.message);
@@ -463,7 +464,13 @@ export async function getSeriesAccessSummary(
   for (const m of members) {
     if (m.role !== "admin") continue;
     const name = m.users?.display_name || m.users?.email || "Unknown";
-    rows.push({ userId: m.user_id, name, email: m.users?.email ?? "", badge: "owner" });
+    rows.push({
+      userId: m.user_id,
+      name,
+      email: m.users?.email ?? "",
+      avatarPath: m.users?.avatar_path ?? null,
+      badge: "owner",
+    });
     seen.add(m.user_id);
   }
 
@@ -475,6 +482,7 @@ export async function getSeriesAccessSummary(
       userId: a.user_id,
       name,
       email: a.users?.email ?? "",
+      avatarPath: a.users?.avatar_path ?? null,
       badge: a.can_interview ? "can_interview" : "can_view",
     });
     seen.add(a.user_id);
@@ -483,7 +491,9 @@ export async function getSeriesAccessSummary(
   return rows;
 }
 
-export type MemberRow = Membership & { users: { email: string; display_name: string | null } | null };
+export type MemberRow = Membership & {
+  users: { email: string; display_name: string | null; avatar_path: string | null } | null;
+};
 
 /**
  * Members of the current workspace, joined with their `users` row. Safe to
@@ -495,7 +505,7 @@ export type MemberRow = Membership & { users: { email: string; display_name: str
 export async function listMembers(sb: SupabaseClient<Database>): Promise<MemberRow[]> {
   const { data, error } = await sb
     .from("memberships")
-    .select("*, users ( email, display_name )")
+    .select("*, users ( email, display_name, avatar_path )")
     .order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as MemberRow[];

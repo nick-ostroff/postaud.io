@@ -30,6 +30,7 @@ function makeStorageStub() {
   const storage = {
     uploads: [] as { path: string; contentType: unknown }[],
     removed: [] as string[][],
+    userUpdates: [] as { values: Record<string, unknown>; id: string }[],
   };
   const svc = {
     storage: {
@@ -45,6 +46,18 @@ function makeStorageStub() {
           },
         };
       },
+    },
+    from() {
+      return {
+        update(values: Record<string, unknown>) {
+          return {
+            async eq(_col: string, id: string) {
+              storage.userUpdates.push({ values, id });
+              return { error: null };
+            },
+          };
+        },
+      };
     },
   };
   return { svc, storage };
@@ -100,6 +113,7 @@ describe("POST /api/profile/photo", () => {
     expect(storage.uploads[0].path).toMatch(/^user-1\/[0-9a-f-]+\.webp$/);
     expect(storage.uploads[0].contentType).toBe("image/webp");
     expect(calls.updates).toEqual([{ avatar_path: body.photoPath }]);
+    expect(storage.userUpdates).toEqual([{ values: { avatar_path: body.photoPath }, id: "user-1" }]);
     expect(storage.removed).toEqual([["user-1/old.webp"]]);
   });
 

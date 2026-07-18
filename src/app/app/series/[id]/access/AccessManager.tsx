@@ -12,6 +12,7 @@ export type AccessMember = {
   userId: string;
   name: string;
   email: string;
+  photoUrl: string | null;
   pending: boolean;
   level: AccessLevel;
 };
@@ -80,7 +81,7 @@ export function AccessManager({ seriesId, initialMembers }: { seriesId: string; 
             (savingId === m.userId ? " opacity-60" : "")
           }
         >
-          <Avatar name={m.name} tone="plain" />
+          <Avatar name={m.name} src={m.photoUrl} tone="plain" />
           <div className="min-w-0 flex-1">
             <div className="truncate text-[13.5px] font-semibold">
               {m.name}
