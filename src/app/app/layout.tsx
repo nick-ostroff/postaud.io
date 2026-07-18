@@ -1,3 +1,4 @@
+import type { Viewport } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
@@ -9,6 +10,13 @@ import { isPlatformAdmin } from "@/lib/auth/is-platform-admin";
 import { resolveImpersonationBanner } from "@/lib/auth/impersonation-banner";
 import { ROLE_LABELS } from "@/lib/roles";
 import { profilePhotoUrl } from "@/server/profile/photo-url";
+
+// The mobile top nav is the dark ink surface, so the iOS status bar /
+// Android chrome above it must match — overrides the root's paper tint
+// for everything under /app.
+export const viewport: Viewport = {
+  themeColor: "#211E1A",
+};
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, organization, role, acceptedAt } = await getViewer();

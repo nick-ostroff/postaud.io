@@ -17,7 +17,7 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     orientation: "portrait",
     background_color: "#F7F5F0", // --paper
-    theme_color: "#F7F5F0",
+    theme_color: "#211E1A", // --dark: matches the app's dark top nav / sidebar
     categories: ["productivity", "education"],
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
