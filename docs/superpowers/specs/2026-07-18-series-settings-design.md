@@ -1,7 +1,10 @@
 # Series Settings Screen — Design
 
 **Date:** 2026-07-18
-**Status:** Approved by Nick
+**Status:** Approved by Nick; built (7baffc1 + follow-up). One approved-then-revised
+point: access management is EMBEDDED in the settings page (the old
+`/access` URL redirects here) rather than linked, since the implementation
+landed that way and it reads well — the standalone Access page is gone.
 
 ## Problem
 
@@ -23,7 +26,10 @@ photo upload (`POST /api/series/[id]/photo`), and archive
 | File | Role |
 |---|---|
 | `src/app/app/series/[id]/settings/page.tsx` | Server page: `getViewer()` + `getSeries()`, redirect non-admins to `/app/series/[id]` (same guard as the Access page), fetch access summary, render form |
-| `src/app/app/series/[id]/settings/SettingsForm.tsx` | Client component with the editable sections |
+| `src/app/app/series/[id]/settings/SeriesDetailsForm.tsx` | Client form: title, relationship, goal |
+| `src/app/app/series/[id]/settings/InterviewGuideForm.tsx` | Client form: voice, opening prompt, don't-bring-up, tone, length, depth, planned sessions |
+| `src/app/app/series/[id]/settings/AccessManager.tsx` | Moved from the old Access page |
+| `src/app/app/series/[id]/settings/ArchiveSeriesButton.tsx` | Type-the-title confirm → DELETE |
 
 **Entry point:** a "Settings" ghost `Button` in the series-hub header, next to
 the existing Access button. The "Manage access →" sidebar link stays.
@@ -42,9 +48,10 @@ re-submits unrelated fields.
    (`RadioCard`), session length 10/20/45 (`RadioCard`), voice
    (`VoicePicker`; server re-derives `interviewer_name` from the voice),
    depth (`RadioCard`), planned sessions (number input, blank = open-ended).
-3. **Access** — read-only summary from `getSeriesAccessSummary` (owners +
-   view/interview counts, avatars) with a "Manage access →" link to the
-   existing `/app/series/[id]/access` page. No editing here.
+3. **Access** — the Owners card + "Who can see this" card with the full
+   `AccessManager` (moved from the old Access page, which now redirects
+   here). Subject pinned with implicit-access note; no-account subjects get
+   the hand-the-mic explainer card.
 4. **Danger zone** — "Archive series". Type the series title to confirm,
    then `DELETE /api/series/[id]` (sets `status='archived'`, history kept)
    and redirect to `/app/series`.
