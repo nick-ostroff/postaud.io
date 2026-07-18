@@ -18,10 +18,12 @@ import {
   getViewer,
   listInterviewsForSeries,
 } from "@/db/queries";
+import { getVaultLink } from "@/db/queries/vault";
 import { ExportCard } from "./ExportCard";
 import { PendingSummaryRefresher } from "./PendingSummaryRefresher";
 import { PromoteChip } from "./PromoteChip";
 import { ReprocessButton } from "./ReprocessButton";
+import { VaultCard } from "./VaultCard";
 
 /** Coverage below this reads as amber — matches the card grid's threshold. */
 const LOW_COVERAGE = 0.4;
@@ -61,11 +63,12 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
   const series = await getSeries(supabase, id);
   if (!series) notFound();
 
-  const [summaries, knowledge, sessions, access] = await Promise.all([
+  const [summaries, knowledge, sessions, access, vaultLink] = await Promise.all([
     getSeriesSummaries(supabase, [id]),
     getSeriesKnowledge(supabase, id),
     listInterviewsForSeries(supabase, id),
     getSeriesAccessSummary(supabase, id),
+    getVaultLink(supabase, id),
   ]);
 
   const summary = summaries[id];
@@ -359,6 +362,8 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
             </p>
             <ExportCard seriesId={series.id} />
           </Card>
+
+          <VaultCard seriesId={series.id} link={vaultLink} />
         </div>
       </div>
 
