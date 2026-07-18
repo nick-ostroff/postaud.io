@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { BackLink } from "@/components/nav/BackLink";
 import { getViewer, listMembers } from "@/db/queries";
 import type { MemberOption } from "./formkit";
 import { QuickCreate } from "./QuickCreate";
@@ -30,8 +31,15 @@ export default async function NewSeriesPage({ searchParams }: { searchParams: Se
     name: (user.user_metadata?.full_name as string | undefined) || user.email?.split("@")[0] || "You",
   };
 
+  // QuickCreate carries its own ✕-to-close; the full wizard's first step has
+  // no back of its own, so give the page one — the top nav carries no chevron.
   if (quick === "1") {
     return <QuickCreate members={members} viewer={viewer} />;
   }
-  return <Wizard members={members} viewer={viewer} />;
+  return (
+    <div>
+      <BackLink href="/app/series">Series</BackLink>
+      <Wizard members={members} viewer={viewer} />
+    </div>
+  );
 }
