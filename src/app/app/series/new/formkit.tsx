@@ -10,6 +10,7 @@ export type MemberOption = {
   name: string;
   email: string;
   pending: boolean;
+  photoUrl: string | null;
 };
 
 export { inputClasses };
