@@ -15,7 +15,7 @@ export function Segmented({ options, value, onChange, name }: SegmentedProps) {
     <div
       role="radiogroup"
       aria-label={name}
-      className="inline-flex gap-0.5 rounded-pill border border-line-strong bg-card p-[3px]"
+      className="inline-flex max-w-full gap-0.5 overflow-x-auto rounded-pill border border-line-strong bg-card p-[3px]"
     >
       {options.map((opt) => {
         const on = opt.value === value;
@@ -33,7 +33,7 @@ export function Segmented({ options, value, onChange, name }: SegmentedProps) {
               }
             }}
             className={
-              "cursor-pointer rounded-pill px-4 py-1.5 text-[13px] font-semibold " +
+              "cursor-pointer whitespace-nowrap rounded-pill px-4 py-1.5 text-[13px] font-semibold " +
               (on ? "bg-green-tint text-green-deep" : "text-muted")
             }
           >
