@@ -18,31 +18,32 @@ function parentOf(pathname: string): string | null {
 }
 
 /**
- * Mobile-only top nav (mockups Home 1a / 2a / 3c): a full-bleed sticky paper
- * bar carrying the logo, a back chevron on any screen below the root, and the
- * avatar into the profile. The desktop sidebar covers the same ground at
- * `lg` and up, so this hides there — the two are never both on screen.
+ * Mobile-only top nav (mockups Home 1a / 2a / 3c): a full-bleed sticky bar on
+ * the same dark ink surface as the desktop sidebar, carrying the logo, a back
+ * chevron on any screen below the root, and the avatar into the profile. The
+ * desktop sidebar covers the same ground at `lg` and up, so this hides there —
+ * the two are never both on screen.
  */
 export function AppTopNav({ name, avatarUrl }: { name: string; avatarUrl?: string | null }) {
   const pathname = usePathname();
   const parent = parentOf(pathname);
 
   return (
-    <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-line bg-[rgba(247,245,240,0.92)] px-5 py-3 shadow-[0_1px_8px_rgba(33,30,26,0.04)] backdrop-blur lg:hidden">
+    <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-dark-line bg-[rgba(33,30,26,0.94)] px-5 py-3 shadow-[0_1px_8px_rgba(33,30,26,0.15)] backdrop-blur lg:hidden">
       {parent && (
         <Link
           href={parent}
           aria-label="Back"
-          className="-ml-2 flex h-9 w-9 items-center justify-center text-[20px] leading-none text-muted hover:no-underline"
+          className="-ml-2 flex h-9 w-9 items-center justify-center text-[20px] leading-none text-[rgba(240,237,230,0.7)] hover:no-underline"
         >
           ‹
         </Link>
       )}
       <Link href="/app" className="hover:no-underline">
-        <LogoLockup size="md" />
+        <LogoLockup dark size="md" />
       </Link>
       <Link href="/app/settings" aria-label="Your profile" className="ml-auto hover:no-underline">
-        <Avatar name={name} tone="warm" size="lg" src={avatarUrl} />
+        <Avatar name={name} tone="warm-dark" size="lg" src={avatarUrl} />
       </Link>
     </header>
   );
