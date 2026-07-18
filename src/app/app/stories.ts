@@ -1,5 +1,6 @@
 import type { MemoryRow, SeriesAccessRow, SeriesSummary } from "@/db/queries";
 import type { Series, Topic } from "@/db/types";
+import { seriesPhotoUrl } from "@/server/series/photo-url";
 import { pickPersonalPromptTopic } from "@/server/topics/pick";
 
 /** Recent memories shown on the mobile dashboard before "All memories →". */
@@ -8,6 +9,8 @@ export const RECENT_MEMORIES = 2;
 export type MobileStory = {
   id: string;
   title: string;
+  /** Public URL of the series photo, or null to fall back to initials. */
+  photoUrl: string | null;
   /** "about Marta · grandmother" */
   subtitle: string;
   memoriesCount: number;
@@ -46,6 +49,7 @@ export function buildMobileStory({
   return {
     id: series.id,
     title: series.title,
+    photoUrl: seriesPhotoUrl(series.photo_path),
     subtitle: isOwnStory
       ? "about you"
       : [`about ${series.subject_name}`, series.subject_relationship].filter(Boolean).join(" · "),

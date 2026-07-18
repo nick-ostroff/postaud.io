@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { StoryBar } from "@/components/nav/StoryBar";
 import { StoryRail, type RailStory } from "@/components/nav/StoryRail";
+import { SeriesPhotoEditor } from "@/components/series/SeriesPhotoEditor";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import type { MobileStory } from "./stories";
@@ -27,11 +28,14 @@ export function MobileHome({
   stories,
   initialActiveId,
   canCreate,
+  canEditPhoto,
 }: {
   railStories: RailStory[];
   stories: MobileStory[];
   initialActiveId: string | null;
   canCreate: boolean;
+  /** Admins can tap the story avatar next to the title to add/change its photo. */
+  canEditPhoto: boolean;
 }) {
   const [activeId, setActiveId] = useState(initialActiveId);
   const active = stories.find((s) => s.id === activeId) ?? stories[0] ?? null;
@@ -69,9 +73,19 @@ export function MobileHome({
         </Card>
       ) : (
         <>
-          <div className="mt-3 border-t border-line pt-4">
-            <h1 className="text-[23px]">{active.title}</h1>
-            <div className="mt-0.5 text-xs text-muted">{active.subtitle}</div>
+          <div className="mt-3 flex items-center gap-3 border-t border-line pt-4">
+            <SeriesPhotoEditor
+              key={active.id}
+              seriesId={active.id}
+              name={active.title}
+              photoUrl={active.photoUrl}
+              canEdit={canEditPhoto}
+              size="lg"
+            />
+            <div>
+              <h1 className="text-[23px]">{active.title}</h1>
+              <div className="mt-0.5 text-xs text-muted">{active.subtitle}</div>
+            </div>
           </div>
 
           <div className="mt-3.5 flex flex-col gap-3 rounded-[14px] border border-green-tint bg-green-tint p-4">

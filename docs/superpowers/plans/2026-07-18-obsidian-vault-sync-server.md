@@ -549,12 +549,19 @@ export function userScopedClient(userId: string) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      global: { headers: { Authorization: `Bearer ${jwt}` } },
+      // `accessToken` is the current API for supplying a custom JWT. Setting
+      // `global.headers.Authorization` is explicitly deprecated by Supabase
+      // ("no longer recommended … causes confusion when combined with a user
+      // session"). The anon key still travels separately as `apikey` — the
+      // minted JWT cannot serve that role.
+      accessToken: async () => jwt,
       auth: { persistSession: false, autoRefreshToken: false },
     },
   );
 }
 ```
+
+**Construct a fresh client per request — never a module-level singleton.** It carries user-specific state, and Fluid Compute reuses function instances across concurrent requests, so a shared client would leak one user's scope into another's request.
 
 - [ ] **Step 4: Implement the resolver**
 
@@ -812,11 +819,24 @@ Pure refactor — no behavior change. This unlocks Task 6 without duplicating th
   ```
   Returns `null` when the series is not visible to the caller (preserving the route's 404-no-leak behavior).
 
-- [ ] **Step 1: Move the logic**
+- [ ] **Step 1: Save a baseline to diff against**
+
+Before touching anything, capture the current output so Step 6 can prove the refactor changed nothing. With `npm run dev` running and signed in, download an export for a series that has facts, entities and at least two sessions:
+
+```bash
+curl -s -b "<your-session-cookies>" \
+  "http://localhost:3000/api/series/<series-id>/export?format=md&scope=summaries,facts,entities,timeline" \
+  > /tmp/export-baseline.md
+wc -l /tmp/export-baseline.md   # expect a non-empty file
+```
+
+Easier alternative: use the browser's export button and move the downloaded file to `/tmp/export-baseline.md`. Either way, **confirm the file is non-empty before proceeding** — an empty baseline proves nothing later.
+
+- [ ] **Step 2: Move the logic**
 
 Create `src/server/export/series-data.ts` by moving the body of the existing GET handler in `src/app/api/series/[id]/export/route.ts` — everything from the `getSeries` call through building `timeline` and `transcripts` — into `buildSeriesExportData`. Move the private helpers `formatOffset` and `formatDateLabel` along with it. Return `null` where the route currently returns the 404 response. **Do not change any of the logic**, including the session re-sort (`Session 1` first) and the superseded-fact filter.
 
-- [ ] **Step 2: Rewrite the route to delegate**
+- [ ] **Step 3: Rewrite the route to delegate**
 
 `src/app/api/series/[id]/export/route.ts` keeps `DEFAULT_SCOPE`, `parseScope`, and the GET handler, now shaped as:
 
@@ -847,7 +867,7 @@ export async function GET(request: Request, { params }: { params: Params }) {
 }
 ```
 
-- [ ] **Step 3: Write a characterization test**
+- [ ] **Step 4: Write a characterization test**
 
 Create `src/server/export/__tests__/series-data.test.ts` covering, with a stubbed supabase client and fixture rows (mock `@/db/queries` the same way `src/app/api/series/[id]/__tests__/route.test.ts` does — read it first):
 - returns `null` for an invisible series;
@@ -856,16 +876,25 @@ Create `src/server/export/__tests__/series-data.test.ts` covering, with a stubbe
 - orders sessions oldest-first (`Session 1` before `Session 2`);
 - omits `transcripts` unless `scope.transcripts` is true.
 
-- [ ] **Step 4: Run tests**
+- [ ] **Step 5: Run tests**
 
 Run: `npx vitest run src/server/export src/app/api/series`
 Expected: PASS, including all pre-existing export tests — this is a refactor, so nothing previously passing may break.
 
-- [ ] **Step 5: Verify the download still works**
+- [ ] **Step 6: Verify the output is byte-identical**
 
-With `npm run dev`, download a series export from the UI and confirm the Markdown is byte-identical to what the same series produced before the refactor (compare against a copy saved before Step 1).
+Re-download the same series export the same way as Step 1, then diff against the baseline:
 
-- [ ] **Step 6: Commit**
+```bash
+curl -s -b "<your-session-cookies>" \
+  "http://localhost:3000/api/series/<same-series-id>/export?format=md&scope=summaries,facts,entities,timeline" \
+  > /tmp/export-after.md
+diff /tmp/export-baseline.md /tmp/export-after.md && echo "IDENTICAL"
+```
+
+Expected: `IDENTICAL` with no diff output. **Any difference means the refactor changed behavior — investigate and fix before committing**, since this task is defined as behavior-preserving.
+
+- [ ] **Step 7: Commit**
 
 ```bash
 git add src/server/export src/app/api/series/[id]/export/route.ts

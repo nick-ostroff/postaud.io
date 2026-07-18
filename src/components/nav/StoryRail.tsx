@@ -3,6 +3,8 @@ import Link from "next/link";
 export type RailStory = {
   id: string;
   title: string;
+  /** Public URL of the series photo; the circle falls back to initials without it. */
+  photoUrl?: string | null;
   /** Red dot on the avatar — this story has questions waiting (it's gone stale). */
   waiting?: boolean;
 };
@@ -46,7 +48,12 @@ export function StoryRail({
                 (active ? "ring-2 ring-green ring-offset-2 ring-offset-paper" : "")
               }
             >
-              {initials(s.title)}
+              {s.photoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={s.photoUrl} alt="" className="h-full w-full rounded-full object-cover" />
+              ) : (
+                initials(s.title)
+              )}
               {s.waiting && (
                 <span className="absolute -right-px -top-px h-3 w-3 rounded-full border-2 border-paper bg-[oklch(0.62_0.16_25)]" />
               )}

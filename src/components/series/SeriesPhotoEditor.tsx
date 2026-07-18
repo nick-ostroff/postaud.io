@@ -22,11 +22,13 @@ export function SeriesPhotoEditor({
   name,
   photoUrl,
   canEdit,
+  size = "md",
 }: {
   seriesId: string;
   name: string;
   photoUrl: string | null;
   canEdit: boolean;
+  size?: "md" | "lg";
 }) {
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement | null>(null);
@@ -35,7 +37,7 @@ export function SeriesPhotoEditor({
   const [error, setError] = useState<string | null>(null);
 
   if (!canEdit) {
-    return <Avatar name={name} size="md" tone="plain" src={photoUrl} />;
+    return <Avatar name={name} size={size} tone="plain" src={photoUrl} />;
   }
 
   function pick(e: React.ChangeEvent<HTMLInputElement>) {
@@ -80,7 +82,7 @@ export function SeriesPhotoEditor({
         aria-label={photoUrl ? "Change series photo" : "Add series photo"}
         title={photoUrl ? "Change photo" : "Add photo"}
       >
-        <Avatar name={name} size="md" tone="plain" src={photoUrl} />
+        <Avatar name={name} size={size} tone="plain" src={photoUrl} />
         <span className="pointer-events-none absolute inset-0.5 flex items-center justify-center rounded-full bg-[rgba(20,18,15,0.5)] text-white opacity-0 transition-opacity group-hover:opacity-100">
           <CameraIcon />
         </span>
