@@ -682,21 +682,25 @@ export function Wizard({
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <WizardField
-                label="Depth"
-                hint={
-                  depth === "single"
-                    ? `One question, one answer — ${persona.name} collects each answer and moves on, no follow-ups. A simple way to gather information.`
-                    : "How long the questions run, and how hard each thread gets mined. Single Q&A skips follow-ups entirely."
-                }
-              >
-                <Segmented
-                  name="depth"
-                  options={DEPTH_OPTIONS}
-                  value={depth}
-                  onChange={(v) => setDepth(v as SeriesDepth)}
-                />
-              </WizardField>
+              {/* Four options make this the widest dial — full row so it never
+                  collides with its neighbor. */}
+              <div className="sm:col-span-2">
+                <WizardField
+                  label="Depth"
+                  hint={
+                    depth === "single"
+                      ? `One question, one answer — ${persona.name} collects each answer and moves on, no follow-ups. A simple way to gather information.`
+                      : "How long the questions run, and how hard each thread gets mined. Single Q&A skips follow-ups entirely."
+                  }
+                >
+                  <Segmented
+                    name="depth"
+                    options={DEPTH_OPTIONS}
+                    value={depth}
+                    onChange={(v) => setDepth(v as SeriesDepth)}
+                  />
+                </WizardField>
+              </div>
               <WizardField label="Planned sessions (optional)" hint="Leave blank for open-ended. Setting it lets the interviewer pace the topics.">
                 <input
                   type="number"
