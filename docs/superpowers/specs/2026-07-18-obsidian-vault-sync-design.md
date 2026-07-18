@@ -14,6 +14,11 @@ A PostAud.io user can connect a series to a folder in their Obsidian vault and h
 - **Direction:** one-way, PostAud.io → vault. PostAud.io is the source of truth. Matches the existing model (immutable transcripts, LLM-derived knowledge base). A future "annotate without mutating" step is left open but out of scope.
 - **Vault shape:** user chooses per series — **Single note** or **Linked graph**.
 - **Mechanism:** an official Obsidian community plugin built on top of a new PostAud.io API foundation (personal access tokens + a machine-readable export endpoint).
+- **Trigger model:** **user-initiated push from PostAud.io** — not auto-polling. The user connects a series to a vault location once (in the plugin), then presses **"Send update to vault"** in the PostAud.io UI whenever they want. That flags the series as *update ready*; the plugin receives it the next time Obsidian is open/focused (or on a manual "Sync now"). Nothing is ever sent automatically.
+
+### The one hard constraint
+
+PostAud.io is a cloud server; an Obsidian vault is a folder on the user's own device. **A cloud server cannot write to a user's local disk.** So "push" means: the user presses a button in PostAud.io, which sets a *pending* flag server-side; the local plugin is the receiver that acts on that flag. The initiation lives in PostAud.io (as the user wants); the local write necessarily happens through the plugin.
 
 ## Why a plugin on top of an API
 
@@ -32,14 +37,23 @@ The token + export API is the load-bearing ~80% of the work. The plugin is a thi
 ## Architecture
 
 ```
+PostAud.io web UI (series page)
+  [ Send update to vault → ]  ── sets push_requested_at (pending flag)
+
 Obsidian plugin (separate repo, TypeScript)
   │  Authorization: Bearer pat_…
+  │  on Obsidian focus / open / manual "Sync now":
   ▼
 PostAud.io API
-  ├─ GET /api/series?format=json                 (discovery: list linkable series)
-  ├─ GET /api/series/[id]/export?format=json     (structured knowledge + hashes)
-  └─ token resolver → user → existing RLS         (no new authz surface)
+  ├─ GET  /api/vault/pending                      (which linked series are update-ready?)
+  ├─ GET  /api/series?format=json                 (discovery: list linkable series)
+  ├─ POST /api/series/[id]/vault-link             (plugin marks a series linked; label only)
+  ├─ GET  /api/series/[id]/export?format=json     (structured knowledge + hashes)
+  ├─ POST /api/series/[id]/vault-ack              (plugin clears the flag after writing)
+  └─ token resolver → user → existing RLS          (no new authz surface)
 ```
+
+Flow: user presses **Send** in PostAud.io → server stamps `push_requested_at`. Next time Obsidian is open/focused, the plugin calls `/api/vault/pending`, sees the series is ready, pulls `export?format=json`, writes only changed files, then acks to clear the flag. The vault's local folder path + layout live **only in the plugin** (the server never knows a local path); the server only tracks *that* a series is linked and *whether* an update is pending.
 
 Server stays "dumb and stable": it emits structured data + content hashes. **All Markdown/graph shaping lives in the plugin**, so layout changes never require a PostAud.io deploy.
 
@@ -79,6 +93,29 @@ Extend the existing `src/app/api/series/[id]/export/route.ts`:
 
 `GET /api/series?format=json` — list the token owner's series (`id`, `title`, `subject_name`, updated marker) so the plugin can present a pick list.
 
+### 2d. Vault link + push flag (the user-initiated trigger)
+
+New table `series_vault_links` (one row per linked series, per user):
+
+| column | notes |
+|---|---|
+| `series_id` | fk → series |
+| `user_id` | fk → users (RLS scope) |
+| `label` | friendly destination name the plugin sends, e.g. "My Vault / PostAud" (server never stores the local path) |
+| `linked_at` | |
+| `push_requested_at` | nullable — stamped when the user presses "Send update to vault" |
+| `last_acked_at` | nullable — stamped when the plugin confirms it wrote the update |
+
+Endpoints:
+- `POST /api/series/[id]/vault-link` — plugin marks a series linked (sends `label`). Idempotent upsert. Enables the UI card + Send button.
+- `DELETE /api/series/[id]/vault-link` — unlink (from either side).
+- `GET /api/vault/pending` — returns linked series where `push_requested_at > last_acked_at` (i.e. an update the plugin hasn't taken yet). The plugin's cheap poll target.
+- `POST /api/series/[id]/vault-ack` — plugin calls this after writing; stamps `last_acked_at`, clearing the pending state.
+
+**UI (PostAud.io series page):** a "Vault" card. When unlinked: instructions to install the plugin. When linked: shows the destination `label`, `last_acked_at` ("Last sent …"), and the primary **"Send update to vault"** button, which stamps `push_requested_at`. After a press, the card reads "Update queued — will arrive next time Obsidian is open" until the plugin acks.
+
+`push_requested_at` is a single latest-wins timestamp, not a queue — pressing Send twice before the plugin picks it up just means one delivery of the current state, which is correct for a mirror.
+
 ## Plugin work (separate repo)
 
 ### Layouts (per-series setting)
@@ -104,11 +141,16 @@ Extend the existing `src/app/api/series/[id]/export/route.ts`:
 
 **Every file the plugin writes carries `source: postaud.io` in frontmatter** plus the `series_id`/entity id it came from. The plugin only ever reads, rewrites, moves, or deletes files bearing that marker. Any file without it — a user's own notes in the same folder — is invisible to the plugin and can never be touched. This is the core vault-safety guarantee.
 
-### Refresh (poll + hash diff)
+### Receive (flag-driven, then hash diff)
 
-1. Plugin keeps a local state file (`.postaud-sync.json` in plugin data, **not** in the vault) mapping `series_id → last contentHash` and `topic/entity id → { path, hash }`.
-2. Sync trigger: manual button + configurable interval (e.g. every 30 min while Obsidian is open). Calls `export?format=json`, compares top-level `contentHash`. Unchanged → zero writes.
-3. Changed → walk per-topic / per-entity hashes and **rewrite only the notes whose hash moved.** (New interview adds facts to "Career" → only `Career.md` is rewritten.) Untouched notes keep their mtimes and git history.
+The plugin never sends on its own schedule — it acts only on a pending flag the **user** raised in PostAud.io.
+
+1. Plugin keeps a local state file (`.postaud-sync.json` in plugin data, **not** in the vault) mapping each linked `series_id → { localFolder, layout, deleteMode, lastContentHash }` and `topic/entity id → { path, hash }`.
+2. **Check triggers** (cheap, no continuous polling): on Obsidian open, on window focus, and a manual "Sync now" command. Each check is one call to `GET /api/vault/pending`.
+3. For each pending series: pull `export?format=json`, compare top-level `contentHash`. Unchanged → still ack (clears the flag), zero writes.
+4. Changed → walk per-topic / per-entity hashes and **rewrite only the notes whose hash moved.** (New interview adds facts to "Career" → only `Career.md` is rewritten.) Untouched notes keep their mtimes and git history. Then `POST /api/series/[id]/vault-ack`.
+
+If Obsidian is closed when the user presses Send, the flag simply waits; the update flows in the next time Obsidian is opened. This is the honest consequence of the local-disk constraint, and it's fine for a memory-bank mirror.
 
 ### Deletions & supersession (user-chosen mode)
 
@@ -130,6 +172,7 @@ One-way: PostAud.io wins for owned files. A hand-edit to an owned note is overwr
 - Token resolver: valid `pat_…` → correct user; revoked / garbage / missing → 401; token for user A cannot read user B's series (RLS passthrough proven).
 - `export?format=json`: shape matches the md route's data; `contentHash` stable across identical calls, changes when a fact is added/superseded; superseded facts excluded.
 - `series?format=json`: lists only the token owner's series.
+- Vault link / push flag: `vault-link` upsert is idempotent; pressing Send stamps `push_requested_at`; `/api/vault/pending` returns the series only while `push_requested_at > last_acked_at`; `vault-ack` clears it; another user's token never sees the link or pending state.
 
 **Plugin (its own repo):**
 - Shaping: JSON fixture → asserted file tree for both layouts; wikilinks resolve to the right entity notes.
@@ -149,6 +192,7 @@ One-way: PostAud.io wins for owned files. A hand-edit to an owned note is overwr
 
 1. Server: `api_tokens` table + migration, token resolver, `/app/settings/tokens` UI.
 2. Server: `export?format=json` + hashes, `series?format=json` discovery.
-3. Plugin repo scaffold: settings (token, series pick, folder, layout, delete-mode), discovery + fetch.
-4. Plugin: layout renderers (single + graph), diff engine, ownership guard, archive/mirror, rename handling.
-5. Tests (server + plugin), manual vault QA.
+3. Server: `series_vault_links` table + migration, `vault-link`/`vault-ack`/`vault/pending` endpoints, and the series-page **Vault card + "Send update to vault" button**.
+4. Plugin repo scaffold: settings (token, series pick → `vault-link`, folder, layout, delete-mode), pending check + fetch.
+5. Plugin: layout renderers (single + graph), diff engine, ownership guard, archive/mirror, rename handling, ack.
+6. Tests (server + plugin), manual vault QA.
