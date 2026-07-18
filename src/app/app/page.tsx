@@ -180,7 +180,7 @@ export default async function DashboardHome({ searchParams }: { searchParams: Se
       ) : (
         <div className="grid grid-cols-1 gap-[18px] md:grid-cols-2 xl:grid-cols-3">
           {series.map((s) => (
-            <SeriesCard key={s.id} series={s} summary={summaries[s.id]} />
+            <SeriesCard key={s.id} series={s} summary={summaries[s.id]} showSettings={isAdmin} />
           ))}
         </div>
       )}

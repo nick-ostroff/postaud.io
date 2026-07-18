@@ -7,7 +7,7 @@ import { getSeriesForUser, getSeriesSummaries, getViewer } from "@/db/queries";
 /** Same cards as the home grid (Task 7 brief) — every series this viewer can
  * see (RLS-scoped), without the stat tiles. */
 export default async function SeriesListPage() {
-  const { supabase, organization } = await getViewer();
+  const { supabase, organization, role } = await getViewer();
   const allSeries = organization ? await getSeriesForUser(supabase) : [];
   const series = allSeries.filter((s) => s.status !== "archived");
   const summaries = await getSeriesSummaries(supabase, series.map((s) => s.id));
@@ -39,7 +39,7 @@ export default async function SeriesListPage() {
       ) : (
         <div className="grid grid-cols-1 gap-[18px] md:grid-cols-2 xl:grid-cols-3">
           {series.map((s) => (
-            <SeriesCard key={s.id} series={s} summary={summaries[s.id]} />
+            <SeriesCard key={s.id} series={s} summary={summaries[s.id]} showSettings={role === "admin"} />
           ))}
         </div>
       )}
