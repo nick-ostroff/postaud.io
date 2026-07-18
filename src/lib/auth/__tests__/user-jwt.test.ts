@@ -23,6 +23,14 @@ describe("mintUserJwt", () => {
     expect(payload.exp).toBe(1_060);
   });
 
+  it("defaults to a 60-second TTL", () => {
+    // Pinning the default TTL ensures that a silently widened default (e.g., 3600s)
+    // does not enlarge the blast radius of a leaked token. Must explicitly exercise
+    // the omitted 4th argument to catch silent changes to DEFAULT_TTL_SEC.
+    const payload = decodePayload(mintUserJwt(USER, SECRET, 1_000));
+    expect(payload.exp).toBe(1_060);
+  });
+
   it("signs with HS256 over header.payload", () => {
     const jwt = mintUserJwt(USER, SECRET, 1_000);
     const [header, payload, sig] = jwt.split(".");
