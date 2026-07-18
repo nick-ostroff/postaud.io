@@ -197,7 +197,7 @@ vercel env add SUPABASE_JWT_SECRET development
 
 Also add it to local `.env.local`.
 
-**If the project uses only asymmetric signing keys and exposes no legacy HS256 secret,** stop and report — the resolver in Task 3 would need to switch to an asymmetric signer, which changes this task's implementation but nothing downstream.
+**Resolved 2026-07-18:** the legacy symmetric JWT Secret was confirmed present in the dashboard for this project, so HS256 is the approach. (Supabase now defaults new projects to asymmetric signing keys and marks the legacy secret deprecated; this project retains it. If it is ever migrated to signing keys, this resolver must be revisited — self-signing would then require importing our own ES256 key and rotating it project-wide, which would make our key sign all real user logins.)
 
 - [ ] **Step 7: Commit**
 
