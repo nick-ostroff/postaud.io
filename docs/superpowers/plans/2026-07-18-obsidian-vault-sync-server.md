@@ -16,7 +16,7 @@
 
 - **This is NOT the Next.js you know.** Read the relevant guide in `node_modules/next/dist/docs/` before writing route/page code. Route `params` are a `Promise` and must be awaited (see the existing export route).
 - Migrations are applied via the **Supabase MCP `apply_migration`** tool (the Supabase CLI is unlinked in this repo). Migration files still get committed to `supabase/migrations/`.
-- Next migration number is **0014** (last is `0013_profile_photo.sql`).
+- **Do not hardcode a migration number — derive it.** A concurrent session is committing to this repo and has already claimed 0014 and 0015. Before creating any migration, run `ls supabase/migrations | tail -3` and use the next free number. This plan's task text says `0016_api_tokens.sql` (Task 2) and `0017_series_vault_links.sql` (Task 8); if those are taken by the time you get there, bump to the next free number and note it in your report.
 - Tests live in `__tests__/` next to the code and run under Vitest: `npx vitest run <path>`. Only files matching `src/**/__tests__/**/*.test.ts` are collected.
 - New required env vars must be added to **both** `src/lib/env.ts` (Zod schema) and the `test.env` block in `vitest.config.ts`, or every test that imports `env()` breaks.
 - Never bypass RLS for user-scoped reads. `serviceClient()` is only for the `api_tokens` lookup itself (the caller is unauthenticated at that moment, by definition).
@@ -39,7 +39,7 @@
 - `src/app/api/series/[id]/vault-link/route.ts` — POST link / DELETE unlink.
 - `src/app/api/series/[id]/vault-ack/route.ts` — POST ack.
 - `src/app/app/series/[id]/VaultCard.tsx` + `vault-actions.ts` — the Vault card and Send button.
-- `supabase/migrations/0014_api_tokens.sql`, `supabase/migrations/0015_series_vault_links.sql`
+- `supabase/migrations/0016_api_tokens.sql`, `supabase/migrations/0017_series_vault_links.sql`
 
 **Modify:**
 - `src/lib/env.ts` — add `SUPABASE_JWT_SECRET`.
@@ -211,7 +211,7 @@ git commit -m "feat(vault): mint user-scoped Supabase JWTs for API-token request
 ## Task 2: API token table + token helpers
 
 **Files:**
-- Create: `supabase/migrations/0014_api_tokens.sql`
+- Create: `supabase/migrations/0016_api_tokens.sql`
 - Create: `src/lib/auth/api-token.ts`
 - Create: `src/lib/auth/__tests__/api-token.test.ts`
 - Modify: `src/db/types.ts`
@@ -311,10 +311,10 @@ Expected: PASS (7 tests)
 
 - [ ] **Step 5: Write the migration**
 
-Create `supabase/migrations/0014_api_tokens.sql`:
+Create `supabase/migrations/0016_api_tokens.sql`:
 
 ```sql
--- 0014_api_tokens.sql
+-- 0016_api_tokens.sql
 -- Personal access tokens, so the Obsidian plugin can authenticate as a user
 -- without a browser session.
 --
@@ -405,7 +405,7 @@ Run: `npx tsc --noEmit`
 Expected: no errors.
 
 ```bash
-git add src/lib/auth/api-token.ts src/lib/auth/__tests__/api-token.test.ts supabase/migrations/0014_api_tokens.sql src/db/types.ts
+git add src/lib/auth/api-token.ts src/lib/auth/__tests__/api-token.test.ts supabase/migrations/0016_api_tokens.sql src/db/types.ts
 git commit -m "feat(vault): add api_tokens table and token helpers"
 ```
 
@@ -1118,7 +1118,7 @@ git commit -m "feat(vault): add series discovery endpoint for the plugin"
 ## Task 8: Vault link table
 
 **Files:**
-- Create: `supabase/migrations/0015_series_vault_links.sql`
+- Create: `supabase/migrations/0017_series_vault_links.sql`
 - Modify: `src/db/types.ts`
 - Create: `src/db/queries/vault.ts`
 - Create: `src/db/__tests__/vault.test.ts`
@@ -1141,10 +1141,10 @@ git commit -m "feat(vault): add series discovery endpoint for the plugin"
 
 - [ ] **Step 1: Write the migration**
 
-Create `supabase/migrations/0015_series_vault_links.sql`:
+Create `supabase/migrations/0017_series_vault_links.sql`:
 
 ```sql
--- 0015_series_vault_links.sql
+-- 0017_series_vault_links.sql
 -- Tracks that a series is linked to a user's Obsidian vault, and whether the
 -- user has asked for an update to be sent.
 --
@@ -1292,7 +1292,7 @@ Expected: PASS (5 tests), no type errors.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add supabase/migrations/0015_series_vault_links.sql src/db/types.ts src/db/queries/vault.ts src/db/__tests__/vault.test.ts
+git add supabase/migrations/0017_series_vault_links.sql src/db/types.ts src/db/queries/vault.ts src/db/__tests__/vault.test.ts
 git commit -m "feat(vault): add series_vault_links table and pending logic"
 ```
 
