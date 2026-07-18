@@ -51,11 +51,7 @@ export async function GET(request: Request, { params }: { params: Params }) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
-  // `SeriesExportData.series.goal` is typed `string | null` (Task 5 brief's
-  // contract, so Task 6's JSON output can be null-safe about it), but the
-  // `series.goal` DB column is non-null — this coalesce is a type-satisfying
-  // no-op in practice, not a behavior change.
-  const markdown = renderSeriesMarkdown({ ...data, scope, series: { ...data.series, goal: data.series.goal ?? "" } });
+  const markdown = renderSeriesMarkdown({ ...data, scope });
 
   const body = format === "txt" ? stripMarkdownToText(markdown) : markdown;
   const filename = `${slugifyTitle(data.series.title)}.${format}`;

@@ -23,7 +23,7 @@ function formatDateLabel(iso: string): string {
 }
 
 export type SeriesExportData = {
-  series: { title: string; subjectName: string; goal: string | null };
+  series: { title: string; subjectName: string; goal: string };
   summaries: Array<{ short: string; date: string }>;
   factsByTopic: SeriesExportTopicGroup[];
   people: SeriesExportPerson[];

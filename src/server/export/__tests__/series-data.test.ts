@@ -118,6 +118,12 @@ const ENTITIES = [
   { id: "entity-mom", series_id: "series-1", kind: "person", name: "Mom", detail: "His mother" },
   { id: "entity-place", series_id: "series-1", kind: "place", name: "Ohio", detail: null },
   { id: "entity-date-1", series_id: "series-1", kind: "date", name: "1955", detail: null },
+  // No fact links to this one (see FACTS above) — exercises the timeline's
+  // `e.detail` fallback.
+  { id: "entity-date-2", series_id: "series-1", kind: "date", name: "1960", detail: "His retirement" },
+  // No fact links to this one either, and no detail — exercises the
+  // timeline's final `""` fallback.
+  { id: "entity-date-3", series_id: "series-1", kind: "date", name: "1975", detail: null },
 ];
 
 const FULL_SCOPE: SeriesExportScope = {
@@ -168,6 +174,36 @@ describe("buildSeriesExportData", () => {
       "Talked about childhood",
       "Talked about his first job",
     ]);
+  });
+
+  it("returns people with their names and details", async () => {
+    const data = await buildSeriesExportData(SUPABASE_STUB, "series-1", FULL_SCOPE);
+
+    expect(data!.people).toEqual([{ name: "Mom", detail: "His mother" }]);
+  });
+
+  it("returns places by name", async () => {
+    const data = await buildSeriesExportData(SUPABASE_STUB, "series-1", FULL_SCOPE);
+
+    expect(data!.places).toEqual(["Ohio"]);
+  });
+
+  it("builds a timeline entry's statement from linked fact statements when present", async () => {
+    const data = await buildSeriesExportData(SUPABASE_STUB, "series-1", FULL_SCOPE);
+
+    expect(data!.timeline).toContainEqual({ label: "1955", statement: "Grew up in Ohio" });
+  });
+
+  it("falls back to the date entity's own detail when no fact links to it", async () => {
+    const data = await buildSeriesExportData(SUPABASE_STUB, "series-1", FULL_SCOPE);
+
+    expect(data!.timeline).toContainEqual({ label: "1960", statement: "His retirement" });
+  });
+
+  it("falls back to an empty string when no fact links to a date entity and it has no detail", async () => {
+    const data = await buildSeriesExportData(SUPABASE_STUB, "series-1", FULL_SCOPE);
+
+    expect(data!.timeline).toContainEqual({ label: "1975", statement: "" });
   });
 
   it("omits transcripts unless scope.transcripts is true", async () => {
