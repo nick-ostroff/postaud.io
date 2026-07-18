@@ -57,7 +57,11 @@ function makeFilterBuilder<T extends Record<string, unknown>>(
   finish: (predicate: (r: T) => boolean) => { data?: T[] | T | null; error: null },
 ) {
   let predicate: (r: T) => boolean = () => true;
-  let ordered: ((r: T[]) => T[]) | null = null;
+  // Multiple `.order()` calls on a real PostgREST query compose into one
+  // multi-column ORDER BY (not independent, sequential re-sorts) — keys are
+  // accumulated here and applied together, matching the stub pattern in
+  // queries-knowledge-order.test.ts, so a dropped tiebreaker fails for real.
+  const orderKeys: Array<{ col: keyof T; dir: number }> = [];
   const builder = {
     eq(col: keyof T, val: unknown) {
       const prev = predicate;
@@ -65,13 +69,7 @@ function makeFilterBuilder<T extends Record<string, unknown>>(
       return builder;
     },
     order(col: keyof T, opts?: { ascending?: boolean }) {
-      const dir = opts?.ascending === false ? -1 : 1;
-      ordered = (list) =>
-        [...list].sort((a, b) => {
-          const av = (a[col] as string | null) ?? "";
-          const bv = (b[col] as string | null) ?? "";
-          return av < bv ? -dir : av > bv ? dir : 0;
-        });
+      orderKeys.push({ col, dir: opts?.ascending === false ? -1 : 1 });
       return builder;
     },
     maybeSingle() {
@@ -80,7 +78,18 @@ function makeFilterBuilder<T extends Record<string, unknown>>(
     },
     then(onFulfilled: (v: unknown) => unknown, onRejected?: (e: unknown) => unknown) {
       const result = finish(predicate);
-      const data = ordered && Array.isArray(result.data) ? ordered(result.data) : result.data;
+      const data =
+        orderKeys.length && Array.isArray(result.data)
+          ? [...result.data].sort((a, b) => {
+              for (const { col, dir } of orderKeys) {
+                const av = (a[col] as string | null) ?? "";
+                const bv = (b[col] as string | null) ?? "";
+                if (av < bv) return -dir;
+                if (av > bv) return dir;
+              }
+              return 0;
+            })
+          : result.data;
       return Promise.resolve({ ...result, data }).then(onFulfilled, onRejected);
     },
   };
@@ -534,6 +543,63 @@ describe("POST /api/series/[id]/vault-ack", () => {
     expect(res.status).toBe(401);
     expect(await res.json()).toEqual({ error: "unauthorized" });
     expect(links()[0]?.last_acked_at).toBeNull();
+  });
+
+  it("returns 400 requested_at_in_future for a far-future requestedAt, and does not stamp (MINOR: prevents permanently wedging isPushPending)", async () => {
+    const { stub, links } = makeCallerSupabase({
+      vaultLinks: [
+        {
+          series_id: "series-1",
+          user_id: "user-1",
+          label: "My Vault",
+          linked_at: "2026-01-01T00:00:00.000Z",
+          push_requested_at: REQUESTED_AT,
+          last_acked_at: null,
+        },
+      ],
+    });
+    mocks.resolveApiToken.mockResolvedValue({ userId: "user-1", supabase: stub });
+
+    const res = await ackPOST(
+      jsonReq("http://localhost:3000/api/series/series-1/vault-ack", "POST", {
+        requestedAt: "3000-01-01T00:00:00.000Z",
+      }),
+      ctx(),
+    );
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "requested_at_in_future" });
+    // The row must be untouched, not clamped to now() — a clamp would
+    // reintroduce the mid-sync-Send-swallowing bug the requestedAt echo
+    // fixed. Confirmed against the stub's actual row state, not just status.
+    expect(links()[0]?.last_acked_at).toBeNull();
+  });
+
+  it("accepts a requestedAt at or just before now (no off-by-one on the future-timestamp guard)", async () => {
+    const now = Date.now();
+    const { stub, links } = makeCallerSupabase({
+      vaultLinks: [
+        {
+          series_id: "series-1",
+          user_id: "user-1",
+          label: "My Vault",
+          linked_at: "2026-01-01T00:00:00.000Z",
+          push_requested_at: new Date(now - 1000).toISOString(),
+          last_acked_at: null,
+        },
+      ],
+    });
+    mocks.resolveApiToken.mockResolvedValue({ userId: "user-1", supabase: stub });
+
+    const justBeforeNow = new Date(now - 1).toISOString();
+    const res = await ackPOST(
+      jsonReq("http://localhost:3000/api/series/series-1/vault-ack", "POST", { requestedAt: justBeforeNow }),
+      ctx(),
+    );
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
+    expect(links()[0]?.last_acked_at).toBe(justBeforeNow);
   });
 
   it("defence in depth (IMPORTANT 4): a caller cannot ack another user's link for the same series", async () => {

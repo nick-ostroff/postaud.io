@@ -48,7 +48,10 @@ export async function getVaultLink(
  * is redundant with RLS by design (see `getVaultLink`'s comment) — the bare
  * `select("*")` here previously relied on RLS ALONE for tenant isolation.
  * Ordered by `push_requested_at` for deterministic plugin processing (oldest
- * request first); NULLs (never requested) can't reach this list since
+ * request first), with `series_id` as a tiebreaker since `push_requested_at`
+ * is not unique — without it, rows sharing a timestamp would sort in
+ * whatever order Postgres happens to return them, which is not guaranteed
+ * stable across calls. NULLs (never requested) can't reach this list since
  * `isPushPending` already filters them out.
  */
 export async function listPendingVaultLinks(sb: SupabaseClient<Database>, userId: string): Promise<VaultLink[]> {
@@ -56,7 +59,8 @@ export async function listPendingVaultLinks(sb: SupabaseClient<Database>, userId
     .from("series_vault_links")
     .select("*")
     .eq("user_id", userId)
-    .order("push_requested_at", { ascending: true });
+    .order("push_requested_at", { ascending: true })
+    .order("series_id", { ascending: true });
   if (error) throw new Error(error.message);
   return ((data as VaultLink[] | null) ?? []).filter(isPushPending);
 }

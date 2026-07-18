@@ -110,9 +110,9 @@ Endpoints:
 - `POST /api/series/[id]/vault-link` — plugin marks a series linked (sends `label`). Idempotent upsert. Enables the UI card + Send button.
 - `DELETE /api/series/[id]/vault-link` — unlink (from either side).
 - `GET /api/vault/pending` — returns linked series where `push_requested_at > last_acked_at` (i.e. an update the plugin hasn't taken yet). The plugin's cheap poll target.
-- `POST /api/series/[id]/vault-ack` — plugin calls this after writing; stamps `last_acked_at`, clearing the pending state.
+- `POST /api/series/[id]/vault-ack` — plugin calls this after writing, echoing back in the request body the `requestedAt` it collected from `/api/vault/pending`; the route stamps `last_acked_at` to that value (not to `now()`), clearing the pending state. A missing, malformed, or future `requestedAt` is rejected with 400 — stamping `now()` would be newer than a Send that lands in the gap between the plugin's fetch and its ack, silently dropping that update; a future value would permanently wedge the pending check.
 
-**UI (PostAud.io series page):** a "Vault" card. When unlinked: instructions to install the plugin. When linked: shows the destination `label`, `last_acked_at` ("Last sent …"), and the primary **"Send update to vault"** button, which stamps `push_requested_at`. After a press, the card reads "Update queued — will arrive next time Obsidian is open" until the plugin acks.
+**UI (PostAud.io series page):** a "Vault" card. When unlinked: instructions to install the plugin. When linked: shows the destination `label`, `last_acked_at` ("Last synced …" / "Never synced"), and the primary **"Send update to vault"** button, which stamps `push_requested_at`. After a press, the card reads "Update queued — will arrive next time Obsidian is open" until the plugin acks.
 
 `push_requested_at` is a single latest-wins timestamp, not a queue — pressing Send twice before the plugin picks it up just means one delivery of the current state, which is correct for a mirror.
 

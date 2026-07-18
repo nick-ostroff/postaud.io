@@ -1322,7 +1322,7 @@ Create `src/app/api/vault/__tests__/vault-routes.test.ts` asserting:
 - `POST vault-link` upserts `{ series_id, user_id, label }` and is idempotent (calling twice yields one row, second call updates `label` without resetting `linked_at`);
 - `POST vault-link` on a series the caller cannot see returns 404 (via `getSeries` returning null — no existence leak, matching the export route's convention);
 - `DELETE vault-link` removes the row;
-- `POST vault-ack` stamps `last_acked_at` to now;
+- `POST vault-ack` stamps `last_acked_at` to the `requestedAt` the plugin echoes back in the request body (the value it collected from `/api/vault/pending`), not to `now()` — a missing, malformed, or future `requestedAt` is rejected with 400;
 - `GET vault/pending` returns only links where `isPushPending` is true, with `seriesId`/`title`/`requestedAt`;
 - every route returns 401 with a missing or unresolvable Bearer token, and never 500.
 
@@ -1606,9 +1606,13 @@ curl -s -H "Authorization: Bearer $TOKEN" "$BASE/api/vault/pending" | jq
 # → Now press "Send update to vault" in the browser, then:
 curl -s -H "Authorization: Bearer $TOKEN" "$BASE/api/vault/pending" | jq   # expect one entry
 
-# Fetch content and ack
+# Fetch content, then ack with the requestedAt echoed back from /pending —
+# vault-ack stamps last_acked_at to THIS value, not to now(), and rejects a
+# missing/malformed/future requestedAt with 400 (see Task 9's contract note).
 curl -s -H "Authorization: Bearer $TOKEN" "$BASE/api/series/$SERIES/export?format=json" | jq '.contentHash'
-curl -s -X POST -H "Authorization: Bearer $TOKEN" "$BASE/api/series/$SERIES/vault-ack" | jq
+REQUESTED_AT=$(curl -s -H "Authorization: Bearer $TOKEN" "$BASE/api/vault/pending" | jq -r '.pending[0].requestedAt')
+curl -s -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d "{\"requestedAt\":\"$REQUESTED_AT\"}" "$BASE/api/series/$SERIES/vault-ack" | jq
 curl -s -H "Authorization: Bearer $TOKEN" "$BASE/api/vault/pending" | jq   # expect []
 ```
 

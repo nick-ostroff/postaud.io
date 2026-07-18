@@ -48,25 +48,37 @@ function makeVaultLinksStub(rows: VaultLink[]) {
       return {
         select() {
           let filtered = [...rows];
+          // Multiple `.order()` calls on a real PostgREST query compose into
+          // ONE multi-column ORDER BY (not independent, sequential re-sorts,
+          // which would destroy the first key's grouping) — keys are
+          // accumulated here and applied together in `then()` to match that,
+          // same pattern as queries-knowledge-order.test.ts.
+          const orderKeys: Array<{ col: keyof VaultLink; dir: number }> = [];
           const builder = {
             eq(col: keyof VaultLink, val: string) {
               filtered = filtered.filter((r) => r[col] === val);
               return builder;
             },
             order(col: keyof VaultLink, opts?: { ascending?: boolean }) {
-              const dir = opts?.ascending === false ? -1 : 1;
-              filtered = [...filtered].sort((a, b) => {
-                const av = (a[col] as string | null) ?? "";
-                const bv = (b[col] as string | null) ?? "";
-                return av < bv ? -dir : av > bv ? dir : 0;
-              });
+              orderKeys.push({ col, dir: opts?.ascending === false ? -1 : 1 });
               return builder;
             },
             maybeSingle() {
               return Promise.resolve({ data: filtered[0] ?? null, error: null });
             },
             then(onFulfilled: (v: unknown) => unknown, onRejected?: (e: unknown) => unknown) {
-              return Promise.resolve({ data: filtered, error: null }).then(onFulfilled, onRejected);
+              const sorted = orderKeys.length
+                ? [...filtered].sort((a, b) => {
+                    for (const { col, dir } of orderKeys) {
+                      const av = (a[col] as string | null) ?? "";
+                      const bv = (b[col] as string | null) ?? "";
+                      if (av < bv) return -dir;
+                      if (av > bv) return dir;
+                    }
+                    return 0;
+                  })
+                : filtered;
+              return Promise.resolve({ data: sorted, error: null }).then(onFulfilled, onRejected);
             },
           };
           return builder;
@@ -161,5 +173,31 @@ describe("listPendingVaultLinks (defence in depth: explicit user_id filter, MINO
     const links = await listPendingVaultLinks(stub, "user-A");
 
     expect(links.map((l) => l.series_id)).toEqual(["series-older", "series-newer"]);
+  });
+
+  it("breaks a tie on push_requested_at using series_id, deterministically (MINOR: not a unique key alone)", async () => {
+    const tied = "2026-07-18T10:00:00.000Z";
+    const stub = makeVaultLinksStub([
+      {
+        series_id: "series-b",
+        user_id: "user-A",
+        label: "B",
+        linked_at: "2026-01-01T00:00:00.000Z",
+        push_requested_at: tied,
+        last_acked_at: null,
+      },
+      {
+        series_id: "series-a",
+        user_id: "user-A",
+        label: "A",
+        linked_at: "2026-01-01T00:00:00.000Z",
+        push_requested_at: tied,
+        last_acked_at: null,
+      },
+    ]);
+
+    const links = await listPendingVaultLinks(stub, "user-A");
+
+    expect(links.map((l) => l.series_id)).toEqual(["series-a", "series-b"]);
   });
 });

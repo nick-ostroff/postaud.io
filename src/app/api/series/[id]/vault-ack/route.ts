@@ -44,6 +44,19 @@ export async function POST(request: Request, { params }: { params: Params }) {
     return NextResponse.json({ error: "requested_at_required" }, { status: 400 });
   }
 
+  // `requestedAt` is untrusted client input (echoed back by the plugin) and
+  // `last_acked_at` can never legitimately exceed "now" — reject a future
+  // value outright rather than clamping it to now(). Clamping would
+  // reintroduce exactly the mid-sync-Send-swallowing bug described above: a
+  // clamped ack still stamps a value >= every push_requested_at that existed
+  // when the plugin started, so a Send in the fetch-to-ack gap would again
+  // read as already collected. A single far-future `requestedAt` (malicious
+  // or just a fast plugin-machine clock) would otherwise permanently wedge
+  // `isPushPending` to false for that series — silent and irrecoverable.
+  if (acked.getTime() > Date.now()) {
+    return NextResponse.json({ error: "requested_at_in_future" }, { status: 400 });
+  }
+
   const { error } = await caller.supabase
     .from("series_vault_links")
     .update({ last_acked_at: acked.toISOString() })
