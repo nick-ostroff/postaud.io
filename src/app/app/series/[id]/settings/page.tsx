@@ -8,7 +8,9 @@ import { getSeries, getViewer, listMembers } from "@/db/queries";
 import { profilePhotoUrl } from "@/server/profile/photo-url";
 import { subjectPhotoUrl } from "@/server/series/photo-url";
 import { AccessManager, type AccessLevel, type AccessMember } from "./AccessManager";
+import type { VoiceId } from "@/lib/voices";
 import { ArchiveSeriesButton } from "./ArchiveSeriesButton";
+import { InterviewGuideForm } from "./InterviewGuideForm";
 import { SeriesDetailsForm } from "./SeriesDetailsForm";
 
 type Params = Promise<{ id: string }>;
@@ -59,6 +61,12 @@ export default async function SeriesSettingsPage({ params }: { params: Params })
       pending: !m.accepted_at,
       level: levelByUser.get(m.user_id) ?? "none",
     }));
+
+  // dont_bring_up is a Json column — same defensive narrowing the realtime
+  // token route uses, so a malformed value renders as empty rather than crashing.
+  const dontBringUp = Array.isArray(series.dont_bring_up)
+    ? series.dont_bring_up.filter((v): v is string => typeof v === "string")
+    : [];
 
   // subject_kind 'person'/'organization' never have an account (subject_user_id
   // stays null) — 'self'/'member' always do. So "no account" reduces to this.
@@ -111,6 +119,24 @@ export default async function SeriesSettingsPage({ params }: { params: Params })
               initialRelationship={series.subject_relationship ?? ""}
               initialGoal={series.goal ?? ""}
               showRelationship={series.subject_kind !== "self"}
+            />
+          </Card>
+
+          <Card className="px-[22px] py-5">
+            <h3>Interview guide</h3>
+            <p className="mt-1 text-[13px] text-muted">
+              The guide-rails {series.interviewer_name} follows. Changes apply from the next session — topics
+              to cover live in the topic queue on the series page.
+            </p>
+            <InterviewGuideForm
+              seriesId={series.id}
+              initialVoice={series.voice as VoiceId}
+              initialOpeningPrompt={series.opening_prompt ?? ""}
+              initialDontBringUp={dontBringUp}
+              initialTone={series.tone}
+              initialSessionMinutes={series.session_minutes as 10 | 20 | 45}
+              initialDepth={series.depth}
+              initialPlannedSessions={series.planned_sessions}
             />
           </Card>
 
