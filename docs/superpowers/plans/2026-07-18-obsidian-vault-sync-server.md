@@ -803,7 +803,7 @@ Pure refactor — no behavior change. This unlocks Task 6 without duplicating th
 - Produces:
   ```ts
   export type SeriesExportData = {
-    series: { title: string; subjectName: string; goal: string | null };
+    series: { title: string; subjectName: string; goal: string };
     summaries: Array<{ short: string; date: string }>;
     factsByTopic: SeriesExportTopicGroup[];
     people: SeriesExportPerson[];
@@ -919,7 +919,7 @@ git commit -m "refactor(export): extract series export data assembly"
   - JSON response shape:
     ```ts
     {
-      series: { id: string; title: string; subjectName: string; goal: string | null };
+      series: { id: string; title: string; subjectName: string; goal: string };
       contentHash: string;
       topics: Array<{ name: string; hash: string; facts: Array<{ statement: string; sessionLabel: string; timestamp: string | null; entities: Array<{ id: string; name: string; kind: string }> }> }>;
       entities: Array<{ id: string; name: string; kind: "person" | "place" | "date"; detail: string | null; hash: string }>;
