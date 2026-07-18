@@ -21,7 +21,7 @@ export function AppTopNav({ name, avatarUrl }: { name: string; avatarUrl?: strin
       <Link
         href="/app/settings"
         aria-label="Your profile"
-        className="ml-auto rounded-full ring-2 ring-mint/70 hover:no-underline"
+        className="ml-auto flex rounded-full ring-2 ring-mint/70 hover:no-underline"
       >
         <Avatar name={name} tone="warm-dark" size="lg" src={avatarUrl} />
       </Link>
