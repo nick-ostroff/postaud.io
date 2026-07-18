@@ -54,6 +54,7 @@ export default async function SettingsPage() {
         <Row href="/app/memories" label="Your memories" />
         <Row href="/app/series" label="All stories" />
         <Row href="/app/members" label="Members &amp; roles" />
+        <Row href="/app/settings/tokens" label="Access tokens" />
         {platformAdmin && <Row href="/super" label="Operator console" />}
       </Card>
 
