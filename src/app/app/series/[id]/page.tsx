@@ -9,7 +9,7 @@ import { Chip } from "@/components/ui/Chip";
 import { CoverageBar } from "@/components/ui/CoverageBar";
 import { SeriesPhotoEditor } from "@/components/series/SeriesPhotoEditor";
 import { profilePhotoUrl } from "@/server/profile/photo-url";
-import { seriesPhotoUrl } from "@/server/series/photo-url";
+import { subjectPhotoUrl } from "@/server/series/photo-url";
 import {
   getSeries,
   getSeriesAccessSummary,
@@ -130,7 +130,7 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
               <SeriesPhotoEditor
                 seriesId={series.id}
                 name={series.subject_name}
-                photoUrl={seriesPhotoUrl(series.photo_path)}
+                photoUrl={subjectPhotoUrl(series)}
                 canEdit={isAdmin}
               />
               {subjectSubtitle}

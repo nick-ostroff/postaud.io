@@ -1,6 +1,6 @@
 import type { MemoryRow, SeriesAccessRow, SeriesSummary } from "@/db/queries";
 import type { Series, Topic } from "@/db/types";
-import { seriesPhotoUrl } from "@/server/series/photo-url";
+import { subjectPhotoUrl } from "@/server/series/photo-url";
 import { pickPersonalPromptTopic } from "@/server/topics/pick";
 
 /** Recent memories shown on the mobile dashboard before "All memories →". */
@@ -37,7 +37,7 @@ export function buildMobileStory({
   memories,
   viewerUserId,
 }: {
-  series: Series;
+  series: Series & { subject?: { avatar_path: string | null } | null };
   summary: SeriesSummary;
   topics: Topic[];
   access: SeriesAccessRow[];
@@ -49,7 +49,7 @@ export function buildMobileStory({
   return {
     id: series.id,
     title: series.title,
-    photoUrl: seriesPhotoUrl(series.photo_path),
+    photoUrl: subjectPhotoUrl(series),
     subtitle: isOwnStory
       ? "about you"
       : [`about ${series.subject_name}`, series.subject_relationship].filter(Boolean).join(" · "),
