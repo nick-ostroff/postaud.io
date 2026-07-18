@@ -755,6 +755,48 @@ export type Database = {
           },
         ]
       }
+      series_vault_links: {
+        Row: {
+          series_id: string
+          user_id: string
+          label: string
+          linked_at: string
+          push_requested_at: string | null
+          last_acked_at: string | null
+        }
+        Insert: {
+          series_id: string
+          user_id: string
+          label: string
+          linked_at?: string
+          push_requested_at?: string | null
+          last_acked_at?: string | null
+        }
+        Update: {
+          series_id?: string
+          user_id?: string
+          label?: string
+          linked_at?: string
+          push_requested_at?: string | null
+          last_acked_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "series_vault_links_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "series"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "series_vault_links_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
