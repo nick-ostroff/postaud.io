@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getViewer } from "@/db/queries";
 import { renderSeriesMarkdown, slugifyTitle, stripMarkdownToText, type SeriesExportScope } from "@/server/export/markdown";
-import { buildSeriesExportData } from "@/server/export/series-data";
+import { buildJsonPayload, buildSeriesExportData } from "@/server/export/series-data";
+import { resolveApiToken } from "@/server/auth/bearer";
 
 type Params = Promise<{ id: string }>;
 
@@ -33,22 +34,45 @@ function parseScope(raw: string | null): SeriesExportScope {
 }
 
 /**
- * GET /api/series/[id]/export?format=md|txt&scope=summaries,facts,entities,timeline[,transcripts]
- * — Task 16's "take it with you" download. Guarded the same way as every
+ * Resolves the caller for both consumers of this route: the Obsidian plugin
+ * (Bearer token, Task 3) and the browser export card (session cookies).
+ * Bearer is tried first — a present, valid token always wins — so the same
+ * route can serve both without the plugin ever touching cookie auth.
+ */
+async function resolveCaller(request: Request) {
+  const apiCaller = await resolveApiToken(request);
+  if (apiCaller) return apiCaller.supabase;
+  const { supabase } = await getViewer();
+  return supabase;
+}
+
+/**
+ * GET /api/series/[id]/export?format=md|txt|json&scope=summaries,facts,entities,timeline[,transcripts]
+ * — Task 16's "take it with you" download, plus (Task 6) the Obsidian
+ * plugin's machine-readable sync format. Guarded the same way as every
  * other series read: `buildSeriesExportData` returns null for a series the
  * caller's RLS can't see, which we treat as a plain 404 (no existence leak).
+ *
+ * `format=json` always uses the full scope minus transcripts — the plugin
+ * mirrors the knowledge base, not raw transcripts — ignoring any `scope`
+ * query param, which only applies to the Markdown/text download.
  */
 export async function GET(request: Request, { params }: { params: Params }) {
   const { id } = await params;
-  const { supabase } = await getViewer();
+  const supabase = await resolveCaller(request);
 
   const url = new URL(request.url);
+  const wantsJson = url.searchParams.get("format") === "json";
   const format = url.searchParams.get("format") === "txt" ? "txt" : "md";
-  const scope = parseScope(url.searchParams.get("scope"));
+  const scope = wantsJson ? DEFAULT_SCOPE : parseScope(url.searchParams.get("scope"));
 
   const data = await buildSeriesExportData(supabase, id, scope);
   if (!data) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+
+  if (wantsJson) {
+    return NextResponse.json(buildJsonPayload(id, data));
   }
 
   const markdown = renderSeriesMarkdown({ ...data, scope });

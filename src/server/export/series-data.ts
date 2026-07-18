@@ -2,12 +2,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getInterviewMessages, getSeries, getSeriesKnowledge, listInterviewsForSeries } from "@/db/queries";
 import type { Database } from "@/db/types";
 import type {
+  SeriesExportFact,
   SeriesExportPerson,
   SeriesExportScope,
   SeriesExportTimelineEntry,
-  SeriesExportTopicGroup,
   SeriesExportTranscript,
 } from "@/server/export/markdown";
+import { stableHash } from "@/server/export/hash";
 
 /** Seconds → "M:SS" for a fact's source line, or null with no recorded offset. */
 function formatOffset(sec: number | null): string | null {
@@ -22,12 +23,51 @@ function formatDateLabel(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+/**
+ * A fact's linked entities, trimmed to what the JSON export (Task 6) needs
+ * for wikilinking a fact to its person/place/date/org/event notes. Kind is a
+ * plain `string` here (not the narrower `SeriesExportEntity["kind"]` union)
+ * because a fact can link to entity kinds — "org", "event" — that the
+ * Markdown export has never surfaced at the top level (see the `kind` filter
+ * in `SeriesExportData.entities` below); the JSON payload passes those
+ * through for the plugin rather than silently dropping them the way `people`
+ * / `places` do.
+ */
+export type SeriesExportFactEntityRef = { id: string; name: string; kind: string };
+
+/** A `SeriesExportFact` with its linked entities attached — additive over the
+ * Markdown-only `SeriesExportFact`, so `renderSeriesMarkdown` (which only
+ * reads `statement`/`sessionLabel`/`timestamp`) is unaffected. */
+export type SeriesExportFactWithEntities = SeriesExportFact & { entities: SeriesExportFactEntityRef[] };
+
+export type SeriesExportTopicGroupWithEntities = {
+  topic: string;
+  facts: SeriesExportFactWithEntities[];
+};
+
+/**
+ * A full entity record (id + kind + detail), kept separate from `people` /
+ * `places` because those two already trim away the id and kind the JSON
+ * export's per-entity hash and Obsidian note identity need. Restricted to
+ * "person" | "place" | "date" — the same subset `people`/`places`/`timeline`
+ * already surface — so "org"/"event" entities stay invisible at this
+ * top level exactly as before; a fact can still reference them via
+ * `SeriesExportFactEntityRef`.
+ */
+export type SeriesExportEntity = {
+  id: string;
+  name: string;
+  kind: "person" | "place" | "date";
+  detail: string | null;
+};
+
 export type SeriesExportData = {
   series: { title: string; subjectName: string; goal: string };
   summaries: Array<{ short: string; date: string }>;
-  factsByTopic: SeriesExportTopicGroup[];
+  factsByTopic: SeriesExportTopicGroupWithEntities[];
   people: SeriesExportPerson[];
   places: string[];
+  entities: SeriesExportEntity[];
   timeline: SeriesExportTimelineEntry[];
   transcripts?: SeriesExportTranscript[];
 };
@@ -73,13 +113,22 @@ export async function buildSeriesExportData(
   const topicName = new Map(knowledge.topics.map((t) => [t.id, t.name] as const));
   const topicOrder = [...knowledge.topics].sort((a, b) => a.position - b.position).map((t) => t.id);
 
-  const groupsById = new Map<string, SeriesExportTopicGroup>();
-  const otherGroup: SeriesExportTopicGroup = { topic: "Other", facts: [] };
+  const groupsById = new Map<string, SeriesExportTopicGroupWithEntities>();
+  const otherGroup: SeriesExportTopicGroupWithEntities = { topic: "Other", facts: [] };
   for (const fact of activeFacts) {
     const sessionLabel = fact.source_interview_id
       ? (sessionLabelByInterview.get(fact.source_interview_id) ?? "Manual entry")
       : "Manual entry";
-    const entry = { statement: fact.statement, sessionLabel, timestamp: formatOffset(fact.audio_offset_sec) };
+    // `entities` here is additive over the Markdown path's fact shape — the
+    // JSON export (Task 6) needs it to wikilink a fact to its entity notes.
+    // renderSeriesMarkdown never reads it, so this doesn't touch Markdown
+    // output.
+    const entry: SeriesExportFactWithEntities = {
+      statement: fact.statement,
+      sessionLabel,
+      timestamp: formatOffset(fact.audio_offset_sec),
+      entities: fact.entities.map((e) => ({ id: e.id, name: e.name, kind: e.kind })),
+    };
     if (fact.topic_id && topicName.has(fact.topic_id)) {
       if (!groupsById.has(fact.topic_id)) {
         groupsById.set(fact.topic_id, { topic: topicName.get(fact.topic_id) as string, facts: [] });
@@ -89,8 +138,10 @@ export async function buildSeriesExportData(
       otherGroup.facts.push(entry);
     }
   }
-  const factsByTopic: SeriesExportTopicGroup[] = [
-    ...topicOrder.filter((tid) => groupsById.has(tid)).map((tid) => groupsById.get(tid) as SeriesExportTopicGroup),
+  const factsByTopic: SeriesExportTopicGroupWithEntities[] = [
+    ...topicOrder
+      .filter((tid) => groupsById.has(tid))
+      .map((tid) => groupsById.get(tid) as SeriesExportTopicGroupWithEntities),
     ...(otherGroup.facts.length > 0 ? [otherGroup] : []),
   ];
 
@@ -98,6 +149,15 @@ export async function buildSeriesExportData(
     .filter((e) => e.kind === "person")
     .map((e) => ({ name: e.name, detail: e.detail ?? undefined }));
   const places = knowledge.entities.filter((e) => e.kind === "place").map((e) => e.name);
+  // Full-fidelity entity list (id + kind + detail) for the JSON export —
+  // same "person" | "place" | "date" subset as `people`/`places`/`timeline`
+  // above, just not trimmed down. `getSeriesKnowledge` already orders
+  // entities by name, which keeps this deterministic for `contentHash`.
+  const entities: SeriesExportEntity[] = knowledge.entities
+    .filter((e): e is typeof e & { kind: "person" | "place" | "date" } =>
+      e.kind === "person" || e.kind === "place" || e.kind === "date",
+    )
+    .map((e) => ({ id: e.id, name: e.name, kind: e.kind, detail: e.detail }));
 
   // Timeline: date entities, statement drawn from linked facts (via
   // fact_entities, already joined onto each fact by getSeriesKnowledge) when
@@ -142,7 +202,78 @@ export async function buildSeriesExportData(
     factsByTopic,
     people,
     places,
+    entities,
     timeline,
     transcripts,
   };
+}
+
+export type SeriesExportJsonFact = {
+  statement: string;
+  sessionLabel: string;
+  timestamp: string | null;
+  entities: SeriesExportFactEntityRef[];
+};
+
+export type SeriesExportJsonTopic = {
+  name: string;
+  hash: string;
+  facts: SeriesExportJsonFact[];
+};
+
+export type SeriesExportJsonEntity = SeriesExportEntity & { hash: string };
+
+export type SeriesExportJsonPayload = {
+  series: { id: string; title: string; subjectName: string; goal: string };
+  contentHash: string;
+  topics: SeriesExportJsonTopic[];
+  entities: SeriesExportJsonEntity[];
+  summaries: Array<{ short: string; date: string }>;
+  timeline: SeriesExportTimelineEntry[];
+};
+
+/**
+ * Maps `SeriesExportData` (always fetched with the full scope for this path
+ * — see the route) into the machine-readable shape the Obsidian plugin
+ * consumes, with a `stableHash` at three levels so the plugin rewrites only
+ * the notes that actually changed:
+ *  - per topic, over its `facts` array (order-sensitive — reordering facts
+ *    is a real content change, a renamed topic is a different note anyway);
+ *  - per entity, over `{ name, kind, detail }` — deliberately excludes `id`,
+ *    which is stable identity, not content;
+ *  - one `contentHash` over the whole payload.
+ *
+ * The `contentHash` self-reference problem (a hash that includes itself is
+ * impossible to reproduce) is avoided by construction rather than by
+ * filtering: `payloadWithoutHash` is built first and never has a
+ * `contentHash` key, so hashing it can't observe its own output, and the
+ * final object only gains the field afterward. That keeps the hash stable
+ * across repeated calls on identical data — the property the incremental
+ * sync depends on.
+ */
+export function buildJsonPayload(seriesId: string, data: SeriesExportData): SeriesExportJsonPayload {
+  const topics: SeriesExportJsonTopic[] = data.factsByTopic.map((group) => {
+    const facts: SeriesExportJsonFact[] = group.facts.map((f) => ({
+      statement: f.statement,
+      sessionLabel: f.sessionLabel,
+      timestamp: f.timestamp,
+      entities: f.entities,
+    }));
+    return { name: group.topic, hash: stableHash(facts), facts };
+  });
+
+  const entities: SeriesExportJsonEntity[] = data.entities.map((e) => ({
+    ...e,
+    hash: stableHash({ name: e.name, kind: e.kind, detail: e.detail }),
+  }));
+
+  const payloadWithoutHash = {
+    series: { id: seriesId, title: data.series.title, subjectName: data.series.subjectName, goal: data.series.goal },
+    topics,
+    entities,
+    summaries: data.summaries,
+    timeline: data.timeline,
+  };
+
+  return { ...payloadWithoutHash, contentHash: stableHash(payloadWithoutHash) };
 }
