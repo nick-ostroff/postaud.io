@@ -3,7 +3,7 @@ import Link from "next/link";
 /**
  * The floating story bar (Home mockup 1a) — a compact dark pill carrying the
  * story's three actions: Talk (the primary, in green), Insights (the
- * knowledge base) and Settings (access). It's scoped to one series, so it
+ * knowledge base) and Settings (the series settings page). It's scoped to one series, so it
  * only renders on screens that have a story in hand; account-level screens
  * (profile, members) drop it. Mobile-only — the desktop sidebar plus each
  * page's own buttons already cover this.
@@ -39,7 +39,7 @@ export function StoryBar({
           <span aria-hidden>✦</span>
         </Link>
         <Link
-          href={`/app/series/${seriesId}/access`}
+          href={`/app/series/${seriesId}/settings`}
           aria-label="Story settings"
           className="grid h-[38px] w-[38px] place-items-center rounded-full text-[rgba(240,237,230,0.75)] hover:text-paper hover:no-underline"
         >

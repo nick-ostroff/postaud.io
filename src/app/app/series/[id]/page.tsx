@@ -145,9 +145,11 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
         {/* Below `sm` these stack full-width; the floating story bar carries
             the same Talk action on mobile, so nothing here is the only path. */}
         <div className="flex w-full flex-wrap items-center gap-2.5 sm:w-auto">
-          <Link href={`/app/series/${series.id}/access`} className="hover:no-underline">
-            <Button variant="ghost">Access</Button>
-          </Link>
+          {isAdmin && (
+            <Link href={`/app/series/${series.id}/settings`} className="hover:no-underline">
+              <Button variant="ghost">Settings</Button>
+            </Link>
+          )}
           {series.subject_user_id == null && (
             <Link href={`/app/series/${series.id}/handoff`} className="hover:no-underline">
               <Button variant="secondary">Hand the mic</Button>
@@ -344,7 +346,7 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
               </div>
             )}
             <div className="mt-2">
-              <Link href={`/app/series/${series.id}/access`} className="text-[13px] font-medium">
+              <Link href={`/app/series/${series.id}/settings`} className="text-[13px] font-medium">
                 Manage access →
               </Link>
             </div>
