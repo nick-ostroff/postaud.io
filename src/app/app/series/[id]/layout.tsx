@@ -1,4 +1,5 @@
-import { StoryBar, storyTalkHref } from "@/components/nav/StoryBar";
+import { StoryBar } from "@/components/nav/StoryBar";
+import { storyTalkHref } from "@/lib/story-talk-href";
 import { getSeries, getViewer } from "@/db/queries";
 
 /**

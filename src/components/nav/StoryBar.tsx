@@ -4,17 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 /**
- * The Talk destination for a series: stories whose subject has no account go
- * through the hand-the-mic flow; the rest go straight to the live interview.
- * Shared by every screen that renders the StoryBar so the ternary lives once.
- */
-export function storyTalkHref(seriesId: string, subjectUserId: string | null): string {
-  return subjectUserId == null
-    ? `/app/series/${seriesId}/handoff`
-    : `/app/series/${seriesId}/interview`;
-}
-
-/**
  * The floating story bar (Home mockup 1a) — a compact dark pill carrying the
  * story's three actions: Talk (the primary, in green), Insights (the
  * knowledge base) and Settings (the series settings page), with the story's
