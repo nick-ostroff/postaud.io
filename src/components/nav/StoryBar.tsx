@@ -1,14 +1,14 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 /**
  * The Talk destination for a series: stories whose subject has no account go
  * through the hand-the-mic flow; the rest go straight to the live interview.
  * Shared by every screen that renders the StoryBar so the ternary lives once.
  */
-export function storyTalkHref(
-  seriesId: string,
-  subjectUserId: string | null,
-): string {
+export function storyTalkHref(seriesId: string, subjectUserId: string | null): string {
   return subjectUserId == null
     ? `/app/series/${seriesId}/handoff`
     : `/app/series/${seriesId}/interview`;
@@ -16,29 +16,34 @@ export function storyTalkHref(
 
 /**
  * The floating story bar (Home mockup 1a) — a compact dark pill carrying the
- * story's title and its three actions: Talk (the primary, in green), Insights
- * (the knowledge base) and Settings (the series settings page). It's scoped to
- * one series, so it only renders on screens that have a story in hand —
- * the overview, insights, and settings screens — and the title doubles as the
- * way back to the overview from the subpages. Account-level screens (profile,
- * members) drop it. Mobile-only — the desktop sidebar plus each page's own
- * buttons already cover this.
+ * story's three actions: Talk (the primary, in green), Insights (the
+ * knowledge base) and Settings (the series settings page), with the story's
+ * title on its own line below so the action row never changes size. It's
+ * scoped to one series: the series segment layout renders it once so it
+ * persists across the overview/insights/settings screens, and the mobile home
+ * renders it for the active story. Account-level screens (profile, members)
+ * drop it. The icon for the section currently on screen is brightened — a
+ * client component so it can read the pathname itself. Mobile-only — the
+ * desktop sidebar plus each page's own buttons already cover this.
  */
 export function StoryBar({
   seriesId,
   title,
   talkHref,
   talkLabel = "Talk",
-  active,
 }: {
   seriesId: string;
-  /** Series title shown in the pill, linking back to the series overview. */
+  /** Series title shown under the actions, linking back to the series overview. */
   title: string;
   talkHref: string;
   talkLabel?: string;
-  /** Which section this bar is rendered on — brightens that icon. */
-  active?: "insights" | "settings";
 }) {
+  const pathname = usePathname();
+  const active = pathname.startsWith(`/app/series/${seriesId}/knowledge`)
+    ? "insights"
+    : pathname.startsWith(`/app/series/${seriesId}/settings`)
+      ? "settings"
+      : null;
   const idleIcon = "text-[rgba(240,237,230,0.75)] hover:text-paper";
   const activeIcon = "bg-[rgba(240,237,230,0.14)] text-paper";
   return (

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { StoryBar, storyTalkHref } from "@/components/nav/StoryBar";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -367,11 +366,6 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
         </div>
       </div>
 
-      <StoryBar
-        seriesId={series.id}
-        title={series.title}
-        talkHref={storyTalkHref(series.id, series.subject_user_id)}
-      />
     </div>
   );
 }
