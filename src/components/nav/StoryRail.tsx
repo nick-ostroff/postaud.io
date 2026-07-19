@@ -35,7 +35,7 @@ export function StoryRail({
   /** Switch stories client-side instead of navigating. */
   onSelect?: (id: string) => void;
 }) {
-  const avatarClass = "flex shrink-0 flex-col items-center gap-1.5 hover:no-underline";
+  const avatarClass = "group flex shrink-0 flex-col items-center gap-1.5 hover:no-underline";
   return (
     <nav aria-label="Your stories" className="-mx-5 flex gap-4 overflow-x-auto px-5 pb-4 pt-1">
       {stories.map((s) => {
@@ -44,7 +44,7 @@ export function StoryRail({
           <>
             <span
               className={
-                "relative grid h-[66px] w-[66px] place-items-center rounded-full bg-green-tint text-lg font-semibold text-green-deep " +
+                "relative grid h-[66px] w-[66px] place-items-center rounded-full bg-green-tint text-lg font-semibold text-green-deep transition-transform duration-150 ease-out group-hover:scale-105 " +
                 (active ? "ring-2 ring-green ring-offset-2 ring-offset-paper" : "")
               }
             >
@@ -61,7 +61,7 @@ export function StoryRail({
             <span
               className={
                 "max-w-[74px] truncate text-[11px] leading-tight " +
-                (active ? "font-semibold text-ink" : "text-muted")
+                (active ? "font-semibold text-ink" : "text-muted transition-colors duration-150 group-hover:text-ink")
               }
             >
               {s.title}
@@ -93,9 +93,9 @@ export function StoryRail({
       {canCreate && (
         <Link
           href="/app/series/new"
-          className="flex shrink-0 flex-col items-center gap-1.5 hover:no-underline"
+          className="group flex shrink-0 flex-col items-center gap-1.5 hover:no-underline"
         >
-          <span className="grid h-[66px] w-[66px] place-items-center rounded-full border-[1.5px] border-dashed border-line-strong text-2xl font-normal text-faint">
+          <span className="grid h-[66px] w-[66px] place-items-center rounded-full border-[1.5px] border-dashed border-line-strong text-2xl font-normal text-faint transition duration-150 ease-out group-hover:scale-105 group-hover:border-green group-hover:text-green-deep">
             ＋
           </span>
           <span className="text-[11px] leading-tight text-muted">New</span>
