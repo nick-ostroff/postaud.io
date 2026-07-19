@@ -16,7 +16,7 @@
 
 - **This is NOT the Next.js you know.** Read the relevant guide in `node_modules/next/dist/docs/` before writing route/page code. Route `params` are a `Promise` and must be awaited (see the existing export route).
 - Migrations are applied via the **Supabase MCP `apply_migration`** tool (the Supabase CLI is unlinked in this repo). Migration files still get committed to `supabase/migrations/`.
-- Next migration number is **0014** (last is `0013_profile_photo.sql`).
+- **Do not hardcode a migration number — derive it.** A concurrent session is committing to this repo and has already claimed 0014 and 0015. Before creating any migration, run `ls supabase/migrations | tail -3` and use the next free number. This plan's task text says `0016_api_tokens.sql` (Task 2) and `0017_series_vault_links.sql` (Task 8); if those are taken by the time you get there, bump to the next free number and note it in your report.
 - Tests live in `__tests__/` next to the code and run under Vitest: `npx vitest run <path>`. Only files matching `src/**/__tests__/**/*.test.ts` are collected.
 - New required env vars must be added to **both** `src/lib/env.ts` (Zod schema) and the `test.env` block in `vitest.config.ts`, or every test that imports `env()` breaks.
 - Never bypass RLS for user-scoped reads. `serviceClient()` is only for the `api_tokens` lookup itself (the caller is unauthenticated at that moment, by definition).
@@ -39,7 +39,7 @@
 - `src/app/api/series/[id]/vault-link/route.ts` — POST link / DELETE unlink.
 - `src/app/api/series/[id]/vault-ack/route.ts` — POST ack.
 - `src/app/app/series/[id]/VaultCard.tsx` + `vault-actions.ts` — the Vault card and Send button.
-- `supabase/migrations/0014_api_tokens.sql`, `supabase/migrations/0015_series_vault_links.sql`
+- `supabase/migrations/0016_api_tokens.sql`, `supabase/migrations/0017_series_vault_links.sql`
 
 **Modify:**
 - `src/lib/env.ts` — add `SUPABASE_JWT_SECRET`.
@@ -197,7 +197,7 @@ vercel env add SUPABASE_JWT_SECRET development
 
 Also add it to local `.env.local`.
 
-**If the project uses only asymmetric signing keys and exposes no legacy HS256 secret,** stop and report — the resolver in Task 3 would need to switch to an asymmetric signer, which changes this task's implementation but nothing downstream.
+**Resolved 2026-07-18:** the legacy symmetric JWT Secret was confirmed present in the dashboard for this project, so HS256 is the approach. (Supabase now defaults new projects to asymmetric signing keys and marks the legacy secret deprecated; this project retains it. If it is ever migrated to signing keys, this resolver must be revisited — self-signing would then require importing our own ES256 key and rotating it project-wide, which would make our key sign all real user logins.)
 
 - [ ] **Step 7: Commit**
 
@@ -211,7 +211,7 @@ git commit -m "feat(vault): mint user-scoped Supabase JWTs for API-token request
 ## Task 2: API token table + token helpers
 
 **Files:**
-- Create: `supabase/migrations/0014_api_tokens.sql`
+- Create: `supabase/migrations/0016_api_tokens.sql`
 - Create: `src/lib/auth/api-token.ts`
 - Create: `src/lib/auth/__tests__/api-token.test.ts`
 - Modify: `src/db/types.ts`
@@ -311,10 +311,10 @@ Expected: PASS (7 tests)
 
 - [ ] **Step 5: Write the migration**
 
-Create `supabase/migrations/0014_api_tokens.sql`:
+Create `supabase/migrations/0016_api_tokens.sql`:
 
 ```sql
--- 0014_api_tokens.sql
+-- 0016_api_tokens.sql
 -- Personal access tokens, so the Obsidian plugin can authenticate as a user
 -- without a browser session.
 --
@@ -405,7 +405,7 @@ Run: `npx tsc --noEmit`
 Expected: no errors.
 
 ```bash
-git add src/lib/auth/api-token.ts src/lib/auth/__tests__/api-token.test.ts supabase/migrations/0014_api_tokens.sql src/db/types.ts
+git add src/lib/auth/api-token.ts src/lib/auth/__tests__/api-token.test.ts supabase/migrations/0016_api_tokens.sql src/db/types.ts
 git commit -m "feat(vault): add api_tokens table and token helpers"
 ```
 
@@ -803,7 +803,7 @@ Pure refactor — no behavior change. This unlocks Task 6 without duplicating th
 - Produces:
   ```ts
   export type SeriesExportData = {
-    series: { title: string; subjectName: string; goal: string | null };
+    series: { title: string; subjectName: string; goal: string };
     summaries: Array<{ short: string; date: string }>;
     factsByTopic: SeriesExportTopicGroup[];
     people: SeriesExportPerson[];
@@ -919,7 +919,7 @@ git commit -m "refactor(export): extract series export data assembly"
   - JSON response shape:
     ```ts
     {
-      series: { id: string; title: string; subjectName: string; goal: string | null };
+      series: { id: string; title: string; subjectName: string; goal: string };
       contentHash: string;
       topics: Array<{ name: string; hash: string; facts: Array<{ statement: string; sessionLabel: string; timestamp: string | null; entities: Array<{ id: string; name: string; kind: string }> }> }>;
       entities: Array<{ id: string; name: string; kind: "person" | "place" | "date"; detail: string | null; hash: string }>;
@@ -1118,7 +1118,7 @@ git commit -m "feat(vault): add series discovery endpoint for the plugin"
 ## Task 8: Vault link table
 
 **Files:**
-- Create: `supabase/migrations/0015_series_vault_links.sql`
+- Create: `supabase/migrations/0017_series_vault_links.sql`
 - Modify: `src/db/types.ts`
 - Create: `src/db/queries/vault.ts`
 - Create: `src/db/__tests__/vault.test.ts`
@@ -1141,10 +1141,10 @@ git commit -m "feat(vault): add series discovery endpoint for the plugin"
 
 - [ ] **Step 1: Write the migration**
 
-Create `supabase/migrations/0015_series_vault_links.sql`:
+Create `supabase/migrations/0017_series_vault_links.sql`:
 
 ```sql
--- 0015_series_vault_links.sql
+-- 0017_series_vault_links.sql
 -- Tracks that a series is linked to a user's Obsidian vault, and whether the
 -- user has asked for an update to be sent.
 --
@@ -1292,7 +1292,7 @@ Expected: PASS (5 tests), no type errors.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add supabase/migrations/0015_series_vault_links.sql src/db/types.ts src/db/queries/vault.ts src/db/__tests__/vault.test.ts
+git add supabase/migrations/0017_series_vault_links.sql src/db/types.ts src/db/queries/vault.ts src/db/__tests__/vault.test.ts
 git commit -m "feat(vault): add series_vault_links table and pending logic"
 ```
 
@@ -1322,7 +1322,7 @@ Create `src/app/api/vault/__tests__/vault-routes.test.ts` asserting:
 - `POST vault-link` upserts `{ series_id, user_id, label }` and is idempotent (calling twice yields one row, second call updates `label` without resetting `linked_at`);
 - `POST vault-link` on a series the caller cannot see returns 404 (via `getSeries` returning null — no existence leak, matching the export route's convention);
 - `DELETE vault-link` removes the row;
-- `POST vault-ack` stamps `last_acked_at` to now;
+- `POST vault-ack` stamps `last_acked_at` to the `requestedAt` the plugin echoes back in the request body (the value it collected from `/api/vault/pending`), not to `now()` — a missing, malformed, or future `requestedAt` is rejected with 400;
 - `GET vault/pending` returns only links where `isPushPending` is true, with `seriesId`/`title`/`requestedAt`;
 - every route returns 401 with a missing or unresolvable Bearer token, and never 500.
 
@@ -1606,9 +1606,13 @@ curl -s -H "Authorization: Bearer $TOKEN" "$BASE/api/vault/pending" | jq
 # → Now press "Send update to vault" in the browser, then:
 curl -s -H "Authorization: Bearer $TOKEN" "$BASE/api/vault/pending" | jq   # expect one entry
 
-# Fetch content and ack
+# Fetch content, then ack with the requestedAt echoed back from /pending —
+# vault-ack stamps last_acked_at to THIS value, not to now(), and rejects a
+# missing/malformed/future requestedAt with 400 (see Task 9's contract note).
 curl -s -H "Authorization: Bearer $TOKEN" "$BASE/api/series/$SERIES/export?format=json" | jq '.contentHash'
-curl -s -X POST -H "Authorization: Bearer $TOKEN" "$BASE/api/series/$SERIES/vault-ack" | jq
+REQUESTED_AT=$(curl -s -H "Authorization: Bearer $TOKEN" "$BASE/api/vault/pending" | jq -r '.pending[0].requestedAt')
+curl -s -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d "{\"requestedAt\":\"$REQUESTED_AT\"}" "$BASE/api/series/$SERIES/vault-ack" | jq
 curl -s -H "Authorization: Bearer $TOKEN" "$BASE/api/vault/pending" | jq   # expect []
 ```
 

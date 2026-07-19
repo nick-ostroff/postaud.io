@@ -16,7 +16,7 @@ export function LogoMark({ size = 24, className = "" }: { size?: number; classNa
         <span
           key={i}
           className="block rounded-[1px] bg-white"
-          style={{ width: b.w, height: Math.round(size * b.h), opacity: b.o }}
+          style={{ width: Math.round(b.w * (size / 24)), height: Math.round(size * b.h), opacity: b.o }}
         />
       ))}
     </span>
@@ -27,8 +27,8 @@ export function LogoMark({ size = 24, className = "" }: { size?: number; classNa
  *  scales both the mark and wordmark up a notch for the app header; the default
  *  keeps the auth/welcome/offline lockups untouched. */
 export function LogoLockup({ dark = false, size = "sm" }: { dark?: boolean; size?: "sm" | "md" }) {
-  const markSize = size === "md" ? 28 : 24;
-  const wordSize = size === "md" ? "text-base" : "text-sm";
+  const markSize = size === "md" ? 34 : 24;
+  const wordSize = size === "md" ? "text-xl" : "text-sm";
   return (
     <span className="flex items-center gap-2">
       <LogoMark size={markSize} />

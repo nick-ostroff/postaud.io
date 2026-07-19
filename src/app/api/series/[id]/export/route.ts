@@ -1,20 +1,8 @@
 import { NextResponse } from "next/server";
-import {
-  getInterviewMessages,
-  getSeries,
-  getSeriesKnowledge,
-  getViewer,
-  listInterviewsForSeries,
-} from "@/db/queries";
-import {
-  renderSeriesMarkdown,
-  slugifyTitle,
-  stripMarkdownToText,
-  type SeriesExportScope,
-  type SeriesExportTimelineEntry,
-  type SeriesExportTopicGroup,
-  type SeriesExportTranscript,
-} from "@/server/export/markdown";
+import { getViewer } from "@/db/queries";
+import { renderSeriesMarkdown, slugifyTitle, stripMarkdownToText, type SeriesExportScope } from "@/server/export/markdown";
+import { buildJsonPayload, buildSeriesExportData } from "@/server/export/series-data";
+import { resolveApiToken } from "@/server/auth/bearer";
 
 type Params = Promise<{ id: string }>;
 
@@ -45,136 +33,65 @@ function parseScope(raw: string | null): SeriesExportScope {
   };
 }
 
-/** Seconds → "M:SS" for a fact's source line, or null with no recorded offset. */
-function formatOffset(sec: number | null): string | null {
-  if (sec == null) return null;
-  const total = Math.max(0, Math.round(sec));
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
-
-function formatDateLabel(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+/**
+ * Resolves the caller for both consumers of this route: the Obsidian plugin
+ * (Bearer token, Task 3) and the browser export card (session cookies).
+ * Bearer is tried first — a present, valid token always wins — so the same
+ * route can serve both without the plugin ever touching cookie auth.
+ *
+ * If the caller presented an Authorization header at all, we do NOT fall
+ * back to cookies: `resolveApiToken` already returns null for every bearer
+ * failure mode (missing, malformed, unknown, revoked), and middleware does
+ * not gate `/api/*`, so falling through to `getViewer()` here previously hit
+ * its `throw new Error("Not authenticated")` (no cookies) as an unhandled
+ * 500 — the exact case a plugin whose token was just revoked would hit,
+ * with no way to distinguish it from an outage. Returning null instead lets
+ * the route respond a normal 401, matching every other bearer endpoint.
+ */
+async function resolveCaller(request: Request) {
+  const apiCaller = await resolveApiToken(request);
+  if (apiCaller) return apiCaller.supabase;
+  if (request.headers.get("authorization")) return null;
+  const { supabase } = await getViewer();
+  return supabase;
 }
 
 /**
- * GET /api/series/[id]/export?format=md|txt&scope=summaries,facts,entities,timeline[,transcripts]
- * — Task 16's "take it with you" download. Guarded the same way as every
- * other series read: `getSeries` returns null for a series the caller's RLS
- * can't see, which we treat as a plain 404 (no existence leak).
+ * GET /api/series/[id]/export?format=md|txt|json&scope=summaries,facts,entities,timeline[,transcripts]
+ * — Task 16's "take it with you" download, plus (Task 6) the Obsidian
+ * plugin's machine-readable sync format. Guarded the same way as every
+ * other series read: `buildSeriesExportData` returns null for a series the
+ * caller's RLS can't see, which we treat as a plain 404 (no existence leak).
+ *
+ * `format=json` always uses the full scope minus transcripts — the plugin
+ * mirrors the knowledge base, not raw transcripts — ignoring any `scope`
+ * query param, which only applies to the Markdown/text download.
  */
 export async function GET(request: Request, { params }: { params: Params }) {
   const { id } = await params;
-  const { supabase } = await getViewer();
-
-  const series = await getSeries(supabase, id);
-  if (!series) {
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
+  const supabase = await resolveCaller(request);
+  if (!supabase) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
   const url = new URL(request.url);
+  const wantsJson = url.searchParams.get("format") === "json";
   const format = url.searchParams.get("format") === "txt" ? "txt" : "md";
-  const scope = parseScope(url.searchParams.get("scope"));
+  const scope = wantsJson ? DEFAULT_SCOPE : parseScope(url.searchParams.get("scope"));
 
-  const [knowledge, sessionsNewestFirst] = await Promise.all([
-    getSeriesKnowledge(supabase, id),
-    listInterviewsForSeries(supabase, id),
-  ]);
-
-  // `listInterviewsForSeries` numbers sessions 1-based by started_at but
-  // returns them newest-first (built for the activity feed). A document
-  // that reads as a life story goes start-to-finish — Session 1 first.
-  const sessions = [...sessionsNewestFirst].sort((a, b) => a.sessionNumber - b.sessionNumber);
-  const sessionLabelByInterview = new Map(sessions.map((s) => [s.id, `Session ${s.sessionNumber}`] as const));
-
-  const summaries = scope.summaries
-    ? sessions
-        .filter((s) => s.summaryShort)
-        .map((s) => ({ short: s.summaryShort as string, date: formatDateLabel(s.startedAt) }))
-    : [];
-
-  const activeFacts = knowledge.facts.filter((f) => f.status !== "superseded");
-
-  const topicName = new Map(knowledge.topics.map((t) => [t.id, t.name] as const));
-  const topicOrder = [...knowledge.topics].sort((a, b) => a.position - b.position).map((t) => t.id);
-
-  const groupsById = new Map<string, SeriesExportTopicGroup>();
-  const otherGroup: SeriesExportTopicGroup = { topic: "Other", facts: [] };
-  for (const fact of activeFacts) {
-    const sessionLabel = fact.source_interview_id
-      ? (sessionLabelByInterview.get(fact.source_interview_id) ?? "Manual entry")
-      : "Manual entry";
-    const entry = { statement: fact.statement, sessionLabel, timestamp: formatOffset(fact.audio_offset_sec) };
-    if (fact.topic_id && topicName.has(fact.topic_id)) {
-      if (!groupsById.has(fact.topic_id)) {
-        groupsById.set(fact.topic_id, { topic: topicName.get(fact.topic_id) as string, facts: [] });
-      }
-      groupsById.get(fact.topic_id)!.facts.push(entry);
-    } else {
-      otherGroup.facts.push(entry);
-    }
-  }
-  const factsByTopic: SeriesExportTopicGroup[] = [
-    ...topicOrder.filter((tid) => groupsById.has(tid)).map((tid) => groupsById.get(tid) as SeriesExportTopicGroup),
-    ...(otherGroup.facts.length > 0 ? [otherGroup] : []),
-  ];
-
-  const people = knowledge.entities
-    .filter((e) => e.kind === "person")
-    .map((e) => ({ name: e.name, detail: e.detail ?? undefined }));
-  const places = knowledge.entities.filter((e) => e.kind === "place").map((e) => e.name);
-
-  // Timeline: date entities, statement drawn from linked facts (via
-  // fact_entities, already joined onto each fact by getSeriesKnowledge) when
-  // available, falling back to the entity's own `detail` field.
-  const statementsByEntity = new Map<string, string[]>();
-  for (const fact of activeFacts) {
-    for (const entity of fact.entities) {
-      if (entity.kind !== "date") continue;
-      const list = statementsByEntity.get(entity.id) ?? [];
-      list.push(fact.statement);
-      statementsByEntity.set(entity.id, list);
-    }
-  }
-  const timeline: SeriesExportTimelineEntry[] = knowledge.entities
-    .filter((e) => e.kind === "date")
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map((e) => ({
-      label: e.name,
-      statement: (statementsByEntity.get(e.id) ?? []).join("; ") || e.detail || "",
-    }));
-
-  let transcripts: SeriesExportTranscript[] | undefined;
-  if (scope.transcripts) {
-    const withMessages = await Promise.all(
-      sessions.map(async (s) => {
-        const messages = await getInterviewMessages(supabase, s.id);
-        return {
-          sessionLabel: `Session ${s.sessionNumber}`,
-          turns: messages.map((m) => ({
-            role: m.role === "interviewer" ? "Anna" : series.subject_name,
-            text: m.text,
-          })),
-        };
-      }),
-    );
-    transcripts = withMessages.filter((t) => t.turns.length > 0);
+  const data = await buildSeriesExportData(supabase, id, scope);
+  if (!data) {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
-  const markdown = renderSeriesMarkdown({
-    series: { title: series.title, subjectName: series.subject_name, goal: series.goal },
-    summaries,
-    factsByTopic,
-    people,
-    places,
-    timeline,
-    scope,
-    transcripts,
-  });
+  if (wantsJson) {
+    return NextResponse.json(buildJsonPayload(id, data));
+  }
+
+  const markdown = renderSeriesMarkdown({ ...data, scope });
 
   const body = format === "txt" ? stripMarkdownToText(markdown) : markdown;
-  const filename = `${slugifyTitle(series.title)}.${format}`;
+  const filename = `${slugifyTitle(data.series.title)}.${format}`;
   const contentType = format === "txt" ? "text/plain; charset=utf-8" : "text/markdown; charset=utf-8";
 
   return new NextResponse(body, {

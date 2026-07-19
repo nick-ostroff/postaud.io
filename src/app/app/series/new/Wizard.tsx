@@ -129,7 +129,7 @@ export function Wizard({
   viewer,
 }: {
   members: MemberOption[];
-  viewer: { userId: string; name: string };
+  viewer: { userId: string; name: string; photoUrl?: string | null };
 }) {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
@@ -193,6 +193,12 @@ export function Wizard({
 
   const subjectName =
     subjectChoice === "self" ? viewer.name : subjectChoice === "new" ? newSubjectName : (pickedMember?.name ?? "");
+
+  // Shown in the step-1 photo circle before any upload: the subject's own
+  // profile headshot when they have an account, mirroring subjectPhotoUrl's
+  // fallback on the dashboard and settings pages.
+  const subjectProfilePhoto =
+    subjectChoice === "self" ? (viewer.photoUrl ?? null) : (pickedMember?.photoUrl ?? null);
 
   const subjectValid =
     subjectChoice === "self" ||
@@ -262,7 +268,13 @@ export function Wizard({
         setInviteError((body?.error && INVITE_ERROR_MESSAGES[body.error]) ?? body?.error ?? "Could not send invite.");
         return;
       }
-      const newMember: MemberOption = { userId: body.userId, name: inviteEmail.trim(), email: inviteEmail.trim(), pending: true };
+      const newMember: MemberOption = {
+        userId: body.userId,
+        name: inviteEmail.trim(),
+        email: inviteEmail.trim(),
+        pending: true,
+        photoUrl: null,
+      };
       setMembers((prev) => [...prev, newMember]);
       setAccess((prev) => ({ ...prev, [newMember.userId]: "interview" }));
       setInviteEmail("");
@@ -466,7 +478,7 @@ export function Wizard({
               hint="Optional — shown in the series avatar. You can add or change it later."
             >
               <div className="flex items-center gap-3.5">
-                <Avatar name={subjectName || "?"} size="lg" tone="plain" src={photoPreview} />
+                <Avatar name={subjectName || "?"} size="lg" tone="plain" src={photoPreview ?? subjectProfilePhoto} />
                 <Button type="button" variant="secondary" onClick={() => photoInput.current?.click()}>
                   {photoPreview ? "Change photo" : "Add photo"}
                 </Button>
@@ -555,7 +567,7 @@ export function Wizard({
           <div>
             <WizardField label="Series owner" hint="The owner runs the guide, the topic queue, and access.">
               <div className="flex max-w-[340px] items-center gap-2.5 rounded-sm border border-line-strong bg-card px-[13px] py-2.5">
-                <Avatar name={viewer.name} />
+                <Avatar name={viewer.name} src={viewer.photoUrl} tone="plain" />
                 <span className="text-[14px] text-ink">
                   {viewer.name} <span className="text-[12.5px] text-muted">· you</span>
                 </span>
@@ -569,7 +581,7 @@ export function Wizard({
                 )}
                 {accessCandidates.map((m) => (
                   <div key={m.userId} className="flex flex-wrap items-center gap-3 border-b border-line py-3 last:border-b-0">
-                    <Avatar name={m.name} tone="warm" />
+                    <Avatar name={m.name} src={m.photoUrl} tone={m.photoUrl ? "plain" : "warm"} />
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[13.5px] font-semibold text-ink">{m.name}</div>
                       <div className="truncate text-xs text-ink-soft">

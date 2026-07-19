@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getViewer } from "@/db/queries";
+import { getSeriesForUser, getViewer } from "@/db/queries";
 import { VOICE_IDS, DEFAULT_VOICE } from "@/lib/voices";
 import { CreateSeriesError, createSeries } from "@/server/series/create";
+import { resolveApiToken } from "@/server/auth/bearer";
 
 const accessEntrySchema = z.object({
   userId: z.string().uuid(),
@@ -29,6 +30,44 @@ export const createSeriesSchema = z.object({
   inviteSubjectEmail: z.string().email().optional(),
   questionPlan: z.array(z.string().trim().min(1)).optional(),
 });
+
+/**
+ * GET /api/series?format=json — discovery endpoint for the Obsidian plugin
+ * (Task 7): lists the series the caller can see, so the plugin can present a
+ * pick list before syncing one via the export route (Task 6). Bearer-only —
+ * unlike the export route there is no cookie fallback, since this is
+ * plugin-facing only and the browser app has its own series list UI that
+ * doesn't need a JSON API. Any other/missing `format` 404s rather than
+ * falling through to some other representation, so an unauthenticated poke
+ * at this URL (no `?format=json`) can't be used to probe whether the route
+ * exists versus genuinely not being found.
+ */
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  if (url.searchParams.get("format") !== "json") {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+
+  // No cookie fallback here (contrast with the export route's
+  // `resolveCaller`) — `resolveApiToken` returning null covers every failure
+  // mode (missing header, malformed, unknown, revoked token) identically by
+  // design, so this always 401s rather than risking a 500 from touching a
+  // null caller's `.supabase`.
+  const caller = await resolveApiToken(request);
+  if (!caller) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  const rows = await getSeriesForUser(caller.supabase);
+  return NextResponse.json({
+    series: rows.map((s) => ({
+      id: s.id,
+      title: s.title,
+      subjectName: s.subject_name,
+      status: s.status,
+    })),
+  });
+}
 
 // POST /api/series — create a series (+ access rows + seeded topics).
 // Admin-only: guarded by the caller's own membership role.

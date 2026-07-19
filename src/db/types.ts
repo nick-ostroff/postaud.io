@@ -717,6 +717,86 @@ export type Database = {
         }
         Relationships: []
       }
+      api_tokens: {
+        Row: {
+          id: string
+          user_id: string
+          token_hash: string
+          name: string
+          last_used_at: string | null
+          created_at: string
+          revoked_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          token_hash: string
+          name: string
+          last_used_at?: string | null
+          created_at?: string
+          revoked_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          token_hash?: string
+          name?: string
+          last_used_at?: string | null
+          created_at?: string
+          revoked_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      series_vault_links: {
+        Row: {
+          series_id: string
+          user_id: string
+          label: string
+          linked_at: string
+          push_requested_at: string | null
+          last_acked_at: string | null
+        }
+        Insert: {
+          series_id: string
+          user_id: string
+          label: string
+          linked_at?: string
+          push_requested_at?: string | null
+          last_acked_at?: string | null
+        }
+        Update: {
+          series_id?: string
+          user_id?: string
+          label?: string
+          linked_at?: string
+          push_requested_at?: string | null
+          last_acked_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "series_vault_links_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "series"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "series_vault_links_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
