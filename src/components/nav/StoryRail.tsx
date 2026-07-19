@@ -37,7 +37,7 @@ export function StoryRail({
 }) {
   const avatarClass = "flex shrink-0 flex-col items-center gap-1.5 hover:no-underline";
   return (
-    <nav aria-label="Your stories" className="-mx-5 flex justify-center-safe gap-4 overflow-x-auto px-5 pb-1 pt-4">
+    <nav aria-label="Your stories" className="-mx-5 flex gap-4 overflow-x-auto px-5 pb-4 pt-1">
       {stories.map((s) => {
         const active = s.id === activeId;
         const inner = (
