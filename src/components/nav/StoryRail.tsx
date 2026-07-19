@@ -37,14 +37,14 @@ export function StoryRail({
 }) {
   const avatarClass = "flex shrink-0 flex-col items-center gap-1.5 hover:no-underline";
   return (
-    <nav aria-label="Your stories" className="-mx-5 flex gap-4 overflow-x-auto px-5 pb-1 pt-4">
+    <nav aria-label="Your stories" className="-mx-5 flex justify-center-safe gap-4 overflow-x-auto px-5 pb-1 pt-4">
       {stories.map((s) => {
         const active = s.id === activeId;
         const inner = (
           <>
             <span
               className={
-                "relative grid h-[52px] w-[52px] place-items-center rounded-full bg-green-tint text-base font-semibold text-green-deep " +
+                "relative grid h-[66px] w-[66px] place-items-center rounded-full bg-green-tint text-lg font-semibold text-green-deep " +
                 (active ? "ring-2 ring-green ring-offset-2 ring-offset-paper" : "")
               }
             >
@@ -60,7 +60,7 @@ export function StoryRail({
             </span>
             <span
               className={
-                "max-w-[60px] truncate text-[10.5px] leading-tight " +
+                "max-w-[74px] truncate text-[11px] leading-tight " +
                 (active ? "font-semibold text-ink" : "text-muted")
               }
             >
@@ -95,10 +95,10 @@ export function StoryRail({
           href="/app/series/new"
           className="flex shrink-0 flex-col items-center gap-1.5 hover:no-underline"
         >
-          <span className="grid h-[52px] w-[52px] place-items-center rounded-full border-[1.5px] border-dashed border-line-strong text-xl font-normal text-faint">
+          <span className="grid h-[66px] w-[66px] place-items-center rounded-full border-[1.5px] border-dashed border-line-strong text-2xl font-normal text-faint">
             ＋
           </span>
-          <span className="text-[10.5px] leading-tight text-muted">New</span>
+          <span className="text-[11px] leading-tight text-muted">New</span>
         </Link>
       )}
     </nav>
