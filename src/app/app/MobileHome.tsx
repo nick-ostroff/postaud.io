@@ -140,6 +140,7 @@ export function MobileHome({
 
           <StoryBar
             seriesId={active.id}
+            title={active.title}
             talkHref={
               active.handoff ? `/app/series/${active.id}/handoff` : `/app/series/${active.id}/interview`
             }

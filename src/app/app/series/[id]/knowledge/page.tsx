@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { StoryBar, storyTalkHref } from "@/components/nav/StoryBar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -313,6 +314,13 @@ export default async function KnowledgePage({ params }: { params: Params }) {
           )}
         </div>
       </div>
+
+      <StoryBar
+        seriesId={series.id}
+        title={series.title}
+        talkHref={storyTalkHref(series.id, series.subject_user_id)}
+        active="insights"
+      />
     </div>
   );
 }
