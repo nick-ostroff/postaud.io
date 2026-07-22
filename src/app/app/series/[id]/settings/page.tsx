@@ -138,7 +138,6 @@ export default async function SeriesSettingsPage({ params }: { params: Params })
               initialTone={series.tone}
               initialSessionMinutes={series.session_minutes as 10 | 20 | 45}
               initialConversationMode={series.conversation_mode}
-              initialAskModeEachTime={series.ask_mode_each_time}
               initialQuickfireQueueOnly={series.quickfire_queue_only}
               initialPlannedSessions={series.planned_sessions}
             />

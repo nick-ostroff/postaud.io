@@ -22,7 +22,6 @@ function series(overrides: Partial<Series> & Pick<Series, "id">): Series {
     interviewer_name: "Anna",
     depth: "balanced",
     conversation_mode: "deep",
-    ask_mode_each_time: false,
     quickfire_queue_only: false,
     planned_sessions: null,
     status: "active",

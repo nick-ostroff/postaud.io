@@ -38,7 +38,7 @@ const MODE_HINTS: Record<ConversationMode, string> = {
 
 /**
  * The guide-rail settings on the series settings page: voice, opening prompt,
- * don't-bring-up, tone, session length, default conversation mode (+ ask-each-time),
+ * don't-bring-up, tone, session length, conversation mode,
  * planned sessions. Saves only
  * what changed via PATCH /api/series/[id]; picking a new voice also renames
  * the interviewer server-side (the persona name travels with the voice).
@@ -53,7 +53,6 @@ export function InterviewGuideForm({
   initialTone,
   initialSessionMinutes,
   initialConversationMode,
-  initialAskModeEachTime,
   initialQuickfireQueueOnly,
   initialPlannedSessions,
 }: {
@@ -64,7 +63,6 @@ export function InterviewGuideForm({
   initialTone: SeriesTone;
   initialSessionMinutes: 10 | 20 | 45;
   initialConversationMode: ConversationMode;
-  initialAskModeEachTime: boolean;
   initialQuickfireQueueOnly: boolean;
   initialPlannedSessions: number | null;
 }) {
@@ -75,7 +73,6 @@ export function InterviewGuideForm({
   const [tone, setTone] = useState<SeriesTone>(initialTone);
   const [sessionMinutes, setSessionMinutes] = useState<10 | 20 | 45>(initialSessionMinutes);
   const [conversationMode, setConversationMode] = useState<ConversationMode>(initialConversationMode);
-  const [askModeEachTime, setAskModeEachTime] = useState(initialAskModeEachTime);
   const [quickfireQueueOnly, setQuickfireQueueOnly] = useState(initialQuickfireQueueOnly);
   const [plannedSessions, setPlannedSessions] = useState(initialPlannedSessions == null ? "" : String(initialPlannedSessions));
   const [busy, setBusy] = useState(false);
@@ -95,7 +92,6 @@ export function InterviewGuideForm({
     tone !== initialTone ||
     sessionMinutes !== initialSessionMinutes ||
     conversationMode !== initialConversationMode ||
-    askModeEachTime !== initialAskModeEachTime ||
     quickfireQueueOnly !== initialQuickfireQueueOnly ||
     plannedChanged;
 
@@ -107,7 +103,6 @@ export function InterviewGuideForm({
     if (tone !== initialTone) patch.tone = tone;
     if (sessionMinutes !== initialSessionMinutes) patch.sessionMinutes = sessionMinutes;
     if (conversationMode !== initialConversationMode) patch.conversationMode = conversationMode;
-    if (askModeEachTime !== initialAskModeEachTime) patch.askModeEachTime = askModeEachTime;
     if (quickfireQueueOnly !== initialQuickfireQueueOnly) patch.quickfireQueueOnly = quickfireQueueOnly;
     if (plannedChanged) patch.plannedSessions = plannedParsed;
     if (Object.keys(patch).length === 0 || !plannedValid) return;
@@ -205,7 +200,7 @@ export function InterviewGuideForm({
         {/* Three options make this the widest dial — full row so it never
             collides with its neighbor. */}
         <div className="sm:col-span-2">
-          <Field label="Default mode" hint={MODE_HINTS[conversationMode]}>
+          <Field label="Conversation mode" hint={MODE_HINTS[conversationMode]}>
             <Segmented
               name="conversation-mode"
               options={MODE_OPTIONS}
@@ -215,16 +210,6 @@ export function InterviewGuideForm({
                 touch();
               }}
             />
-            <div className="mt-3 flex items-center gap-3 border-t border-ink/10 pt-3">
-              <div className="flex-1 text-[14px]">Ask me each time</div>
-              <ToggleSwitch
-                checked={askModeEachTime}
-                onToggle={() => {
-                  setAskModeEachTime((v) => !v);
-                  touch();
-                }}
-              />
-            </div>
             <div className="mt-3 flex items-center gap-3 border-t border-ink/10 pt-3">
               <div className="min-w-0 flex-1">
                 <div className="text-[14px]">Just my questions</div>

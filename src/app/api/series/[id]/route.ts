@@ -14,7 +14,6 @@ const updateSeriesSchema = z.object({
   sessionMinutes: z.union([z.literal(10), z.literal(20), z.literal(45)]).optional(),
   voice: z.enum(VOICE_IDS).optional(),
   conversationMode: z.enum(["deep", "flow", "quickfire"]).optional(),
-  askModeEachTime: z.boolean().optional(),
   quickfireQueueOnly: z.boolean().optional(),
   plannedSessions: z.number().int().min(1).max(50).nullable().optional(),
 });
@@ -47,7 +46,6 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
     sessionMinutes,
     voice,
     conversationMode,
-    askModeEachTime,
     quickfireQueueOnly,
     plannedSessions,
   } = parsed.data;
@@ -66,7 +64,6 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
     update.interviewer_name = persona.name;
   }
   if (conversationMode !== undefined) update.conversation_mode = conversationMode;
-  if (askModeEachTime !== undefined) update.ask_mode_each_time = askModeEachTime;
   if (quickfireQueueOnly !== undefined) update.quickfire_queue_only = quickfireQueueOnly;
   if (plannedSessions !== undefined) update.planned_sessions = plannedSessions;
 

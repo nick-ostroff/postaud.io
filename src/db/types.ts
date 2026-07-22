@@ -182,7 +182,6 @@ export type Database = {
           interviewer_name: string
           depth: SeriesDepth
           conversation_mode: ConversationMode
-          ask_mode_each_time: boolean
           quickfire_queue_only: boolean
           planned_sessions: number | null
           photo_path: string | null
@@ -207,7 +206,6 @@ export type Database = {
           interviewer_name?: string
           depth?: SeriesDepth
           conversation_mode?: ConversationMode
-          ask_mode_each_time?: boolean
           quickfire_queue_only?: boolean
           planned_sessions?: number | null
           photo_path?: string | null
@@ -232,7 +230,6 @@ export type Database = {
           interviewer_name?: string
           depth?: SeriesDepth
           conversation_mode?: ConversationMode
-          ask_mode_each_time?: boolean
           quickfire_queue_only?: boolean
           planned_sessions?: number | null
           photo_path?: string | null

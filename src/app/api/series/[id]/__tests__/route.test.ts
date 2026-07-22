@@ -87,16 +87,6 @@ describe("PATCH /api/series/[id]", () => {
     expect(calls.updates).toEqual([{ conversation_mode: "quickfire" }]);
   });
 
-  it("maps askModeEachTime to ask_mode_each_time", async () => {
-    const { supabase, calls } = makeSupabaseStub();
-    mocks.getViewer.mockResolvedValue({ supabase, organization: { id: "org-1" }, role: "admin" });
-
-    const res = await PATCH(patchReq({ askModeEachTime: true }), ctx());
-
-    expect(res.status).toBe(200);
-    expect(calls.updates).toEqual([{ ask_mode_each_time: true }]);
-  });
-
   it("maps quickfireQueueOnly to quickfire_queue_only", async () => {
     const { supabase, calls } = makeSupabaseStub();
     mocks.getViewer.mockResolvedValue({ supabase, organization: { id: "org-1" }, role: "admin" });
