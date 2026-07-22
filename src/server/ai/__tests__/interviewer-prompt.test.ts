@@ -174,4 +174,26 @@ describe("conversation modes", () => {
     const out = buildInterviewerInstructions({ ...base, mode: "flow", queuedQuestions: ["Why '98 — what pushed you to finally open?"] });
     expect(out).toContain('Open this session by asking, near-verbatim: "Why \'98 — what pushed you to finally open?"');
   });
+
+  it("quickfire caps the numbered list to what fits the session length, queue first", () => {
+    // sessionMinutes 10 → cap = round(10 / 1.5) = 7. Twelve queue items,
+    // queue-first, so the list is exactly the first 7 queue items — no room
+    // for topics at all.
+    const queue = Array.from({ length: 12 }, (_, i) => `Queue question ${i + 1}`);
+    const out = buildInterviewerInstructions({
+      ...base,
+      mode: "quickfire",
+      series: { ...base.series, sessionMinutes: 10 },
+      queuedQuestions: queue,
+      topics: [{ name: "A must-cover topic", coverageScore: 0, mustCover: true, suggested: false }],
+    });
+    const numberedLines = out.split("\n").filter((l) => /^\d+\. /.test(l));
+    expect(numberedLines).toHaveLength(7);
+    expect(out).toContain("1. Queue question 1 [from the queue]");
+    expect(out).toContain("7. Queue question 7 [from the queue]");
+    expect(out).not.toContain("Queue question 8");
+    expect(out).not.toContain("A must-cover topic");
+    // total passed to mark_question_asked reflects the capped length.
+    expect(out).toContain('"total": 7');
+  });
 });

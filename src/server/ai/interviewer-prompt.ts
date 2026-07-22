@@ -164,11 +164,14 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
     // agenda: queued questions first (position order), then must-cover
     // topics by lowest coverage. Non-must-cover topics are deliberately
     // excluded — quickfire is the curated list, not the whole compass.
-    const numbered: string[] = [];
-    input.queuedQuestions.forEach((q) => numbered.push(`${numbered.length + 1}. ${q} [from the queue]`));
-    sortedTopics
-      .filter((t) => t.mustCover)
-      .forEach((t) => numbered.push(`${numbered.length + 1}. ${t.name}`));
+    // Capped to what plausibly fits the session length (≈1.5 min/question);
+    // queue items win the cap over topics since they come first.
+    const cap = Math.max(1, Math.round(series.sessionMinutes / 1.5));
+    const combined = [
+      ...input.queuedQuestions.map((q) => `${q} [from the queue]`),
+      ...sortedTopics.filter((t) => t.mustCover).map((t) => t.name),
+    ].slice(0, cap);
+    const numbered = combined.map((item, i) => `${i + 1}. ${item}`);
     sections.push(
       [
         "QUESTION LIST (ask in order)",

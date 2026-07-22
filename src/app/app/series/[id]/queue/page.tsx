@@ -8,6 +8,7 @@ import {
   listMembers,
   listPendingQueuedQuestions,
 } from "@/db/queries";
+import { canInterviewSeries } from "@/server/interviews/access";
 import { QueueList, type QueueItem } from "./QueueList";
 
 type Params = Promise<{ id: string }>;
@@ -27,15 +28,24 @@ function relativeDay(iso: string): string {
  */
 export default async function QueuePage({ params }: { params: Params }) {
   const { id } = await params;
-  const { supabase, role } = await getViewer();
+  const { user, supabase, role } = await getViewer();
 
   const series = await getSeries(supabase, id);
   if (!series) notFound();
 
-  const [pending, sessions, members] = await Promise.all([
+  const [pending, sessions, members, canAdd] = await Promise.all([
     listPendingQueuedQuestions(supabase, id),
     listInterviewsForSeries(supabase, id),
     listMembers(supabase),
+    // The Add composer POSTs to the queue API, which requires interview access
+    // (403s view-only members). Gate the composer server-side by the same
+    // check so we never render an input that can only fail.
+    canInterviewSeries(supabase, {
+      userId: user.id,
+      role,
+      seriesSubjectUserId: series.subject_user_id,
+      seriesId: series.id,
+    }),
   ]);
 
   const sessionNumberByInterview = new Map(sessions.map((s) => [s.id, s.sessionNumber] as const));
@@ -94,6 +104,7 @@ export default async function QueuePage({ params }: { params: Params }) {
         seriesId={series.id}
         initialItems={items}
         canManage={role === "admin"}
+        canAdd={canAdd}
       />
     </div>
   );

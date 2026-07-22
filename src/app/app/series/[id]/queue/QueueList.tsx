@@ -18,10 +18,12 @@ export function QueueList({
   seriesId,
   initialItems,
   canManage,
+  canAdd,
 }: {
   seriesId: string;
   initialItems: QueueItem[];
   canManage: boolean;
+  canAdd: boolean;
 }) {
   const router = useRouter();
   const [items, setItems] = useState(initialItems);
@@ -132,20 +134,22 @@ export function QueueList({
         ))
       )}
 
-      <div className="mt-2 flex items-center gap-2">
-        <Input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") void add();
-          }}
-          placeholder="Add a question for the next session…"
-          disabled={busy}
-        />
-        <Button type="button" variant="primary" onClick={() => void add()} disabled={busy || !draft.trim()}>
-          Add
-        </Button>
-      </div>
+      {canAdd ? (
+        <div className="mt-2 flex items-center gap-2">
+          <Input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void add();
+            }}
+            placeholder="Add a question for the next session…"
+            disabled={busy}
+          />
+          <Button type="button" variant="primary" onClick={() => void add()} disabled={busy || !draft.trim()}>
+            Add
+          </Button>
+        </div>
+      ) : null}
       {error ? <p className="text-[12.5px] font-medium text-amber">{error}</p> : null}
     </div>
   );
