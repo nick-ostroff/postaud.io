@@ -160,6 +160,7 @@ function makeSvcStub(
       interviewer_name: "Some Stale Name",
       depth: "balanced",
       conversation_mode: mode,
+      quickfire_queue_only: false,
       planned_sessions: 6,
     },
     error: null,

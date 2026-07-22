@@ -54,6 +54,7 @@ export function InterviewGuideForm({
   initialSessionMinutes,
   initialConversationMode,
   initialAskModeEachTime,
+  initialQuickfireQueueOnly,
   initialPlannedSessions,
 }: {
   seriesId: string;
@@ -64,6 +65,7 @@ export function InterviewGuideForm({
   initialSessionMinutes: 10 | 20 | 45;
   initialConversationMode: ConversationMode;
   initialAskModeEachTime: boolean;
+  initialQuickfireQueueOnly: boolean;
   initialPlannedSessions: number | null;
 }) {
   const router = useRouter();
@@ -74,6 +76,7 @@ export function InterviewGuideForm({
   const [sessionMinutes, setSessionMinutes] = useState<10 | 20 | 45>(initialSessionMinutes);
   const [conversationMode, setConversationMode] = useState<ConversationMode>(initialConversationMode);
   const [askModeEachTime, setAskModeEachTime] = useState(initialAskModeEachTime);
+  const [quickfireQueueOnly, setQuickfireQueueOnly] = useState(initialQuickfireQueueOnly);
   const [plannedSessions, setPlannedSessions] = useState(initialPlannedSessions == null ? "" : String(initialPlannedSessions));
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -93,6 +96,7 @@ export function InterviewGuideForm({
     sessionMinutes !== initialSessionMinutes ||
     conversationMode !== initialConversationMode ||
     askModeEachTime !== initialAskModeEachTime ||
+    quickfireQueueOnly !== initialQuickfireQueueOnly ||
     plannedChanged;
 
   async function save() {
@@ -104,6 +108,7 @@ export function InterviewGuideForm({
     if (sessionMinutes !== initialSessionMinutes) patch.sessionMinutes = sessionMinutes;
     if (conversationMode !== initialConversationMode) patch.conversationMode = conversationMode;
     if (askModeEachTime !== initialAskModeEachTime) patch.askModeEachTime = askModeEachTime;
+    if (quickfireQueueOnly !== initialQuickfireQueueOnly) patch.quickfireQueueOnly = quickfireQueueOnly;
     if (plannedChanged) patch.plannedSessions = plannedParsed;
     if (Object.keys(patch).length === 0 || !plannedValid) return;
 
@@ -212,24 +217,28 @@ export function InterviewGuideForm({
             />
             <div className="mt-3 flex items-center gap-3 border-t border-ink/10 pt-3">
               <div className="flex-1 text-[14px]">Ask me each time</div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={askModeEachTime}
-                onClick={() => {
+              <ToggleSwitch
+                checked={askModeEachTime}
+                onToggle={() => {
                   setAskModeEachTime((v) => !v);
                   touch();
                 }}
-                className={`relative h-[26px] w-11 shrink-0 rounded-full transition-colors ${
-                  askModeEachTime ? "bg-green-deep" : "bg-ink/20"
-                }`}
-              >
-                <span
-                  className={`absolute top-[3px] h-5 w-5 rounded-full bg-white transition-all ${
-                    askModeEachTime ? "right-[3px]" : "left-[3px]"
-                  }`}
-                />
-              </button>
+              />
+            </div>
+            <div className="mt-3 flex items-center gap-3 border-t border-ink/10 pt-3">
+              <div className="min-w-0 flex-1">
+                <div className="text-[14px]">Just my questions</div>
+                <div className="mt-0.5 text-[12px] text-muted">
+                  Quick fire asks only your queue, then wraps up — no topic fallback.
+                </div>
+              </div>
+              <ToggleSwitch
+                checked={quickfireQueueOnly}
+                onToggle={() => {
+                  setQuickfireQueueOnly((v) => !v);
+                  touch();
+                }}
+              />
             </div>
           </Field>
         </div>
@@ -259,5 +268,26 @@ export function InterviewGuideForm({
         {error && <span className="text-[12.5px] font-medium text-amber">{error}</span>}
       </div>
     </div>
+  );
+}
+
+/** The pill switch used by the mode card's boolean rows. */
+function ToggleSwitch({ checked, onToggle }: { checked: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={onToggle}
+      className={`relative h-[26px] w-11 shrink-0 rounded-full transition-colors ${
+        checked ? "bg-green-deep" : "bg-ink/20"
+      }`}
+    >
+      <span
+        className={`absolute top-[3px] h-5 w-5 rounded-full bg-white transition-all ${
+          checked ? "right-[3px]" : "left-[3px]"
+        }`}
+      />
+    </button>
   );
 }

@@ -42,7 +42,7 @@ export async function POST(_request: Request, { params }: { params: Params }) {
   const { data: series, error: seriesErr } = await svc
     .from("series")
     .select(
-      "id, subject_user_id, title, subject_name, subject_relationship, goal, opening_prompt, dont_bring_up, tone, session_minutes, voice, interviewer_name, depth, conversation_mode, planned_sessions",
+      "id, subject_user_id, title, subject_name, subject_relationship, goal, opening_prompt, dont_bring_up, tone, session_minutes, voice, interviewer_name, depth, conversation_mode, quickfire_queue_only, planned_sessions",
     )
     .eq("id", interview.series_id)
     .maybeSingle();
@@ -175,6 +175,7 @@ export async function POST(_request: Request, { params }: { params: Params }) {
     sessionNumber,
     mode,
     queuedQuestions,
+    quickfireQueueOnly: series.quickfire_queue_only,
   });
 
   // Realtime function tools per mode. Shapes verified against

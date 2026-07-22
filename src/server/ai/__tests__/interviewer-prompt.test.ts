@@ -6,7 +6,7 @@ const base = { series: { title: "Dad's Story", subjectName: "Henk", subjectRelat
   plannedSessions: null }, handTheMic: false, sessionNumber: 1,
   knownFacts: [{ topic: "Meeting Jan", statement: "Met Jan, spring 1975, on the Hoek van Holland ferry." }],
   topics: [{ name: "Health & habits", coverageScore: 0, mustCover: true, suggested: false }], retellQueue: [],
-  mode: "deep" as const, queuedQuestions: [] as string[] };
+  mode: "deep" as const, queuedQuestions: [] as string[], quickfireQueueOnly: false };
 it("bakes in the guide rails", () => {
   const p = buildInterviewerInstructions(base);
   for (const s of ["Anna", "Henk", "Rotterdam first", "Pieter's accident", "never", "one question",
@@ -195,5 +195,37 @@ describe("conversation modes", () => {
     expect(out).not.toContain("A must-cover topic");
     // total passed to mark_question_asked reflects the capped length.
     expect(out).toContain('"total": 7');
+  });
+
+  it("queue-only quickfire asks just the queue and ends with the list, not the clock", () => {
+    const out = buildInterviewerInstructions({
+      ...base,
+      mode: "quickfire",
+      quickfireQueueOnly: true,
+      queuedQuestions: ["Who was there on opening day?", "How did the first holiday season go?"],
+    });
+    expect(out).toContain("1. Who was there on opening day? [from the queue]");
+    expect(out).toContain("2. How did the first holiday season go? [from the queue]");
+    expect(out).not.toContain("Health & habits"); // base's must-cover topic — no fallback
+    expect(out).toContain("ONLY the questions below");
+    expect(out).toContain("The session is over when the QUESTION LIST is");
+    expect(out).not.toContain("As the session length approaches");
+  });
+
+  it("queue-only with an empty queue falls back to topics — a session never starts empty", () => {
+    const out = buildInterviewerInstructions({
+      ...base,
+      mode: "quickfire",
+      quickfireQueueOnly: true,
+      queuedQuestions: [],
+    });
+    expect(out).toContain("1. Health & habits");
+    expect(out).toContain("As the session length approaches"); // normal ENDING
+  });
+
+  it("queue-only outside quickfire changes nothing", () => {
+    const off = buildInterviewerInstructions({ ...base, mode: "flow" });
+    const on = buildInterviewerInstructions({ ...base, mode: "flow", quickfireQueueOnly: true });
+    expect(on).toBe(off);
   });
 });

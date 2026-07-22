@@ -22,6 +22,7 @@ function series(overrides: Partial<Series> & Pick<Series, "id">): Series {
     depth: "balanced",
     conversation_mode: "deep",
     ask_mode_each_time: false,
+    quickfire_queue_only: false,
     planned_sessions: null,
     photo_path: null,
     status: "active",

@@ -35,6 +35,12 @@ export type BuildInterviewerInstructionsInput = {
   mode: ConversationMode;
   /** Pending queue texts, position order (0 = next up). Empty when the queue is empty. */
   queuedQuestions: string[];
+  /**
+   * "Just my questions": quickfire asks ONLY the queue, then wraps up — no
+   * topic fallback. Ignored outside quickfire, and ignored when the queue is
+   * empty (an empty list would leave the session with nothing to ask).
+   */
+  quickfireQueueOnly: boolean;
 };
 
 const TONE_REGISTER: Record<SeriesTone, string> = {
@@ -97,6 +103,12 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
       : input.mode === "flow"
         ? "balanced"
         : "single";
+
+  // "Just my questions" drops quickfire's topic fallback entirely and swaps
+  // the ENDING for a finish-the-list close — but only when the queue actually
+  // has questions, so a session never starts with nothing to ask.
+  const queueOnly =
+    input.mode === "quickfire" && input.quickfireQueueOnly && input.queuedQuestions.length > 0;
 
   const sections: string[] = [];
 
@@ -169,15 +181,20 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
     const cap = Math.max(1, Math.round(series.sessionMinutes / 1.5));
     const combined = [
       ...input.queuedQuestions.map((q) => `${q} [from the queue]`),
-      ...sortedTopics.filter((t) => t.mustCover).map((t) => t.name),
+      ...(queueOnly ? [] : sortedTopics.filter((t) => t.mustCover).map((t) => t.name)),
     ].slice(0, cap);
     const numbered = combined.map((item, i) => `${i + 1}. ${item}`);
     sections.push(
       [
         "QUESTION LIST (ask in order)",
-        "This session is Quickfire: the list below IS the agenda. Ask each item as a single clear question, " +
-          "near-verbatim for queue items, one at a time, in order. Take the answer as given — no follow-ups " +
-          "(see ONE QUESTION, ONE ANSWER). It is fine to get through all of them.",
+        queueOnly
+          ? "This session is Quickfire, and the owner chose to ask ONLY the questions below — they are the " +
+            "entire session. Ask each one as a single clear question, near-verbatim, one at a time, in order. " +
+            "Take the answer as given — no follow-ups (see ONE QUESTION, ONE ANSWER). Never add questions of " +
+            "your own; when the list is done, the session is done (see ENDING)."
+          : "This session is Quickfire: the list below IS the agenda. Ask each item as a single clear question, " +
+            "near-verbatim for queue items, one at a time, in order. Take the answer as given — no follow-ups " +
+            "(see ONE QUESTION, ONE ANSWER). It is fine to get through all of them.",
         ...(numbered.length > 0
           ? numbered
           : ["1. (The queue and must-cover topics are empty — follow the goal with simple, single questions.)"]),
@@ -419,13 +436,23 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
   sections.push(["STYLE", ...styleLines].join("\n"));
 
   // ---- ENDING ----
+  // Queue-only quickfire ends when the LIST ends, not when the clock does —
+  // the owner asked for exactly these questions and nothing more.
   sections.push(
-    [
-      "ENDING",
-      "As the session length approaches, begin steering toward a close. Thank the subject warmly for what " +
-        "they shared, reflect back one specific detail that stood out, and end on an easy, unhurried note — " +
-        "never cut off abruptly.",
-    ].join("\n"),
+    queueOnly
+      ? [
+          "ENDING",
+          "The session is over when the QUESTION LIST is — do not stretch it to fill the session length, and " +
+            "do not add questions beyond the list. After the final item is answered and marked, thank the " +
+            "subject warmly, reflect back one specific detail that stood out, and let them know they can tap " +
+            "“I'm done” whenever they're ready. Never cut off abruptly.",
+        ].join("\n")
+      : [
+          "ENDING",
+          "As the session length approaches, begin steering toward a close. Thank the subject warmly for what " +
+            "they shared, reflect back one specific detail that stood out, and end on an easy, unhurried note — " +
+            "never cut off abruptly.",
+        ].join("\n"),
   );
 
   return sections.join("\n\n");
