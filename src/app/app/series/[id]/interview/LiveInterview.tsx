@@ -299,6 +299,9 @@ export function LiveInterview({
                 // Malformed args — treat as no proposal; conversation continues.
               }
               if (questions.length > 0) {
+                // If a call_id was already pending (rare — the model replaced
+                // its own proposal with a new one), the old call_id is
+                // intentionally abandoned in favor of this newer call.
                 followupCallIdRef.current = item.call_id;
                 if (nudgeTimerRef.current) clearTimeout(nudgeTimerRef.current);
                 nudgedRef.current = false;
@@ -825,7 +828,10 @@ export function LiveInterview({
             label={isPaused ? "Resume" : "Pause"}
             glyph={isPaused ? "▶" : "⏸"}
             onClick={togglePause}
-            disabled={!connected || isEnding}
+            // While cards are up the mic is already frozen and track.enabled
+            // has one owner — pausing is disabled so Resume can't silently
+            // unfreeze it mid-choice.
+            disabled={!connected || isEnding || (mode === "flow" && followups !== null)}
           />
           {mode === "flow" ? (
             <SessionButton
