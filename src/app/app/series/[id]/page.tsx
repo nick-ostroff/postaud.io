@@ -18,6 +18,7 @@ import {
   listInterviewsForSeries,
 } from "@/db/queries";
 import { getVaultLink } from "@/db/queries/vault";
+import { personaFor } from "@/lib/voices";
 import { ExportCard } from "./ExportCard";
 import { PendingSummaryRefresher } from "./PendingSummaryRefresher";
 import { PromoteChip } from "./PromoteChip";
@@ -226,7 +227,7 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
           <Card className="px-[22px] py-5">
             <h3>Topic queue</h3>
             <p className="text-[13px] text-muted">
-              What Anna plans to explore next — reorder, add your own, or let her follow the thread.
+              What {personaFor(series.voice).name} plans to explore next — reorder, add your own, or let them follow the thread.
             </p>
 
             {queueTopics.length === 0 ? (
@@ -271,7 +272,7 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
 
         <div className="flex flex-col gap-[18px]">
           <Card className="px-[22px] py-5">
-            <h3>What Anna knows</h3>
+            <h3>What {personaFor(series.voice).name} knows</h3>
             <p className="text-[13px] text-muted">
               {summary.memoriesCount > 0
                 ? `${summary.memoriesCount} ${summary.memoriesCount === 1 ? "memory" : "memories"} saved so far.`
@@ -357,7 +358,7 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
           <Card className="px-[22px] py-5">
             <h3>Export</h3>
             <p className="text-[13px] text-muted">
-              Take everything Anna has learned with you — nothing is locked in.
+              Take everything {personaFor(series.voice).name} has learned with you — nothing is locked in.
             </p>
             <ExportCard seriesId={series.id} />
           </Card>

@@ -8,6 +8,8 @@ type Props = {
   ownerFirstName: string;
   topicName: string | null;
   memoriesCount: number;
+  /** The persona name derived from the series' voice. */
+  interviewerName: string;
 };
 
 /**
@@ -16,7 +18,7 @@ type Props = {
  * Exactly one primary action: "Start talking". "Not today" and "Your
  * memories" are quiet, secondary escape hatches, not competing CTAs.
  */
-export function IntervieweeHome({ name, seriesId, ownerFirstName, topicName, memoriesCount }: Props) {
+export function IntervieweeHome({ name, seriesId, ownerFirstName, topicName, memoriesCount, interviewerName }: Props) {
   const prompt = topicName
     ? `${ownerFirstName} would love to hear about ${topicName}.`
     : `${ownerFirstName} would love to hear whatever you feel like sharing today.`;
@@ -41,7 +43,7 @@ export function IntervieweeHome({ name, seriesId, ownerFirstName, topicName, mem
             ◉
           </span>
           <span className="text-[16px] font-semibold">Start talking</span>
-          <span className="text-[11px] font-medium opacity-80">Anna is ready to listen</span>
+          <span className="text-[11px] font-medium opacity-80">{interviewerName} is ready to listen</span>
         </Link>
 
         <form action={snoozeSeriesAction} className="mt-6">

@@ -93,7 +93,7 @@ export function SeriesDetailsForm({
           />
         </Field>
       )}
-      <Field label="Goal" hint="What this series is trying to capture — it steers where Anna takes the conversations.">
+      <Field label="Goal" hint="What this series is trying to capture — it steers where the interviewer takes the conversations.">
         <textarea
           value={goal}
           onChange={(e) => {

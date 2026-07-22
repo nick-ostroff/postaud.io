@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { getSeries, getViewer } from "@/db/queries";
+import { personaFor } from "@/lib/voices";
 import { canInterviewSeries } from "@/server/interviews/access";
 
 type Params = Promise<{ id: string }>;
@@ -45,7 +46,7 @@ export default async function HandoffPage({ params }: { params: Params }) {
             <span aria-hidden className="mt-[3px] text-green-deep">
               ●
             </span>
-            Anna will call {series.subject_name} by name
+            {personaFor(series.voice).name} will call {series.subject_name} by name
           </li>
           <li className="flex gap-2.5">
             <span aria-hidden className="mt-[3px] text-green-deep">

@@ -15,6 +15,7 @@ import {
   listMembers,
 } from "@/db/queries";
 import { firstNameOf } from "@/lib/names";
+import { personaFor } from "@/lib/voices";
 import { pickIntervieweeSeries } from "@/server/interviewee/select-series";
 import { subjectPhotoUrl } from "@/server/series/photo-url";
 import { staleness } from "@/server/series/staleness";
@@ -81,6 +82,7 @@ export default async function DashboardHome({ searchParams }: { searchParams: Se
             ownerFirstName={firstNameOf(ownerName) ?? "Your family"}
             topicName={promptTopic?.name ?? null}
             memoriesCount={summaries[chosen.id]?.memoriesCount ?? 0}
+            interviewerName={personaFor(chosen.voice).name}
           />
         );
       }

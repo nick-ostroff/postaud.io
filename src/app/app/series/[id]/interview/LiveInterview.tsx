@@ -10,6 +10,8 @@ type LiveInterviewProps = {
   seriesId: string;
   seriesTitle: string;
   subjectName: string;
+  /** The persona name derived from the series' voice — never hardcode "Anna". */
+  interviewerName: string;
   handoff: boolean;
   mode: ConversationMode;
   pendingQueue: { id: string; text: string }[];
@@ -115,6 +117,7 @@ export function LiveInterview({
   seriesId,
   seriesTitle,
   subjectName,
+  interviewerName,
   handoff,
   mode,
   pendingQueue,
@@ -203,7 +206,7 @@ export function LiveInterview({
    * openai@6.34.0 (node_modules/openai/resources/realtime/realtime.d.ts):
    * - conversation.item.input_audio_transcription.completed → subject turn (.transcript)
    * - conversation.item.input_audio_transcription.delta → live subject line (.delta)
-   * - response.output_audio_transcript.done → Anna's finished line (.transcript)
+   * - response.output_audio_transcript.done → the interviewer's finished line (.transcript)
    * - input_audio_buffer.speech_started / speech_stopped → listening/thinking
    * - output_audio_buffer.started / stopped → speaking/listening
    * - response.done → accumulates event.response.usage (exact token counts,
@@ -792,8 +795,8 @@ export function LiveInterview({
   if (sessionError === "mic_denied") {
     return (
       <SessionCard
-        title="Anna can't hear you yet"
-        body={`To talk with Anna, your browser needs permission to use the microphone. Allow it in the address bar, then try again.`}
+        title={`${interviewerName} can't hear you yet`}
+        body={`To talk with ${interviewerName}, your browser needs permission to use the microphone. Allow it in the address bar, then try again.`}
         actionLabel="Try again"
         onAction={() => {
           setSessionError(null);
@@ -830,7 +833,7 @@ export function LiveInterview({
 
   return (
     <div className="dark-session fixed inset-0 z-50 flex flex-col overflow-hidden">
-      {/* hidden sink for Anna's voice */}
+      {/* hidden sink for the interviewer's voice */}
       <audio ref={audioElRef} autoPlay className="hidden" />
 
       {/* top bar */}
@@ -922,12 +925,12 @@ export function LiveInterview({
             <p className="font-serif text-[clamp(20px,3.2vw,30px)] leading-snug text-[#F7F5F0]">
               {currentQuestion ??
                 (handoff
-                  ? `Hi ${subjectName} — I'm Anna. Whenever you're ready, just say hello.`
-                  : "Anna is listening — say hello whenever you're ready.")}
+                  ? `Hi ${subjectName} — I'm ${interviewerName}. Whenever you're ready, just say hello.`
+                  : `${interviewerName} is listening — say hello whenever you're ready.`)}
             </p>
           ) : (
             <p className="font-serif text-xl text-[rgba(247,245,240,0.7)]">
-              Connecting to Anna…
+              Connecting to {interviewerName}…
             </p>
           )}
           {mode === "quickfire" && quickfireProgress ? (
@@ -1011,7 +1014,7 @@ export function LiveInterview({
                       : "mb-2 text-[13.5px] text-[rgba(247,245,240,0.6)]"
                   }
                 >
-                  {t.role === "interviewer" ? "Anna — " : ""}
+                  {t.role === "interviewer" ? `${interviewerName} — ` : ""}
                   {t.text}
                 </p>
               ))

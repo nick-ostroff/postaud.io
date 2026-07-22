@@ -7,6 +7,7 @@ import { getSeries, getViewer, listPendingQueuedQuestions } from "@/db/queries";
 import { serviceClient } from "@/db/service";
 import { isPlatformAdmin } from "@/lib/auth/is-platform-admin";
 import { canInterviewSeries } from "@/server/interviews/access";
+import { personaFor } from "@/lib/voices";
 import { StartInterviewError, startInterview } from "@/server/interviews/start";
 import { LiveInterview } from "./LiveInterview";
 
@@ -78,6 +79,7 @@ export default async function InterviewPage({
       return (
         <OutOfCreditsCard
           seriesId={series.id}
+          interviewerName={personaFor(series.voice).name}
           // Platform operators top up from the operator console; Stripe billing
           // is parked for V1, so everyone else gets an honest "not yet" instead
           // of a button that goes nowhere.
@@ -99,6 +101,7 @@ export default async function InterviewPage({
       seriesId={series.id}
       seriesTitle={series.title}
       subjectName={series.subject_name}
+      interviewerName={personaFor(series.voice).name}
       handoff={isHandoff}
       mode={mode}
       pendingQueue={pendingQueue}
@@ -157,7 +160,15 @@ function ModePicker({
   );
 }
 
-function OutOfCreditsCard({ seriesId, topUpHref }: { seriesId: string; topUpHref: string | null }) {
+function OutOfCreditsCard({
+  seriesId,
+  interviewerName,
+  topUpHref,
+}: {
+  seriesId: string;
+  interviewerName: string;
+  topUpHref: string | null;
+}) {
   return (
     <div className="flex min-h-[70vh] w-full items-center justify-center px-4">
       <Card className="max-w-md px-8 py-9 text-center">
@@ -168,8 +179,8 @@ function OutOfCreditsCard({ seriesId, topUpHref }: { seriesId: string; topUpHref
         <p className="mt-2 text-[14.5px] leading-relaxed text-muted">
           You&apos;ve used every interview credit on this workspace.{" "}
           {topUpHref
-            ? "Top up to keep the conversations going — everything Anna has already learned is safe and waiting."
-            : "Everything Anna has already learned is safe and waiting — get in touch and we'll add more."}
+            ? `Top up to keep the conversations going — everything ${interviewerName} has already learned is safe and waiting.`
+            : `Everything ${interviewerName} has already learned is safe and waiting — get in touch and we'll add more.`}
         </p>
         <div className="mt-6 flex flex-col items-center gap-2.5">
           {topUpHref ? (
