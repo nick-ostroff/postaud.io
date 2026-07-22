@@ -109,7 +109,10 @@ function makeChain(result: unknown) {
 
 const CURRENT_STARTED_AT = "2026-07-14T12:00:00Z";
 
-function makeSvcStub() {
+function makeSvcStub(
+  opts: { mode?: string; queued?: { id: string; text: string }[] } = {},
+) {
+  const { mode = "deep", queued = [] } = opts;
   const interviewRows: Row[] = [
     {
       id: "cur-1",
@@ -156,7 +159,7 @@ function makeSvcStub() {
       voice: "cedar",
       interviewer_name: "Some Stale Name",
       depth: "balanced",
-      conversation_mode: "deep",
+      conversation_mode: mode,
       planned_sessions: 6,
     },
     error: null,
@@ -168,7 +171,7 @@ function makeSvcStub() {
       if (table === "series") return makeChain(seriesResult);
       if (table === "topics") return makeChain({ data: [], error: null });
       if (table === "facts") return makeChain({ data: [], error: null });
-      if (table === "queued_questions") return makeChain({ data: [], error: null });
+      if (table === "queued_questions") return makeChain({ data: queued, error: null });
       throw new Error(`unexpected table: ${table}`);
     },
   };
@@ -222,5 +225,60 @@ describe("POST /api/interviews/[id]/realtime-token", () => {
     // spoken name from the voice, not the column.
     expect(sessionArg.session.audio.output.voice).toBe("cedar");
     expect(sessionArg.session.instructions).toContain("You are Ellis,");
+  });
+
+  it("flow mode mints a session with exactly the propose_followups tool and tool_choice auto", async () => {
+    mocks.serviceClient.mockReturnValue(makeSvcStub({ mode: "flow" }));
+    const res = await POST(new Request("http://localhost/x", { method: "POST" }), ctx());
+
+    expect(res.status).toBe(200);
+    const sessionArg = mocks.createClientSecret.mock.calls[0][0];
+    const tools = sessionArg.session.tools as { type: string; name: string }[];
+    expect(tools).toHaveLength(1);
+    expect(tools[0].type).toBe("function");
+    expect(tools[0].name).toBe("propose_followups");
+    expect(sessionArg.session.tool_choice).toBe("auto");
+  });
+
+  it("quickfire mode mints a session with the mark_question_asked tool", async () => {
+    mocks.serviceClient.mockReturnValue(makeSvcStub({ mode: "quickfire" }));
+    const res = await POST(new Request("http://localhost/x", { method: "POST" }), ctx());
+
+    expect(res.status).toBe(200);
+    const sessionArg = mocks.createClientSecret.mock.calls[0][0];
+    const tools = sessionArg.session.tools as { type: string; name: string }[];
+    expect(tools).toHaveLength(1);
+    expect(tools[0].name).toBe("mark_question_asked");
+    expect(sessionArg.session.tool_choice).toBe("auto");
+  });
+
+  it("deep mode mints a session with no tools key", async () => {
+    mocks.serviceClient.mockReturnValue(makeSvcStub({ mode: "deep" }));
+    const res = await POST(new Request("http://localhost/x", { method: "POST" }), ctx());
+
+    expect(res.status).toBe(200);
+    const sessionArg = mocks.createClientSecret.mock.calls[0][0];
+    expect(sessionArg.session.tools).toBeUndefined();
+    expect(sessionArg.session.tool_choice).toBeUndefined();
+  });
+
+  it("injects pending queue rows into the instructions and returns their order as queueIds", async () => {
+    mocks.serviceClient.mockReturnValue(
+      makeSvcStub({
+        mode: "quickfire",
+        queued: [
+          { id: "q-1", text: "Who was there on opening day?" },
+          { id: "q-2", text: "How did the first holiday season go?" },
+        ],
+      }),
+    );
+    const res = await POST(new Request("http://localhost/x", { method: "POST" }), ctx());
+
+    expect(res.status).toBe(200);
+    const sessionArg = mocks.createClientSecret.mock.calls[0][0];
+    expect(sessionArg.session.instructions).toContain("Who was there on opening day?");
+
+    const body = (await res.json()) as { queueIds: string[] };
+    expect(body.queueIds).toEqual(["q-1", "q-2"]);
   });
 });
