@@ -484,7 +484,13 @@ export function LiveInterview({
     setIsPaused((prev) => {
       const next = !prev;
       pausedRef.current = next;
-      micStreamRef.current?.getAudioTracks().forEach((t) => (t.enabled = !next));
+      // followupCallIdRef is non-null exactly when flow cards own the mic —
+      // Resume must not re-enable it out from under a pending card choice,
+      // regardless of whether the pause happened before or after the cards
+      // arrived. answerFollowup re-enables the mic itself once a card is chosen.
+      micStreamRef.current
+        ?.getAudioTracks()
+        .forEach((t) => (t.enabled = !next && followupCallIdRef.current === null));
       setOrbState(next ? "paused" : "listening");
       return next;
     });
@@ -828,9 +834,11 @@ export function LiveInterview({
             label={isPaused ? "Resume" : "Pause"}
             glyph={isPaused ? "▶" : "⏸"}
             onClick={togglePause}
-            // While cards are up the mic is already frozen and track.enabled
-            // has one owner — pausing is disabled so Resume can't silently
-            // unfreeze it mid-choice.
+            // UX polish only, not the invariant: this keeps the pause sheet
+            // unreachable while cards are up in the common case. The actual
+            // guarantee that Resume can't unfreeze the mic out from under a
+            // pending card choice — regardless of ordering — lives in
+            // togglePause's followupCallIdRef check.
             disabled={!connected || isEnding || (mode === "flow" && followups !== null)}
           />
           {mode === "flow" ? (
