@@ -30,7 +30,7 @@ export function QueueList({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function patch(body: unknown) {
+  async function patch(body: unknown, onFail?: () => void) {
     setBusy(true);
     setError(null);
     try {
@@ -42,6 +42,7 @@ export function QueueList({
       if (!res.ok) throw new Error();
       router.refresh();
     } catch {
+      onFail?.();
       setError("Couldn't update the queue — try again.");
     } finally {
       setBusy(false);
@@ -53,10 +54,11 @@ export function QueueList({
     const idx = items.findIndex((i) => i.id === id);
     const next = idx + dir;
     if (idx < 0 || next < 0 || next >= items.length) return;
+    const prev = items;
     const order = [...items];
     [order[idx], order[next]] = [order[next], order[idx]];
     setItems(order);
-    void patch({ action: "reorder", ids: order.map((i) => i.id) });
+    void patch({ action: "reorder", ids: order.map((i) => i.id) }, () => setItems(prev));
   }
 
   async function add() {
