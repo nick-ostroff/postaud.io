@@ -252,6 +252,10 @@ export async function POST(_request: Request, { params }: { params: Params }) {
     return NextResponse.json({
       clientSecret: response.value,
       model: model ?? REALTIME_MODEL,
+      // The exact queue order baked into the prompt's QUESTION LIST at mint
+      // time. The client maps mark_question_asked indices back through this,
+      // so admin reorders between page load and mint can't desync it.
+      queueIds: (queueRes.data ?? []).map((q) => q.id),
     });
   } catch (err) {
     return NextResponse.json(

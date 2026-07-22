@@ -86,14 +86,16 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
 
   if (body.action === "markAsked") {
     if (!ctx.canInterview) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    // Verify the interview actually belongs to this series before stamping
-    // it as the asked-in interview — a client-supplied id from another
-    // series must not be trusted.
+    // Verify the interview actually belongs to this series AND is still in
+    // progress before stamping it as the asked-in interview — a client-supplied
+    // id from another series, or a stale/finished one, must not be trusted.
+    // Matches the interview-scoped POST's in_progress requirement.
     const { data: interview, error: ivErr } = await svc
       .from("interviews")
       .select("id")
       .eq("id", body.interviewId)
       .eq("series_id", id)
+      .eq("status", "in_progress")
       .maybeSingle();
     if (ivErr) return NextResponse.json({ error: ivErr.message }, { status: 500 });
     if (!interview) return NextResponse.json({ error: "invalid_interview" }, { status: 400 });

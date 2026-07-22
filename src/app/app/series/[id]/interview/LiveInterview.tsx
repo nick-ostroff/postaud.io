@@ -156,6 +156,14 @@ export function LiveInterview({
   const endingRef = useRef(false);
   const usageRef = useRef<RealtimeUsageAccumulator>(emptyUsageAccumulator());
   const realtimeModelRef = useRef<string | null>(null);
+  // The queue-row order the token route baked into the prompt at mint time —
+  // the single source of truth for mapping mark_question_asked indices and the
+  // flow opener back to rows. Refreshed on every mint/reconnect, so it self-
+  // heals if the queue changed between page load and connect.
+  const queueIdsRef = useRef<string[]>([]);
+  // Flow mode: has the opener question (queue row 0, which the prompt tells the
+  // model to open with) already been marked asked this session? One-shot guard.
+  const flowOpenerMarkedRef = useRef(false);
   // Flow mode: the call_id awaiting a chosen follow-up, the nudge fallback
   // timer, and whether we've already nudged for the current turn.
   const followupCallIdRef = useRef<string | null>(null);
@@ -249,6 +257,31 @@ export function LiveInterview({
               addTurn("interviewer", event.transcript);
               setCurrentQuestion(event.transcript.trim());
             }
+            // Flow opener: when the queue is non-empty the prompt instructs the
+            // model to OPEN with queue row 0, but nothing else ever marks that
+            // row asked (mark_question_asked is quickfire-only). On the model's
+            // first spoken line this session, flip row 0 to asked — best-effort
+            // and an approximation (we trust the prompt made the model open
+            // with it; we can't verify the words matched). One-shot per session.
+            if (
+              mode === "flow" &&
+              !flowOpenerMarkedRef.current &&
+              queueIdsRef.current.length > 0 &&
+              event.transcript
+            ) {
+              flowOpenerMarkedRef.current = true;
+              void fetch(`/api/series/${seriesId}/queue`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "markAsked",
+                  ids: [queueIdsRef.current[0]],
+                  interviewId,
+                }),
+              }).catch(() => {
+                // Unmarked row stays pending and reappears next session — acceptable.
+              });
+            }
             break;
           case "input_audio_buffer.speech_started":
             if (!pausedRef.current) setOrbState("listening");
@@ -314,6 +347,26 @@ export function LiveInterview({
                 micStreamRef.current?.getAudioTracks().forEach((t) => (t.enabled = false));
                 setFollowups(questions.slice(0, 3).map((text) => ({ text, queued: false })));
                 if (!pausedRef.current) setOrbState("listening");
+              } else {
+                // Malformed args or an empty question set. The prompt told the
+                // model to stay silent until the tool result arrives, so doing
+                // nothing here would leave it silent forever — dead air. Return
+                // an error output + response.create so it recovers (retries the
+                // tool or just keeps the conversation going).
+                const dc = dcRef.current;
+                if (dc?.readyState === "open") {
+                  dc.send(
+                    JSON.stringify({
+                      type: "conversation.item.create",
+                      item: {
+                        type: "function_call_output",
+                        call_id: item.call_id,
+                        output: JSON.stringify({ error: "invalid_proposal" }),
+                      },
+                    }),
+                  );
+                  dc.send(JSON.stringify({ type: "response.create" }));
+                }
               }
             }
             if (
@@ -349,16 +402,19 @@ export function LiveInterview({
                 dc.send(JSON.stringify({ type: "response.create" }));
               }
 
-              // Items 1..pendingQueue.length in the QUESTION LIST are queue
-              // rows, in order (the token route builds the list queue-first
-              // from the same position sort). Flip the matching row to
-              // asked — best-effort.
-              const queueItem = index >= 1 && index <= pendingQueue.length ? pendingQueue[index - 1] : null;
-              if (queueItem) {
+              // Items 1..queueIdsRef.length in the QUESTION LIST are queue
+              // rows, in order. queueIdsRef holds the exact order the token
+              // route baked into the prompt at mint time — the same one shown
+              // to the model — so it can't desync from an admin reorder between
+              // page load and mint, and it self-heals on reconnect. Flip the
+              // matching row to asked — best-effort.
+              const queueId =
+                index >= 1 && index <= queueIdsRef.current.length ? queueIdsRef.current[index - 1] : null;
+              if (queueId) {
                 void fetch(`/api/series/${seriesId}/queue`, {
                   method: "PATCH",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ action: "markAsked", ids: [queueItem.id], interviewId }),
+                  body: JSON.stringify({ action: "markAsked", ids: [queueId], interviewId }),
                 }).catch(() => {
                   // Unmarked rows stay pending and get re-asked next time — acceptable.
                 });
@@ -369,7 +425,7 @@ export function LiveInterview({
         }
       };
     },
-    [addTurn, mode, pendingQueue, seriesId, interviewId],
+    [addTurn, mode, seriesId, interviewId],
   );
 
   /** Stop every media resource. Safe to call repeatedly. */
@@ -456,11 +512,16 @@ export function LiveInterview({
           method: "POST",
         });
         if (!tokenRes.ok) throw new Error("token_mint_failed");
-        const { clientSecret, model } = (await tokenRes.json()) as {
+        const { clientSecret, model, queueIds } = (await tokenRes.json()) as {
           clientSecret: string;
           model: string;
+          queueIds?: string[];
         };
         realtimeModelRef.current = model;
+        // The order the prompt's QUESTION LIST / flow opener was built from.
+        // Refreshed on every mint (including reconnects), so index-based
+        // mark-asked mapping tracks exactly what the model was shown.
+        queueIdsRef.current = queueIds ?? [];
 
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
@@ -578,8 +639,12 @@ export function LiveInterview({
     dc.send(JSON.stringify({ type: "response.create" }));
     followupCallIdRef.current = null;
     setFollowups(null);
-    micStreamRef.current?.getAudioTracks().forEach((t) => (t.enabled = true));
-    setOrbState("thinking");
+    // If the session was paused while the cards were up (a pause before the
+    // cards even arrived is held by togglePause's followupCallIdRef guard),
+    // answering a card must not silently re-open the mic or flip the orb off
+    // "paused" — honor the pause until the user resumes.
+    micStreamRef.current?.getAudioTracks().forEach((t) => (t.enabled = !pausedRef.current));
+    if (!pausedRef.current) setOrbState("thinking");
   }, []);
 
   /** Flow mode: save a proposed follow-up for later instead of answering it now. */
@@ -806,7 +871,7 @@ export function LiveInterview({
               <div className="flex flex-col gap-2.5">
                 {followups.map((card, i) => (
                   <div
-                    key={card.text}
+                    key={i}
                     className={`flex items-center gap-2.5 rounded-[13px] border px-3.5 py-3 ${
                       card.queued
                         ? "border-[rgba(240,237,230,0.18)] bg-[rgba(240,237,230,0.08)] opacity-45"
