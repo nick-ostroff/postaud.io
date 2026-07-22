@@ -77,14 +77,34 @@ describe("PATCH /api/series/[id]", () => {
     expect(calls.updates).toEqual([{ voice: "cedar", interviewer_name: "Ellis" }]);
   });
 
-  it("leaves interviewer_name untouched when only depth is sent", async () => {
+  it("leaves interviewer_name untouched when only conversationMode is sent", async () => {
+    const { supabase, calls } = makeSupabaseStub();
+    mocks.getViewer.mockResolvedValue({ supabase, organization: { id: "org-1" }, role: "admin" });
+
+    const res = await PATCH(patchReq({ conversationMode: "quickfire" }), ctx());
+
+    expect(res.status).toBe(200);
+    expect(calls.updates).toEqual([{ conversation_mode: "quickfire" }]);
+  });
+
+  it("maps askModeEachTime to ask_mode_each_time", async () => {
+    const { supabase, calls } = makeSupabaseStub();
+    mocks.getViewer.mockResolvedValue({ supabase, organization: { id: "org-1" }, role: "admin" });
+
+    const res = await PATCH(patchReq({ askModeEachTime: true }), ctx());
+
+    expect(res.status).toBe(200);
+    expect(calls.updates).toEqual([{ ask_mode_each_time: true }]);
+  });
+
+  it("no longer accepts depth — a depth-only request is ignored and rejected as empty", async () => {
     const { supabase, calls } = makeSupabaseStub();
     mocks.getViewer.mockResolvedValue({ supabase, organization: { id: "org-1" }, role: "admin" });
 
     const res = await PATCH(patchReq({ depth: "deep" }), ctx());
 
-    expect(res.status).toBe(200);
-    expect(calls.updates).toEqual([{ depth: "deep" }]);
+    expect(res.status).toBe(400);
+    expect(calls.updates).toEqual([]);
   });
 
   it("leaves interviewer_name (and planned_sessions) untouched when only plannedSessions is sent", async () => {

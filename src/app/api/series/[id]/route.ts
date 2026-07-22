@@ -13,7 +13,8 @@ const updateSeriesSchema = z.object({
   tone: z.enum(["warm", "neutral", "playful"]).optional(),
   sessionMinutes: z.union([z.literal(10), z.literal(20), z.literal(45)]).optional(),
   voice: z.enum(VOICE_IDS).optional(),
-  depth: z.enum(["single", "light", "balanced", "deep"]).optional(),
+  conversationMode: z.enum(["deep", "flow", "quickfire"]).optional(),
+  askModeEachTime: z.boolean().optional(),
   plannedSessions: z.number().int().min(1).max(50).nullable().optional(),
 });
 
@@ -35,8 +36,19 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  const { title, goal, subjectRelationship, openingPrompt, dontBringUp, tone, sessionMinutes, voice, depth, plannedSessions } =
-    parsed.data;
+  const {
+    title,
+    goal,
+    subjectRelationship,
+    openingPrompt,
+    dontBringUp,
+    tone,
+    sessionMinutes,
+    voice,
+    conversationMode,
+    askModeEachTime,
+    plannedSessions,
+  } = parsed.data;
   const update: TablesUpdate<"series"> = {};
   if (title !== undefined) update.title = title;
   if (goal !== undefined) update.goal = goal;
@@ -51,7 +63,8 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
     update.voice = persona.id;
     update.interviewer_name = persona.name;
   }
-  if (depth !== undefined) update.depth = depth;
+  if (conversationMode !== undefined) update.conversation_mode = conversationMode;
+  if (askModeEachTime !== undefined) update.ask_mode_each_time = askModeEachTime;
   if (plannedSessions !== undefined) update.planned_sessions = plannedSessions;
 
   if (Object.keys(update).length === 0) {

@@ -31,11 +31,13 @@ export default async function SeriesSettingsPage({ params }: { params: Params })
     redirect(`/app/series/${id}`);
   }
 
-  const [members, accessRes] = await Promise.all([
+  const [members, accessRes, queueCountRes] = await Promise.all([
     listMembers(supabase),
     supabase.from("series_access").select("user_id, can_view, can_interview").eq("series_id", id),
+    supabase.from("queued_questions").select("id", { count: "exact", head: true }).eq("series_id", id).eq("status", "pending"),
   ]);
   if (accessRes.error) throw new Error(accessRes.error.message);
+  const queueCount = queueCountRes.count ?? 0;
 
   const levelByUser = new Map<string, AccessLevel>();
   for (const row of accessRes.data ?? []) {
@@ -135,9 +137,25 @@ export default async function SeriesSettingsPage({ params }: { params: Params })
               initialDontBringUp={dontBringUp}
               initialTone={series.tone}
               initialSessionMinutes={series.session_minutes as 10 | 20 | 45}
-              initialDepth={series.depth}
+              initialConversationMode={series.conversation_mode}
+              initialAskModeEachTime={series.ask_mode_each_time}
               initialPlannedSessions={series.planned_sessions}
             />
+          </Card>
+
+          <Card className="px-[22px] py-5">
+            <div className="flex items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <h3>Question queue</h3>
+                <div className="mt-0.5 text-[13px] text-muted">Saved follow-ups from Flow sessions.</div>
+              </div>
+              <Link
+                href={`/app/series/${series.id}/queue`}
+                className="shrink-0 text-[13.5px] font-semibold text-green-deep"
+              >
+                {queueCount > 0 ? `${queueCount} waiting ›` : "Open ›"}
+              </Link>
+            </div>
           </Card>
 
           <Card className="px-[22px] py-5">
