@@ -111,55 +111,68 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
   if (ctx.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   if (body.action === "reorder") {
-    // ids is the desired pending order; write positions 0..n-1 in one
-    // atomic upsert rather than a per-row loop, so a mid-write failure can't
-    // leave the queue half-reordered.
+    // ids is the desired pending order; write positions 0..n-1.
+    // Column-scoped updates (position/updated_at only), each still guarded
+    // by status = "pending", rather than a full-row upsert: spreading a
+    // previously-read row back would silently revert a concurrent remove or
+    // markAsked status change (lost-update race on status/
+    // asked_in_interview_id). The trade-off is that a mid-write failure
+    // degrades to benign position skew instead of full atomicity — ties are
+    // resolved by the created_at secondary sort, so the queue stays usable.
     const { data: pending, error: listErr } = await svc
       .from("queued_questions")
-      .select("*")
+      .select("id")
       .eq("series_id", id)
       .eq("status", "pending");
     if (listErr) return NextResponse.json({ error: listErr.message }, { status: 500 });
-    const byId = new Map((pending ?? []).map((r) => [r.id, r] as const));
-    // Ignore ids that aren't actually pending in this series — this also
-    // guarantees the upsert below can never insert a new row.
-    const orderedIds = body.ids.filter((qid) => byId.has(qid));
-    const rows = orderedIds.map((qid, i) => ({
-      ...byId.get(qid)!,
-      position: i,
-      updated_at: new Date().toISOString(),
-    }));
-    if (rows.length > 0) {
-      const { error } = await svc.from("queued_questions").upsert(rows, { onConflict: "id" });
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    const pendingIds = new Set((pending ?? []).map((r) => r.id));
+    // Ignore ids that aren't actually pending in this series.
+    const orderedIds = body.ids.filter((qid) => pendingIds.has(qid));
+    const results = await Promise.all(
+      orderedIds.map((qid, i) =>
+        svc
+          .from("queued_questions")
+          .update({ position: i, updated_at: new Date().toISOString() })
+          .eq("id", qid)
+          .eq("series_id", id)
+          .eq("status", "pending"),
+      ),
+    );
+    const failed = results.find((r) => r.error);
+    if (failed?.error) return NextResponse.json({ error: failed.error.message }, { status: 500 });
     return NextResponse.json({ ok: true });
   }
 
   if (body.action === "pin") {
     // Pin = re-write positions from the freshly-read pending order with the
-    // pinned id first, in one atomic upsert.
+    // pinned id first. Same column-scoped-update approach as reorder above
+    // (see that comment): each write touches only position/updated_at and
+    // is guarded by status = "pending", so a row whose status changed
+    // underneath is skipped rather than reverted.
     const { data: pending, error: listErr } = await svc
       .from("queued_questions")
-      .select("*")
+      .select("id")
       .eq("series_id", id)
       .eq("status", "pending")
       .order("position", { ascending: true })
       .order("created_at", { ascending: true });
     if (listErr) return NextResponse.json({ error: listErr.message }, { status: 500 });
-    const byId = new Map((pending ?? []).map((r) => [r.id, r] as const));
+    const pendingIds = new Set((pending ?? []).map((r) => r.id));
     const orderedIds = [body.id, ...(pending ?? []).map((r) => r.id).filter((x) => x !== body.id)].filter((qid) =>
-      byId.has(qid),
+      pendingIds.has(qid),
     );
-    const rows = orderedIds.map((qid, i) => ({
-      ...byId.get(qid)!,
-      position: i,
-      updated_at: new Date().toISOString(),
-    }));
-    if (rows.length > 0) {
-      const { error } = await svc.from("queued_questions").upsert(rows, { onConflict: "id" });
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    const results = await Promise.all(
+      orderedIds.map((qid, i) =>
+        svc
+          .from("queued_questions")
+          .update({ position: i, updated_at: new Date().toISOString() })
+          .eq("id", qid)
+          .eq("series_id", id)
+          .eq("status", "pending"),
+      ),
+    );
+    const failed = results.find((r) => r.error);
+    if (failed?.error) return NextResponse.json({ error: failed.error.message }, { status: 500 });
     return NextResponse.json({ ok: true });
   }
 
