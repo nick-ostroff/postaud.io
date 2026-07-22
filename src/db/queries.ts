@@ -12,6 +12,7 @@ import type {
   InterviewSummary,
   InterviewUsage,
   Membership,
+  QueuedQuestion,
   Series,
   Topic,
 } from "@/db/types";
@@ -677,4 +678,24 @@ export async function getFactDetail(sb: SupabaseClient<Database>, factId: string
     audioPath: f.interviews?.audio_path ?? null,
     audioOffsetSec: f.audio_offset_sec,
   };
+}
+
+// =========================================================
+// Question queue (Task 4)
+// =========================================================
+
+/** Pending queue for a series, position order (0 = next up). RLS: can_view_series. */
+export async function listPendingQueuedQuestions(
+  supabase: SupabaseClient<Database>,
+  seriesId: string,
+): Promise<QueuedQuestion[]> {
+  const { data, error } = await supabase
+    .from("queued_questions")
+    .select("*")
+    .eq("series_id", seriesId)
+    .eq("status", "pending")
+    .order("position", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return data ?? [];
 }
