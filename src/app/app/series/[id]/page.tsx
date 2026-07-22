@@ -18,7 +18,9 @@ import {
   listInterviewsForSeries,
   listPendingQueuedQuestions,
 } from "@/db/queries";
+import { canInterviewSeries } from "@/server/interviews/access";
 import { personaFor } from "@/lib/voices";
+import { AddQueueQuestion } from "./AddQueueQuestion";
 import { PendingSummaryRefresher } from "./PendingSummaryRefresher";
 import { PromoteChip } from "./PromoteChip";
 import { QueueOrderList } from "./QueueOrderList";
@@ -56,18 +58,27 @@ type Params = Promise<{ id: string }>;
 
 export default async function SeriesDetailPage({ params }: { params: Params }) {
   const { id } = await params;
-  const { supabase, role } = await getViewer();
+  const { supabase, role, user } = await getViewer();
   const isAdmin = role === "admin";
 
   const series = await getSeries(supabase, id);
   if (!series) notFound();
 
-  const [summaries, knowledge, sessions, access, pendingQuestions] = await Promise.all([
+  const [summaries, knowledge, sessions, access, pendingQuestions, canAddQuestion] = await Promise.all([
     getSeriesSummaries(supabase, [id]),
     getSeriesKnowledge(supabase, id),
     listInterviewsForSeries(supabase, id),
     getSeriesAccessSummary(supabase, id),
     listPendingQueuedQuestions(supabase, id),
+    // The Add composer POSTs to the queue API, which requires interview
+    // access (403s view-only members) — same server-side gate as the queue
+    // page's composer, so we never render an input that can only fail.
+    canInterviewSeries(supabase, {
+      userId: user.id,
+      role,
+      seriesSubjectUserId: series.subject_user_id,
+      seriesId: series.id,
+    }),
   ]);
 
   const summary = summaries[id];
@@ -233,8 +244,8 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
 
             {pendingQuestions.length === 0 ? (
               <p className="mt-3 text-[13.5px] text-muted">
-                No questions queued yet — save follow-ups during a Flow session, or add your own from the
-                queue page.
+                No questions queued yet — save follow-ups during a Flow session
+                {canAddQuestion ? ", or add your own below." : "."}
               </p>
             ) : (
               <QueueOrderList
@@ -260,6 +271,8 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
                 </div>
               </div>
             )}
+
+            {canAddQuestion && <AddQueueQuestion seriesId={series.id} />}
           </Card>
         </div>
 
