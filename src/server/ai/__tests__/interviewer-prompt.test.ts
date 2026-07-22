@@ -1,11 +1,12 @@
-import { it, expect } from "vitest";
+import { describe, it, expect } from "vitest";
 import { buildInterviewerInstructions } from "../interviewer-prompt";
 const base = { series: { title: "Dad's Story", subjectName: "Henk", subjectRelationship: "father",
   goal: "Capture Dad's whole life", openingPrompt: "Start warm: Rotterdam first", dontBringUp: ["Pieter's accident"],
   tone: "warm" as const, sessionMinutes: 20, interviewerName: "Anna", depth: "balanced" as const,
   plannedSessions: null }, handTheMic: false, sessionNumber: 1,
   knownFacts: [{ topic: "Meeting Jan", statement: "Met Jan, spring 1975, on the Hoek van Holland ferry." }],
-  topics: [{ name: "Health & habits", coverageScore: 0, mustCover: true, suggested: false }], retellQueue: [] };
+  topics: [{ name: "Health & habits", coverageScore: 0, mustCover: true, suggested: false }], retellQueue: [],
+  mode: "deep" as const, queuedQuestions: [] as string[] };
 it("bakes in the guide rails", () => {
   const p = buildInterviewerInstructions(base);
   for (const s of ["Anna", "Henk", "Rotterdam first", "Pieter's accident", "never", "one question",
@@ -29,28 +30,22 @@ it("deep depth tells it to exhaust the thread", () => {
   const p = buildInterviewerInstructions({ ...base, series: { ...base.series, depth: "deep" } });
   expect(p.toLowerCase()).toContain("until it is genuinely exhausted");
 });
-it("each depth produces different instructions", () => {
-  const of = (depth: "single" | "light" | "balanced" | "deep") =>
+it("each of light/balanced/deep produces different instructions (single collapses into balanced under mode: deep — see conversation modes)", () => {
+  const of = (depth: "light" | "balanced" | "deep") =>
     buildInterviewerInstructions({ ...base, series: { ...base.series, depth } });
-  expect(new Set([of("single"), of("light"), of("balanced"), of("deep")]).size).toBe(4);
+  expect(new Set([of("light"), of("balanced"), of("deep")]).size).toBe(3);
 });
-it("single depth swaps thread-mining for a one-question-one-answer posture", () => {
-  const p = buildInterviewerInstructions({ ...base, series: { ...base.series, depth: "single" } });
+it("quickfire mode swaps thread-mining for a one-question-one-answer posture", () => {
+  const p = buildInterviewerInstructions({ ...base, mode: "quickfire", series: { ...base.series, depth: "single" } });
   expect(p).toContain("ONE QUESTION, ONE ANSWER");
   expect(p).not.toContain("STAY ON THE THREAD");
   expect(p.toLowerCase()).toContain("no follow-ups");
 });
-it("single depth carries none of the conversational mining instructions", () => {
-  const p = buildInterviewerInstructions({ ...base, series: { ...base.series, depth: "single" } });
+it("quickfire mode carries none of the conversational mining instructions", () => {
+  const p = buildInterviewerInstructions({ ...base, mode: "quickfire", series: { ...base.series, depth: "single" } });
   expect(p).not.toContain("lingering IS the work");
   expect(p).not.toContain("follow-ups on a thread");
   expect(p).not.toContain("mine it before");
-});
-it("single depth treats EXPLORE NEXT as the agenda, not a background compass", () => {
-  const p = buildInterviewerInstructions({ ...base, series: { ...base.series, depth: "single" } });
-  expect(p).not.toContain("background compass");
-  expect(p).not.toContain("NOT a checklist to march through");
-  expect(p).toContain("they ARE the agenda");
 });
 it("single depth still keeps the NEVER BRING UP guardrail supreme", () => {
   const p = buildInterviewerInstructions({ ...base, series: { ...base.series, depth: "single" } });
@@ -137,4 +132,46 @@ it("light depth's EXPLORE NEXT no longer fights its own DEPTH dial", () => {
   const p = buildInterviewerInstructions({ ...base, series: { ...base.series, depth: "light" } });
   expect(p).not.toContain("NOT a checklist to march through");
   expect(p).not.toContain("Only reach for the next topic once the current one is truly exhausted");
+});
+
+describe("conversation modes", () => {
+  it("deep mode with legacy depth 'single' coerces to balanced posture", () => {
+    const out = buildInterviewerInstructions({ ...base, mode: "deep", queuedQuestions: [], series: { ...base.series, depth: "single" } });
+    expect(out).toContain("STAY ON THE THREAD (this matters most)");
+    expect(out).not.toContain("ONE QUESTION, ONE ANSWER");
+  });
+
+  it("quickfire builds a numbered QUESTION LIST: queue first, then topics by coverage", () => {
+    const out = buildInterviewerInstructions({
+      ...base,
+      mode: "quickfire",
+      queuedQuestions: ["Who was there on opening day?", "How did the first holiday season go?"],
+      topics: [
+        { name: "The warehouse years", coverageScore: 0.5, mustCover: true, suggested: false },
+        { name: "First sofa sold", coverageScore: 0.1, mustCover: true, suggested: false },
+      ],
+    });
+    expect(out).toContain("QUESTION LIST");
+    const i1 = out.indexOf("1. Who was there on opening day?");
+    const i2 = out.indexOf("2. How did the first holiday season go?");
+    const i3 = out.indexOf("3. First sofa sold");   // lower coverage before higher
+    const i4 = out.indexOf("4. The warehouse years");
+    expect(Math.min(i1, i2, i3, i4)).toBeGreaterThan(-1);
+    expect(i1).toBeLessThan(i2); expect(i2).toBeLessThan(i3); expect(i3).toBeLessThan(i4);
+    expect(out).toContain("mark_question_asked");
+    expect(out).not.toContain("EXPLORE NEXT");
+  });
+
+  it("flow swaps thread-mining for the propose_followups contract", () => {
+    const out = buildInterviewerInstructions({ ...base, mode: "flow", queuedQuestions: [] });
+    expect(out).toContain("FLOW FOLLOW-UPS");
+    expect(out).toContain("propose_followups");
+    expect(out).not.toContain("STAY ON THE THREAD");
+    expect(out).not.toContain("DEPTH (how this series wants to be interviewed");
+  });
+
+  it("flow opens with the queue's next-up question when one exists", () => {
+    const out = buildInterviewerInstructions({ ...base, mode: "flow", queuedQuestions: ["Why '98 — what pushed you to finally open?"] });
+    expect(out).toContain('Open this session by asking, near-verbatim: "Why \'98 — what pushed you to finally open?"');
+  });
 });
