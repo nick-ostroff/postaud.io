@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ImageCropperModal } from "@/components/ui/ImageCropperModal";
 import { Segmented } from "@/components/ui/Segmented";
-import type { MemberRole, SeriesDepth, SeriesTone, SubjectKind } from "@/db/types";
+import type { ConversationMode, MemberRole, SubjectKind } from "@/db/types";
 import { DEFAULT_VOICE, personaFor } from "@/lib/voices";
 import type { VoiceId } from "@/lib/voices";
 import { VoicePicker } from "@/components/series/VoicePicker";
@@ -50,33 +50,24 @@ type TemplateId = (typeof TEMPLATES)[number]["id"];
 
 const DEFAULT_GOAL_PLACEHOLDER = "A sentence or two is plenty — this shapes every question Anna asks.";
 
-const TONE_OPTIONS: { value: SeriesTone; label: string }[] = [
-  { value: "warm", label: "Warm" },
-  { value: "neutral", label: "Neutral" },
-  { value: "playful", label: "Playful" },
-];
-
-const TONE_LABELS: Record<SeriesTone, string> = { warm: "Warm", neutral: "Neutral", playful: "Playful" };
-
 const LENGTH_OPTIONS = [
   { value: "10", label: "10 min" },
   { value: "20", label: "20 min" },
   { value: "45", label: "45 min" },
+  { value: "unlimited", label: "Unlimited" },
 ];
 
-const DEPTH_OPTIONS: { value: SeriesDepth; label: string }[] = [
-  { value: "single", label: "Single Q&A" },
-  { value: "light", label: "Light touch" },
-  { value: "balanced", label: "Balanced" },
-  { value: "deep", label: "Go deep" },
+const MODE_OPTIONS: { value: ConversationMode; label: string }[] = [
+  { value: "flow", label: "Flow" },
+  { value: "quickfire", label: "Quick fire" },
 ];
 
-const DEPTH_LABELS: Record<SeriesDepth, string> = {
-  single: "Single Q&A",
-  light: "Light touch",
-  balanced: "Balanced",
-  deep: "Go deep",
+const MODE_HINTS: Record<string, string> = {
+  flow: "Answer, then choose where to go next. Save follow-ups for later.",
+  quickfire: "One question after another from your queue and topics.",
 };
+
+const MODE_LABELS: Record<string, string> = { flow: "Flow", quickfire: "Quick fire" };
 
 const INVITE_ERROR_MESSAGES: Record<string, string> = {
   already_member: "Already a member of this workspace.",
@@ -164,10 +155,9 @@ export function Wizard({
   const [openingPrompt, setOpeningPrompt] = useState("");
   const [mustCover, setMustCover] = useState<string[]>([]);
   const [dontBringUp, setDontBringUp] = useState<string[]>([]);
-  const [tone, setTone] = useState<SeriesTone>("warm");
-  const [sessionMinutes, setSessionMinutes] = useState<10 | 20 | 45>(20);
+  const [totalMinutes, setTotalMinutes] = useState<number | null>(null);
   const [voice, setVoice] = useState<VoiceId>(DEFAULT_VOICE);
-  const [depth, setDepth] = useState<SeriesDepth>("balanced");
+  const [conversationMode, setConversationMode] = useState<ConversationMode>("flow");
   const [plannedSessions, setPlannedSessions] = useState<string>("");
 
   // Step 4 — Review
@@ -300,7 +290,6 @@ export function Wizard({
             goal,
             openingPrompt: openingPrompt.trim() || undefined,
             mustCover,
-            tone,
           }),
         });
         if (!res.ok) throw new Error(`question-plan ${res.status}`);
@@ -334,10 +323,9 @@ export function Wizard({
       openingPrompt: openingPrompt.trim() || undefined,
       mustCover,
       dontBringUp,
-      tone,
-      sessionMinutes,
+      totalMinutes,
       voice,
-      depth,
+      conversationMode,
       plannedSessions: (() => {
         const n = Number(plannedSessions);
         return plannedSessions.trim() && !Number.isNaN(n) ? n : null;
@@ -668,40 +656,26 @@ export function Wizard({
             </WizardField>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <WizardField label="Tone">
-                <Segmented name="tone" options={TONE_OPTIONS} value={tone} onChange={(v) => setTone(v as SeriesTone)} />
-              </WizardField>
-              <WizardField label="Session length">
+              <WizardField label="Conversation type" hint={MODE_HINTS[conversationMode] ?? MODE_HINTS.flow}>
                 <Segmented
-                  name="session-length"
-                  options={LENGTH_OPTIONS}
-                  value={String(sessionMinutes)}
-                  onChange={(v) => setSessionMinutes(Number(v) as 10 | 20 | 45)}
+                  name="conversation-mode"
+                  options={MODE_OPTIONS}
+                  value={conversationMode}
+                  onChange={(v) => setConversationMode(v as ConversationMode)}
                 />
               </WizardField>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {/* Four options make this the widest dial — full row so it never
-                  collides with its neighbor. */}
-              <div className="sm:col-span-2">
-                <WizardField
-                  label="Depth"
-                  hint={
-                    depth === "single"
-                      ? `One question, one answer — ${persona.name} collects each answer and moves on, no follow-ups. A simple way to gather information.`
-                      : "How long the questions run, and how hard each thread gets mined. Single Q&A skips follow-ups entirely."
-                  }
-                >
-                  <Segmented
-                    name="depth"
-                    options={DEPTH_OPTIONS}
-                    value={depth}
-                    onChange={(v) => setDepth(v as SeriesDepth)}
-                  />
-                </WizardField>
-              </div>
-              <WizardField label="Planned sessions (optional)" hint="Leave blank for open-ended. Setting it lets the interviewer pace the topics.">
+              <WizardField
+                label="Total conversation length"
+                hint="Total talk time across every session — the series wraps up once it's used."
+              >
+                <Segmented
+                  name="total-minutes"
+                  options={LENGTH_OPTIONS}
+                  value={totalMinutes == null ? "unlimited" : String(totalMinutes)}
+                  onChange={(v) => setTotalMinutes(v === "unlimited" ? null : Number(v))}
+                />
+              </WizardField>
+              <WizardField label="Total sessions" hint="Leave blank for unlimited — the series ends after the last one.">
                 <input
                   type="number"
                   min={1}
@@ -709,7 +683,7 @@ export function Wizard({
                   className={`${inputClasses} max-w-[140px]`}
                   value={plannedSessions}
                   onChange={(e) => handlePlannedSessionsChange(e.target.value)}
-                  placeholder="—"
+                  placeholder="∞"
                 />
               </WizardField>
             </div>
@@ -728,7 +702,7 @@ export function Wizard({
               <Card className="px-5 py-5">
                 <h3 className="serif text-[18px]">{persona.name} drafted the first session</h3>
                 <p className="mt-1 text-[13px] text-ink-soft">
-                  {depth === "single"
+                  {conversationMode === "quickfire"
                     ? `Reorder, edit, or remove anything — this is the list ${persona.name} will work through, one question and one answer at a time, with no follow-ups.`
                     : `Reorder, edit, or remove anything — this is a starting point. ${persona.name} improvises follow-ups from whatever ${subjectName || "they"} say.`}
                 </p>
@@ -797,10 +771,10 @@ export function Wizard({
                 {accessSummary}
               </KV>
               <KV k="Guide" edit={() => setStep(3)}>
-                {persona.name} · {TONE_LABELS[tone]} tone · {DEPTH_LABELS[depth]}
+                {persona.name} · {MODE_LABELS[conversationMode] ?? "Flow"}
                 <br />
-                {sessionMinutes}-minute sessions ·{" "}
-                {plannedSessions.trim() ? `${plannedSessions.trim()} planned` : "open-ended"}
+                {totalMinutes == null ? "No time limit" : `${totalMinutes} minutes total`} ·{" "}
+                {plannedSessions.trim() ? `${plannedSessions.trim()} sessions` : "unlimited sessions"}
                 <br />
                 {mustCover.length} must-cover topic{mustCover.length === 1 ? "" : "s"} · {dontBringUp.length} thing
                 {dontBringUp.length === 1 ? "" : "s"} {persona.name} won&apos;t raise

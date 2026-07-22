@@ -49,10 +49,9 @@ export function QuickCreate({
       subjectName: isSelf ? viewer.name : member?.name ?? "",
       mustCover: [],
       dontBringUp: [],
-      tone: "warm",
-      sessionMinutes: 20,
+      totalMinutes: null,
       voice: DEFAULT_VOICE,
-      depth: "balanced",
+      conversationMode: "flow",
       plannedSessions: null,
       access: [],
     };

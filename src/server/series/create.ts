@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { listMembers } from "@/db/queries";
 import { serviceClient } from "@/db/service";
-import type { Database, SeriesDepth, SeriesTone, SubjectKind } from "@/db/types";
+import type { Database, SubjectKind } from "@/db/types";
 import { personaFor, DEFAULT_VOICE } from "@/lib/voices";
 import { InviteMemberError, inviteMember } from "@/server/members/invite";
 
@@ -15,10 +15,10 @@ export type CreateSeriesInput = {
   openingPrompt?: string;
   mustCover: string[];
   dontBringUp: string[];
-  tone: SeriesTone;
-  sessionMinutes: 10 | 20 | 45;
+  /** Total talk time for the whole series, in minutes; null = unlimited. */
+  totalMinutes: number | null;
   voice?: string;
-  depth?: SeriesDepth;
+  conversationMode?: "flow" | "quickfire";
   plannedSessions?: number | null;
   access: { userId: string; canView: boolean; canInterview: boolean }[];
   inviteSubjectEmail?: string;
@@ -157,11 +157,10 @@ export async function createSeries(
       goal: input.goal.trim(),
       opening_prompt: input.openingPrompt?.trim() || null,
       dont_bring_up: input.dontBringUp,
-      tone: input.tone,
-      session_minutes: input.sessionMinutes,
+      total_minutes: input.totalMinutes,
       voice: persona.id,
       interviewer_name: persona.name,
-      depth: input.depth ?? "balanced",
+      conversation_mode: input.conversationMode ?? "flow",
       planned_sessions: input.plannedSessions ?? null,
       created_by: createdBy,
     })

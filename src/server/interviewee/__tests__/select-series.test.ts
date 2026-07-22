@@ -16,7 +16,7 @@ function series(overrides: Partial<Series> & Pick<Series, "id">): Series {
     opening_prompt: null,
     dont_bring_up: [],
     tone: "warm",
-    session_minutes: 20,
+    total_minutes: 20,
     voice: DEFAULT_VOICE,
     interviewer_name: "Anna",
     depth: "balanced",

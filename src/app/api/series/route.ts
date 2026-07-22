@@ -21,10 +21,10 @@ export const createSeriesSchema = z.object({
   openingPrompt: z.string().trim().optional(),
   mustCover: z.array(z.string().trim().min(1)).default([]),
   dontBringUp: z.array(z.string().trim().min(1)).default([]),
-  tone: z.enum(["warm", "neutral", "playful"]),
-  sessionMinutes: z.union([z.literal(10), z.literal(20), z.literal(45)]),
+  // Total talk time for the WHOLE series, in minutes; null = unlimited.
+  totalMinutes: z.union([z.literal(10), z.literal(20), z.literal(45)]).nullable().default(null),
   voice: z.enum(VOICE_IDS).default(DEFAULT_VOICE),
-  depth: z.enum(["single", "light", "balanced", "deep"]).default("balanced"),
+  conversationMode: z.enum(["flow", "quickfire"]).default("flow"),
   plannedSessions: z.number().int().min(1).max(50).nullable().default(null),
   access: z.array(accessEntrySchema).default([]),
   inviteSubjectEmail: z.string().email().optional(),

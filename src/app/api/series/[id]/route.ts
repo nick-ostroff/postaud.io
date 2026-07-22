@@ -10,11 +10,10 @@ const updateSeriesSchema = z.object({
   subjectRelationship: z.string().trim().optional(),
   openingPrompt: z.string().trim().optional(),
   dontBringUp: z.array(z.string().trim().min(1)).optional(),
-  tone: z.enum(["warm", "neutral", "playful"]).optional(),
-  sessionMinutes: z.union([z.literal(10), z.literal(20), z.literal(45)]).optional(),
+  // Total talk time for the WHOLE series, in minutes; null = unlimited.
+  totalMinutes: z.union([z.literal(10), z.literal(20), z.literal(45)]).nullable().optional(),
   voice: z.enum(VOICE_IDS).optional(),
-  conversationMode: z.enum(["deep", "flow", "quickfire"]).optional(),
-  quickfireQueueOnly: z.boolean().optional(),
+  conversationMode: z.enum(["flow", "quickfire"]).optional(),
   plannedSessions: z.number().int().min(1).max(50).nullable().optional(),
 });
 
@@ -42,11 +41,9 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
     subjectRelationship,
     openingPrompt,
     dontBringUp,
-    tone,
-    sessionMinutes,
+    totalMinutes,
     voice,
     conversationMode,
-    quickfireQueueOnly,
     plannedSessions,
   } = parsed.data;
   const update: TablesUpdate<"series"> = {};
@@ -55,8 +52,7 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
   if (subjectRelationship !== undefined) update.subject_relationship = subjectRelationship;
   if (openingPrompt !== undefined) update.opening_prompt = openingPrompt;
   if (dontBringUp !== undefined) update.dont_bring_up = dontBringUp;
-  if (tone !== undefined) update.tone = tone;
-  if (sessionMinutes !== undefined) update.session_minutes = sessionMinutes;
+  if (totalMinutes !== undefined) update.total_minutes = totalMinutes;
   // Changing the voice re-derives the name with it — the two never drift apart.
   if (voice !== undefined) {
     const persona = personaFor(voice);
@@ -64,7 +60,6 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
     update.interviewer_name = persona.name;
   }
   if (conversationMode !== undefined) update.conversation_mode = conversationMode;
-  if (quickfireQueueOnly !== undefined) update.quickfire_queue_only = quickfireQueueOnly;
   if (plannedSessions !== undefined) update.planned_sessions = plannedSessions;
 
   if (Object.keys(update).length === 0) {

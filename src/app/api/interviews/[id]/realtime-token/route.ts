@@ -42,7 +42,7 @@ export async function POST(_request: Request, { params }: { params: Params }) {
   const { data: series, error: seriesErr } = await svc
     .from("series")
     .select(
-      "id, subject_user_id, title, subject_name, subject_relationship, goal, opening_prompt, dont_bring_up, tone, session_minutes, voice, interviewer_name, depth, conversation_mode, quickfire_queue_only, planned_sessions",
+      "id, subject_user_id, title, subject_name, subject_relationship, goal, opening_prompt, dont_bring_up, tone, total_minutes, voice, interviewer_name, depth, conversation_mode, planned_sessions",
     )
     .eq("id", interview.series_id)
     .maybeSingle();
@@ -86,21 +86,17 @@ export async function POST(_request: Request, { params }: { params: Params }) {
       .eq("series_id", series.id)
       .eq("status", "retell_queued")
       .order("created_at", { ascending: false }),
-    // Session number: count this series' completed/processed interviews
-    // started before this one, 1-based. Must match `listInterviewsForSeries`
-    // (src/db/queries.ts:391) — including its status filter — since that's
-    // the derivation the series page shows the user as "Session N". Without
-    // the filter, another conductor's still-in_progress or abandoned
-    // interview would inflate the count and desync the number Anna speaks
-    // from the one the page displays. Only needed when the series has a
-    // planned-session target to pace against — but it's one indexed count,
-    // so we always fetch it rather than branch the Promise.all.
+    // Prior completed/processed interviews carry two derivations at once:
+    // the 1-based session number (count of rows started before this one —
+    // must match `listInterviewsForSeries` in src/db/queries.ts, including
+    // its status filter, since that's the "Session N" the series page shows)
+    // and the talk time already spent against the series' total-minutes
+    // budget (sum of duration_sec).
     svc
       .from("interviews")
-      .select("id", { count: "exact", head: true })
+      .select("duration_sec, started_at")
       .eq("series_id", series.id)
-      .in("status", ["completed", "processed"])
-      .lt("started_at", interview.started_at),
+      .in("status", ["completed", "processed"]),
     svc
       .from("queued_questions")
       .select("id, text")
@@ -121,9 +117,23 @@ export async function POST(_request: Request, { params }: { params: Params }) {
   if (queueRes.error) {
     return NextResponse.json({ error: queueRes.error.message }, { status: 500 });
   }
-  // A failed count shouldn't kill the interview — degrade to "unknown session
-  // number", which just drops the pacing line from the prompt.
-  const sessionNumber = priorRes.error ? null : (priorRes.count ?? 0) + 1;
+  // A failed prior-sessions query shouldn't kill the interview — degrade to
+  // "unknown session number" (drops the pacing line) and "no time budget"
+  // (drops the clock language) rather than 500ing a live call.
+  const priorRows = priorRes.error ? null : (priorRes.data ?? []);
+  const startedAtMs = new Date(interview.started_at).getTime();
+  const sessionNumber =
+    priorRows === null
+      ? null
+      : priorRows.filter((r) => new Date(r.started_at).getTime() < startedAtMs).length + 1;
+  const usedSeconds =
+    priorRows === null ? null : priorRows.reduce((sum, r) => sum + (r.duration_sec ?? 0), 0);
+  // Clamped to a 3-minute floor: a reconnect after the budget ran out mid-
+  // session should get "wrap up soon", never a negative number in the prompt.
+  const remainingMinutes =
+    series.total_minutes == null || usedSeconds === null
+      ? null
+      : Math.max(3, Math.round(series.total_minutes - usedSeconds / 60));
 
   const topicNameById = new Map((topicsRes.data ?? []).map((t) => [t.id, t.name] as const));
   const knownFacts = (activeFactsRes.data ?? []).map((f) => ({
@@ -157,7 +167,7 @@ export async function POST(_request: Request, { params }: { params: Params }) {
       openingPrompt: series.opening_prompt,
       dontBringUp,
       tone: series.tone,
-      sessionMinutes: series.session_minutes,
+      totalMinutes: series.total_minutes,
       // The name always follows the voice, by construction — never the
       // stored `interviewer_name` column. If a voice is ever retired from
       // VOICES, personaFor() degrades the audio to the default (marin/Anna);
@@ -174,8 +184,11 @@ export async function POST(_request: Request, { params }: { params: Params }) {
     retellQueue,
     sessionNumber,
     mode,
+    remainingMinutes,
     queuedQuestions,
-    quickfireQueueOnly: series.quickfire_queue_only,
+    // "Just my questions" is parked — the settings toggle was removed in the
+    // simplification pass, so quickfire always keeps its topic fallback.
+    quickfireQueueOnly: false,
   });
 
   // Realtime function tools per mode. Shapes verified against

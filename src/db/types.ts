@@ -177,7 +177,7 @@ export type Database = {
           opening_prompt: string | null
           dont_bring_up: Json
           tone: SeriesTone
-          session_minutes: number
+          total_minutes: number | null
           voice: string
           interviewer_name: string
           depth: SeriesDepth
@@ -201,7 +201,7 @@ export type Database = {
           opening_prompt?: string | null
           dont_bring_up?: Json
           tone?: SeriesTone
-          session_minutes?: number
+          total_minutes?: number | null
           voice?: string
           interviewer_name?: string
           depth?: SeriesDepth
@@ -225,7 +225,7 @@ export type Database = {
           opening_prompt?: string | null
           dont_bring_up?: Json
           tone?: SeriesTone
-          session_minutes?: number
+          total_minutes?: number | null
           voice?: string
           interviewer_name?: string
           depth?: SeriesDepth

@@ -87,14 +87,22 @@ describe("PATCH /api/series/[id]", () => {
     expect(calls.updates).toEqual([{ conversation_mode: "quickfire" }]);
   });
 
-  it("maps quickfireQueueOnly to quickfire_queue_only", async () => {
+  it("maps totalMinutes to total_minutes, including null for unlimited", async () => {
     const { supabase, calls } = makeSupabaseStub();
     mocks.getViewer.mockResolvedValue({ supabase, organization: { id: "org-1" }, role: "admin" });
 
-    const res = await PATCH(patchReq({ quickfireQueueOnly: true }), ctx());
+    expect((await PATCH(patchReq({ totalMinutes: 45 }), ctx())).status).toBe(200);
+    expect((await PATCH(patchReq({ totalMinutes: null }), ctx())).status).toBe(200);
+    expect(calls.updates).toEqual([{ total_minutes: 45 }, { total_minutes: null }]);
+  });
 
-    expect(res.status).toBe(200);
-    expect(calls.updates).toEqual([{ quickfire_queue_only: true }]);
+  it("no longer accepts the retired deep mode or the parked quickfireQueueOnly flag", async () => {
+    const { supabase, calls } = makeSupabaseStub();
+    mocks.getViewer.mockResolvedValue({ supabase, organization: { id: "org-1" }, role: "admin" });
+
+    expect((await PATCH(patchReq({ conversationMode: "deep" }), ctx())).status).toBe(400);
+    expect((await PATCH(patchReq({ quickfireQueueOnly: true }), ctx())).status).toBe(400);
+    expect(calls.updates).toEqual([]);
   });
 
   it("no longer accepts depth — a depth-only request is ignored and rejected as empty", async () => {

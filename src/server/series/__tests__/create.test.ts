@@ -63,8 +63,7 @@ const baseInput: CreateSeriesInput = {
   subjectName: "Henk",
   mustCover: [],
   dontBringUp: [],
-  tone: "warm",
-  sessionMinutes: 20,
+  totalMinutes: null,
   access: [],
 };
 
@@ -96,13 +95,13 @@ describe("createSeries", () => {
     expect(calls.seriesInserts[0].interviewer_name).not.toBe("Anna");
   });
 
-  it("defaults to marin/Anna/balanced/open-ended for an old client that sends no voice", async () => {
+  it("defaults to marin/Anna/flow/open-ended for a minimal client that sends no voice", async () => {
     const { supabase, calls } = makeSupabaseStub();
 
     const result = await createSeries(supabase, {
       orgId: "org-1",
       createdBy: "user-1",
-      input: baseInput, // no voice, depth, or plannedSessions at all
+      input: baseInput, // no voice, conversationMode, or plannedSessions at all
     });
 
     expect(result).toEqual({ id: "series-1" });
@@ -110,7 +109,8 @@ describe("createSeries", () => {
     expect(calls.seriesInserts[0]).toMatchObject({
       voice: DEFAULT_VOICE,
       interviewer_name: "Anna",
-      depth: "balanced",
+      conversation_mode: "flow",
+      total_minutes: null,
       planned_sessions: null,
     });
   });

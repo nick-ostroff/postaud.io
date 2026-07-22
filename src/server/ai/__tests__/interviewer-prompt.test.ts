@@ -2,11 +2,11 @@ import { describe, it, expect } from "vitest";
 import { buildInterviewerInstructions } from "../interviewer-prompt";
 const base = { series: { title: "Dad's Story", subjectName: "Henk", subjectRelationship: "father",
   goal: "Capture Dad's whole life", openingPrompt: "Start warm: Rotterdam first", dontBringUp: ["Pieter's accident"],
-  tone: "warm" as const, sessionMinutes: 20, interviewerName: "Anna", depth: "balanced" as const,
+  tone: "warm" as const, totalMinutes: 20, interviewerName: "Anna", depth: "balanced" as const,
   plannedSessions: null }, handTheMic: false, sessionNumber: 1,
   knownFacts: [{ topic: "Meeting Jan", statement: "Met Jan, spring 1975, on the Hoek van Holland ferry." }],
   topics: [{ name: "Health & habits", coverageScore: 0, mustCover: true, suggested: false }], retellQueue: [],
-  mode: "deep" as const, queuedQuestions: [] as string[], quickfireQueueOnly: false };
+  mode: "deep" as const, remainingMinutes: 20, queuedQuestions: [] as string[], quickfireQueueOnly: false };
 it("bakes in the guide rails", () => {
   const p = buildInterviewerInstructions(base);
   for (const s of ["Anna", "Henk", "Rotterdam first", "Pieter's accident", "never", "one question",
@@ -175,15 +175,16 @@ describe("conversation modes", () => {
     expect(out).toContain('Open this session by asking, near-verbatim: "Why \'98 — what pushed you to finally open?"');
   });
 
-  it("quickfire caps the numbered list to what fits the session length, queue first", () => {
-    // sessionMinutes 10 → cap = round(10 / 1.5) = 7. Twelve queue items,
+  it("quickfire caps the numbered list to what fits the remaining time, queue first", () => {
+    // remainingMinutes 10 → cap = round(10 / 1.5) = 7. Twelve queue items,
     // queue-first, so the list is exactly the first 7 queue items — no room
     // for topics at all.
     const queue = Array.from({ length: 12 }, (_, i) => `Queue question ${i + 1}`);
     const out = buildInterviewerInstructions({
       ...base,
       mode: "quickfire",
-      series: { ...base.series, sessionMinutes: 10 },
+      series: { ...base.series, totalMinutes: 10 },
+      remainingMinutes: 10,
       queuedQuestions: queue,
       topics: [{ name: "A must-cover topic", coverageScore: 0, mustCover: true, suggested: false }],
     });
@@ -209,7 +210,7 @@ describe("conversation modes", () => {
     expect(out).not.toContain("Health & habits"); // base's must-cover topic — no fallback
     expect(out).toContain("ONLY the questions below");
     expect(out).toContain("The session is over when the QUESTION LIST is");
-    expect(out).not.toContain("As the session length approaches");
+    expect(out).not.toContain("As the remaining time runs low");
   });
 
   it("queue-only with an empty queue falls back to topics — a session never starts empty", () => {
@@ -220,12 +221,32 @@ describe("conversation modes", () => {
       queuedQuestions: [],
     });
     expect(out).toContain("1. Health & habits");
-    expect(out).toContain("As the session length approaches"); // normal ENDING
+    expect(out).toContain("As the remaining time runs low"); // normal ENDING
   });
 
   it("queue-only outside quickfire changes nothing", () => {
     const off = buildInterviewerInstructions({ ...base, mode: "flow" });
     const on = buildInterviewerInstructions({ ...base, mode: "flow", quickfireQueueOnly: true });
     expect(on).toBe(off);
+  });
+});
+
+describe("total time budget", () => {
+  it("tells the interviewer how much of the series' total remains", () => {
+    const out = buildInterviewerInstructions({
+      ...base, remainingMinutes: 12, series: { ...base.series, totalMinutes: 45 },
+    });
+    expect(out).toContain("About 12 minutes of talk time remain of the roughly 45");
+    expect(out).toContain("As the remaining time runs low");
+  });
+
+  it("an unlimited series carries no clock language at all", () => {
+    const out = buildInterviewerInstructions({
+      ...base, remainingMinutes: null, series: { ...base.series, totalMinutes: null },
+    });
+    expect(out).toContain("This series has no time limit");
+    expect(out).toContain("When the conversation naturally winds down");
+    expect(out).not.toContain("minutes of talk time remain");
+    expect(out).not.toContain("As the remaining time runs low");
   });
 });

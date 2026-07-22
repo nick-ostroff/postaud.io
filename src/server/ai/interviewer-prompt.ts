@@ -8,7 +8,8 @@ export type InterviewerSeriesInput = {
   openingPrompt?: string | null;
   dontBringUp: string[];
   tone: SeriesTone;
-  sessionMinutes: number;
+  /** Total talk-time budget for the WHOLE series, in minutes; null = unlimited. */
+  totalMinutes: number | null;
   /** The interviewer's persona name — comes from the series' chosen voice. */
   interviewerName: string;
   depth: SeriesDepth;
@@ -33,6 +34,11 @@ export type BuildInterviewerInstructionsInput = {
   /** 1-based index of the session being conducted; null if it can't be derived. */
   sessionNumber?: number | null;
   mode: ConversationMode;
+  /**
+   * Minutes left of the series' total talk-time budget at session start
+   * (total minus time already recorded). Null when the series is unlimited.
+   */
+  remainingMinutes: number | null;
   /** Pending queue texts, position order (0 = next up). Empty when the queue is empty. */
   queuedQuestions: string[];
   /**
@@ -144,7 +150,7 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
   // headed. An open-ended series (the default) gets no pacing pressure at all.
   if (series.plannedSessions && input.sessionNumber) {
     goalLines.push(
-      `This is session ${input.sessionNumber} of ${series.plannedSessions} planned for this series. Budget ` +
+      `This is session ${input.sessionNumber} of ${series.plannedSessions} total for this series. Budget ` +
         `your must-cover topics across the sessions that remain. On the final session, aim to close the loop ` +
         `rather than open new threads.`,
     );
@@ -176,9 +182,11 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
     // agenda: queued questions first (position order), then must-cover
     // topics by lowest coverage. Non-must-cover topics are deliberately
     // excluded — quickfire is the curated list, not the whole compass.
-    // Capped to what plausibly fits the session length (≈1.5 min/question);
-    // queue items win the cap over topics since they come first.
-    const cap = Math.max(1, Math.round(series.sessionMinutes / 1.5));
+    // Capped to what plausibly fits this session (≈1.5 min/question); an
+    // unlimited series gets a comfortable default rather than no cap. Queue
+    // items win the cap over topics since they come first.
+    const sessionBudget = Math.min(input.remainingMinutes ?? 30, 45);
+    const cap = Math.max(1, Math.round(sessionBudget / 1.5));
     const combined = [
       ...input.queuedQuestions.map((q) => `${q} [from the queue]`),
       ...(queueOnly ? [] : sortedTopics.filter((t) => t.mustCover).map((t) => t.name)),
@@ -424,8 +432,12 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
       "after they finish — give them room to keep going before you speak.",
     "Speak in plain, spoken English — short sentences, no jargon, nothing that would look like a bullet " +
       "point if transcribed.",
-    `Aim for a session length of about ${series.sessionMinutes} minutes, but never sacrifice depth to hit ` +
-      "it — a short, rich session beats a rushed tour. Let the clock be loose.",
+    series.totalMinutes == null || input.remainingMinutes == null
+      ? "This series has no time limit. Let the session run while the conversation is alive, and steer " +
+        "toward a close once it naturally winds down — never stretch it just to fill air."
+      : `About ${input.remainingMinutes} minutes of talk time remain of the roughly ${series.totalMinutes} ` +
+        "total planned for this whole series. Pace this session to wrap comfortably within what remains, " +
+        "but never sacrifice depth to hit it — a short, rich session beats a rushed tour. Let the clock be loose.",
   ];
   if (handTheMic) {
     styleLines.push(
@@ -449,9 +461,13 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
         ].join("\n")
       : [
           "ENDING",
-          "As the session length approaches, begin steering toward a close. Thank the subject warmly for what " +
-            "they shared, reflect back one specific detail that stood out, and end on an easy, unhurried note — " +
-            "never cut off abruptly.",
+          input.remainingMinutes == null
+            ? "When the conversation naturally winds down, steer toward a close. Thank the subject warmly for " +
+              "what they shared, reflect back one specific detail that stood out, and end on an easy, unhurried " +
+              "note — never cut off abruptly."
+            : "As the remaining time runs low, begin steering toward a close. Thank the subject warmly for what " +
+              "they shared, reflect back one specific detail that stood out, and end on an easy, unhurried note — " +
+              "never cut off abruptly.",
         ].join("\n"),
   );
 

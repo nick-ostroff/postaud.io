@@ -140,10 +140,8 @@ export default async function SeriesSettingsPage({ params }: { params: Params })
               initialVoice={series.voice as VoiceId}
               initialOpeningPrompt={series.opening_prompt ?? ""}
               initialDontBringUp={dontBringUp}
-              initialTone={series.tone}
-              initialSessionMinutes={series.session_minutes as 10 | 20 | 45}
+              initialTotalMinutes={series.total_minutes}
               initialConversationMode={series.conversation_mode}
-              initialQuickfireQueueOnly={series.quickfire_queue_only}
               initialPlannedSessions={series.planned_sessions}
             />
           </Card>

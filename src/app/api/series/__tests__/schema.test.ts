@@ -9,28 +9,36 @@ const valid = {
   subjectName: "Henk",
   mustCover: [],
   dontBringUp: [],
-  tone: "warm" as const,
-  sessionMinutes: 20 as const,
   access: [],
 };
 
-it("defaults voice and depth so old clients keep working", () => {
+it("defaults voice, mode, length, and sessions so minimal clients keep working", () => {
   const parsed = createSeriesSchema.parse(valid);
   expect(parsed.voice).toBe(DEFAULT_VOICE);
-  expect(parsed.depth).toBe("balanced");
+  expect(parsed.conversationMode).toBe("flow");
+  expect(parsed.totalMinutes).toBeNull();
   expect(parsed.plannedSessions).toBeNull();
 });
 
-it("accepts the single Q&A depth", () => {
-  const parsed = createSeriesSchema.parse({ ...valid, depth: "single" });
-  expect(parsed.depth).toBe("single");
+it("accepts quickfire as the conversation type", () => {
+  const parsed = createSeriesSchema.parse({ ...valid, conversationMode: "quickfire" });
+  expect(parsed.conversationMode).toBe("quickfire");
 });
 
-it("accepts a known voice and depth", () => {
-  const parsed = createSeriesSchema.parse({ ...valid, voice: "cedar", depth: "deep", plannedSessions: 6 });
+it("rejects the retired deep mode", () => {
+  expect(createSeriesSchema.safeParse({ ...valid, conversationMode: "deep" }).success).toBe(false);
+});
+
+it("accepts a known voice, a total length, and a session count", () => {
+  const parsed = createSeriesSchema.parse({ ...valid, voice: "cedar", totalMinutes: 45, plannedSessions: 6 });
   expect(parsed.voice).toBe("cedar");
-  expect(parsed.depth).toBe("deep");
+  expect(parsed.totalMinutes).toBe(45);
   expect(parsed.plannedSessions).toBe(6);
+});
+
+it("treats a null total length as unlimited and rejects off-menu values", () => {
+  expect(createSeriesSchema.parse({ ...valid, totalMinutes: null }).totalMinutes).toBeNull();
+  expect(createSeriesSchema.safeParse({ ...valid, totalMinutes: 30 }).success).toBe(false);
 });
 
 it("rejects an unknown voice", () => {

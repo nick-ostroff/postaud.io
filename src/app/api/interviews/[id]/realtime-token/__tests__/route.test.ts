@@ -29,6 +29,7 @@ type Row = {
   started_at: string;
   organization_id: string;
   hand_the_mic?: boolean;
+  duration_sec?: number | null;
 };
 
 /**
@@ -128,6 +129,7 @@ function makeSvcStub(
       status: "completed",
       started_at: "2026-07-01T00:00:00Z",
       organization_id: "org-1",
+      duration_sec: 600,
     },
     {
       // Another conductor's session, still open, started before "cur-1".
@@ -152,7 +154,7 @@ function makeSvcStub(
       opening_prompt: null,
       dont_bring_up: [],
       tone: "warm",
-      session_minutes: 30,
+      total_minutes: 30,
       // Deliberately a non-default voice with a stale/wrong stored name — the
       // route must derive the spoken name from `voice` (persona.name), never
       // from this column, so a mismatch here can't leak into the prompt.
@@ -214,6 +216,17 @@ describe("POST /api/interviews/[id]/realtime-token", () => {
       expect(sessionArg.session.instructions).not.toContain("session 3 of");
     },
   );
+
+  it("subtracts recorded time from the series' total-minutes budget in the prompt", async () => {
+    const res = await POST(new Request("http://localhost/x", { method: "POST" }), ctx());
+
+    expect(res.status).toBe(200);
+    const sessionArg = mocks.createClientSecret.mock.calls[0][0];
+    // total_minutes 30 minus done-1's 600 recorded seconds = 20 remaining.
+    expect(sessionArg.session.instructions).toContain(
+      "About 20 minutes of talk time remain of the roughly 30",
+    );
+  });
 
   it("sends the persona's voice and name together, ignoring the stored interviewer_name column", async () => {
     const res = await POST(new Request("http://localhost/x", { method: "POST" }), ctx());

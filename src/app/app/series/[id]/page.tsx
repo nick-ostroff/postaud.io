@@ -169,7 +169,7 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
               <h3>Sessions</h3>
               <span className="text-[12.5px] text-faint">
                 {series.planned_sessions
-                  ? `${sessions.length} of ${series.planned_sessions} planned`
+                  ? `${sessions.length} of ${series.planned_sessions} total`
                   : sessions.length === 0
                     ? "none yet"
                     : `${sessions.length} so far`}

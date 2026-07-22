@@ -10,7 +10,9 @@ const questionPlanSchema = z.object({
   goal: z.string().trim().min(1),
   openingPrompt: z.string().trim().optional(),
   mustCover: z.array(z.string().trim().min(1)).default([]),
-  tone: z.enum(["warm", "neutral", "playful"]),
+  // Tone is no longer a wizard control — default warm keeps the drafting
+  // prompt stable for callers that stop sending it.
+  tone: z.enum(["warm", "neutral", "playful"]).default("warm"),
 });
 
 // POST /api/series/question-plan — Anna drafts 5–7 opening-session questions

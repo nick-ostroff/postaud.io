@@ -14,7 +14,7 @@ import { LiveInterview } from "./LiveInterview";
 type Params = Promise<{ id: string }>;
 type Search = Promise<{ handoff?: string; mode?: string }>;
 
-const MODES = ["deep", "flow", "quickfire"] as const;
+const MODES = ["flow", "quickfire"] as const;
 function parseMode(raw: string | undefined): ConversationMode | null {
   return (MODES as readonly string[]).includes(raw ?? "") ? (raw as ConversationMode) : null;
 }
@@ -53,12 +53,54 @@ export default async function InterviewPage({
   const isHandoff = handoff === "1";
 
   // The mode comes from the series settings; an explicit ?mode= (the queue
-  // page's "Answer these now") overrides it for that session.
-  const mode: ConversationMode = parseMode(modeParam) ?? series.conversation_mode;
+  // page's "Answer these now") overrides it for that session. Deep mode is
+  // retired — a stray legacy default coerces to flow rather than crashing.
+  const seriesMode = series.conversation_mode === "deep" ? "flow" : series.conversation_mode;
+  const mode: ConversationMode = parseMode(modeParam) ?? seriesMode;
+
+  // Series-completion gate: a fixed session count or a total-minutes budget
+  // ends the series once it's used up. A conductor with a session still
+  // in_progress may always come back to finish it — the gate only stops NEW
+  // sessions. Query failures skip the gate rather than blocking the start.
+  const svc = serviceClient();
+  const [doneRes, inProgressRes] = await Promise.all([
+    svc
+      .from("interviews")
+      .select("duration_sec")
+      .eq("series_id", series.id)
+      .in("status", ["completed", "processed"]),
+    svc
+      .from("interviews")
+      .select("id")
+      .eq("series_id", series.id)
+      .eq("conducted_by", user.id)
+      .eq("status", "in_progress")
+      .limit(1),
+  ]);
+  const doneRows = doneRes.error ? null : (doneRes.data ?? []);
+  const hasResumable = !inProgressRes.error && (inProgressRes.data?.length ?? 0) > 0;
+  if (doneRows && !hasResumable) {
+    const usedSeconds = doneRows.reduce((sum, r) => sum + (r.duration_sec ?? 0), 0);
+    const sessionsUsedUp = series.planned_sessions != null && doneRows.length >= series.planned_sessions;
+    const timeUsedUp = series.total_minutes != null && usedSeconds >= series.total_minutes * 60;
+    if (sessionsUsedUp || timeUsedUp) {
+      return (
+        <SeriesCompleteCard
+          seriesId={series.id}
+          interviewerName={personaFor(series.voice).name}
+          reason={
+            sessionsUsedUp
+              ? `All ${series.planned_sessions} sessions are recorded.`
+              : `All ${series.total_minutes} minutes of conversation time are used.`
+          }
+        />
+      );
+    }
+  }
 
   let interviewId: string;
   try {
-    const started = await startInterview(serviceClient(), {
+    const started = await startInterview(svc, {
       organizationId: organization.id,
       seriesId: series.id,
       conductedBy: user.id,
@@ -99,6 +141,41 @@ export default async function InterviewPage({
       mode={mode}
       pendingQueue={pendingQueue}
     />
+  );
+}
+
+function SeriesCompleteCard({
+  seriesId,
+  interviewerName,
+  reason,
+}: {
+  seriesId: string;
+  interviewerName: string;
+  reason: string;
+}) {
+  return (
+    <div className="flex min-h-[70vh] w-full items-center justify-center px-4">
+      <Card className="max-w-md px-8 py-9 text-center">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-tint text-2xl">
+          🎉
+        </div>
+        <h2 className="text-[22px]">This series is complete</h2>
+        <p className="mt-2 text-[14.5px] leading-relaxed text-muted">
+          {reason} Everything {interviewerName} learned is safe in the knowledge base. Want to keep
+          going? Raise the total in the series settings.
+        </p>
+        <div className="mt-6 flex flex-col items-center gap-2.5">
+          <Link href={`/app/series/${seriesId}`}>
+            <Button variant="primary" size="big">
+              See the knowledge base
+            </Button>
+          </Link>
+          <Link href={`/app/series/${seriesId}/settings`} className="text-[13px] font-medium text-muted">
+            Series settings
+          </Link>
+        </div>
+      </Card>
+    </div>
   );
 }
 
