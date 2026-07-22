@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { CoverageBar } from "@/components/ui/CoverageBar";
@@ -14,7 +13,6 @@ import {
   type SeriesKnowledge,
 } from "@/db/queries";
 import { staleness } from "@/server/series/staleness";
-import { PromoteChip } from "../PromoteChip";
 import { groupMemoriesBySession } from "./groupMemories";
 
 /** Coverage below this reads as amber — matches the hub + card-grid threshold (Task 7 convention). */
@@ -69,7 +67,6 @@ export default async function KnowledgePage({ params }: { params: Params }) {
   const queueTopics = knowledge.topics
     .filter((t) => !t.suggested)
     .sort((a, b) => a.position - b.position);
-  const suggestedTopics = knowledge.topics.filter((t) => t.suggested);
   const blankTopics = queueTopics.filter((t) => t.coverage_score === 0);
 
   const people = knowledge.entities.filter((e) => e.kind === "person");
@@ -322,27 +319,6 @@ export default async function KnowledgePage({ params }: { params: Params }) {
         </div>
 
         <div className="flex flex-col gap-[18px]">
-          <Card className="px-[22px] py-5">
-            <h3>Where to go next</h3>
-            <p className="mb-1 text-[13px] text-muted">Suggested from the last few sessions.</p>
-            {suggestedTopics.length === 0 ? (
-              <p className="mt-2 text-[13.5px] text-muted">
-                No new suggestions yet — they&apos;ll show up after the next session.
-              </p>
-            ) : (
-              <div className="mt-1 mb-3 flex flex-wrap items-center gap-2">
-                {suggestedTopics.map((t) => (
-                  <PromoteChip key={t.id} topicId={t.id} name={t.name} />
-                ))}
-              </div>
-            )}
-            <Link href={`/app/series/${series.id}`}>
-              <Button variant="secondary" className="w-full justify-center">
-                Open the topic queue
-              </Button>
-            </Link>
-          </Card>
-
           {needsReviewFacts.length > 0 && (
             <Card className="px-[22px] py-5">
               <Badge tone="amber">
