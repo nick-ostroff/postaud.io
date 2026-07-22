@@ -21,6 +21,7 @@ import {
 import { personaFor } from "@/lib/voices";
 import { PendingSummaryRefresher } from "./PendingSummaryRefresher";
 import { PromoteChip } from "./PromoteChip";
+import { QueueOrderList } from "./QueueOrderList";
 import { ReprocessButton } from "./ReprocessButton";
 
 /** Coverage below this reads as amber — matches the card grid's threshold. */
@@ -236,14 +237,15 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
                 queue page.
               </p>
             ) : (
-              <div className="mt-1">
-                {pendingQuestions.map((q, i) => (
-                  <div key={q.id} className="flex items-baseline gap-3 border-b border-line py-2.5 last:border-b-0">
-                    <span className="w-5 shrink-0 text-right text-[12px] font-semibold text-faint">{i + 1}</span>
-                    <span className="serif text-[14.5px] leading-[1.5] text-ink">{q.text}</span>
-                  </div>
-                ))}
-              </div>
+              <QueueOrderList
+                // Remount whenever the server-side order changes (our own
+                // refresh after a reorder, or another admin's) so the
+                // client list never drifts from the source of truth.
+                key={pendingQuestions.map((q) => q.id).join(",")}
+                seriesId={series.id}
+                initialItems={pendingQuestions.map((q) => ({ id: q.id, text: q.text }))}
+                canManage={isAdmin}
+              />
             )}
 
             {suggestedTopics.length > 0 && (
