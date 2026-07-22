@@ -41,31 +41,11 @@ export class CreateSeriesError extends Error {
 }
 
 /**
- * Truncates to `topics.name`'s effective 60-char convention for question-plan
- * rows and disambiguates against names already used in this batch — `topics`
- * has a `unique (series_id, name)` constraint, so two overlapping questions
- * (or a question that happens to collide with a must-cover chip's exact
- * text) can't both insert with the same name.
- */
-function slugName(text: string, used: Set<string>): string {
-  const base = text.trim().slice(0, 60) || "Question";
-  let candidate = base;
-  let n = 2;
-  while (used.has(candidate)) {
-    const suffix = ` (${n})`;
-    candidate = base.slice(0, Math.max(0, 60 - suffix.length)) + suffix;
-    n += 1;
-  }
-  used.add(candidate);
-  return candidate;
-}
-
-/**
  * Single write path for series creation: inserts `series`, per-member
- * `series_access` rows, and seeds `topics` from `mustCover` (must-cover
- * chips) plus any `questionPlan` (Task 6's drafted first-session questions,
- * kept as non-must-cover topic rows so Task 9's interviewer prompt sees them
- * without a schema change).
+ * `series_access` rows, seeds `topics` from `mustCover` (must-cover chips),
+ * and seeds `queued_questions` from any `questionPlan` (the wizard's drafted
+ * first-session questions) — the question queue is where questions live;
+ * topics are subjects to cover.
  *
  * Uses the caller's request-scoped (RLS-bound) `supabase` client rather than
  * the service client — `series admin` / `access admin` / `topics admin`
@@ -188,7 +168,6 @@ export async function createSeries(
       if (accessErr) throw new Error(accessErr.message);
     }
 
-    const usedNames = new Set<string>();
     const seenTopicText = new Set<string>();
     const topicRows: Database["public"]["Tables"]["topics"]["Insert"][] = [];
 
@@ -198,7 +177,6 @@ export async function createSeries(
       const key = name.toLowerCase();
       if (seenTopicText.has(key)) return; // dedupe repeated chips
       seenTopicText.add(key);
-      usedNames.add(name);
       topicRows.push({
         series_id: series.id,
         name,
@@ -209,25 +187,34 @@ export async function createSeries(
       });
     });
 
-    (input.questionPlan ?? []).forEach((raw, i) => {
-      const text = raw.trim();
-      if (!text) return;
-      const key = text.toLowerCase();
-      if (seenTopicText.has(key)) return; // already a must-cover chip, or a dup question
-      seenTopicText.add(key);
-      topicRows.push({
-        series_id: series.id,
-        name: slugName(text, usedNames),
-        description: text,
-        must_cover: false,
-        suggested: false,
-        position: input.mustCover.length + i,
-      });
-    });
-
     if (topicRows.length > 0) {
       const { error: topicsErr } = await supabase.from("topics").insert(topicRows);
       if (topicsErr) throw new Error(topicsErr.message);
+    }
+
+    // Drafted first-session questions go straight into the question queue
+    // (source 'member' — they're the owner's questions), position order.
+    // RLS "queue insert" passes because series creation is admin-only.
+    const seenQuestion = new Set<string>();
+    const questionRows: Database["public"]["Tables"]["queued_questions"]["Insert"][] = [];
+    (input.questionPlan ?? []).forEach((raw) => {
+      const text = raw.trim();
+      if (!text) return;
+      const key = text.toLowerCase();
+      if (seenQuestion.has(key)) return; // dedupe repeated questions
+      seenQuestion.add(key);
+      questionRows.push({
+        series_id: series.id,
+        text,
+        source: "member",
+        created_by: createdBy,
+        position: questionRows.length,
+      });
+    });
+
+    if (questionRows.length > 0) {
+      const { error: queueErr } = await supabase.from("queued_questions").insert(questionRows);
+      if (queueErr) throw new Error(queueErr.message);
     }
   } catch (err) {
     const { error: cleanupErr } = await supabase.from("series").delete().eq("id", series.id);

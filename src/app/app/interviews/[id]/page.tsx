@@ -228,13 +228,13 @@ export default async function InterviewResultsPage({ params }: { params: Params 
             ) : (
               <div className="mt-1 mb-3 flex flex-wrap items-center gap-2">
                 {suggestedTopics.map((t) => (
-                  <PromoteChip key={t.id} topicId={t.id} name={t.name} />
+                  <PromoteChip key={t.id} topicId={t.id} seriesId={series.id} name={t.name} />
                 ))}
               </div>
             )}
             <Link href={`/app/series/${series.id}`}>
               <Button variant="primary" className="w-full justify-center">
-                Open the topic queue
+                Open the question queue
               </Button>
             </Link>
           </Card>

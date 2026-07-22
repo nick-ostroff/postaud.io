@@ -16,6 +16,7 @@ import {
   getSeriesSummaries,
   getViewer,
   listInterviewsForSeries,
+  listPendingQueuedQuestions,
 } from "@/db/queries";
 import { personaFor } from "@/lib/voices";
 import { PendingSummaryRefresher } from "./PendingSummaryRefresher";
@@ -60,18 +61,16 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
   const series = await getSeries(supabase, id);
   if (!series) notFound();
 
-  const [summaries, knowledge, sessions, access] = await Promise.all([
+  const [summaries, knowledge, sessions, access, pendingQuestions] = await Promise.all([
     getSeriesSummaries(supabase, [id]),
     getSeriesKnowledge(supabase, id),
     listInterviewsForSeries(supabase, id),
     getSeriesAccessSummary(supabase, id),
+    listPendingQueuedQuestions(supabase, id),
   ]);
 
   const summary = summaries[id];
 
-  const queueTopics = knowledge.topics
-    .filter((t) => !t.suggested)
-    .sort((a, b) => a.position - b.position);
   const suggestedTopics = knowledge.topics.filter((t) => t.suggested);
 
   const people = knowledge.entities.filter((e) => e.kind === "person");
@@ -221,31 +220,27 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
           </Card>
 
           <Card className="px-[22px] py-5">
-            <h3>Topic queue</h3>
+            <div className="flex items-center justify-between">
+              <h3>Question queue</h3>
+              <Link href={`/app/series/${series.id}/queue`} className="text-[13px] font-medium">
+                Manage the queue →
+              </Link>
+            </div>
             <p className="text-[13px] text-muted">
-              What {personaFor(series.voice).name} plans to explore next — reorder, add your own, or let them follow the thread.
+              What {personaFor(series.voice).name} will ask next — saved from Flow sessions or added by you.
             </p>
 
-            {queueTopics.length === 0 ? (
-              <p className="mt-3 text-[13.5px] text-muted">No topics queued yet.</p>
+            {pendingQuestions.length === 0 ? (
+              <p className="mt-3 text-[13.5px] text-muted">
+                No questions queued yet — save follow-ups during a Flow session, or add your own from the
+                queue page.
+              </p>
             ) : (
-              <div className="mt-2">
-                {queueTopics.map((t) => (
-                  <div
-                    key={t.id}
-                    className="flex flex-col items-stretch gap-1.5 py-[9px] sm:flex-row sm:items-center sm:gap-3"
-                  >
-                    <span className="text-[13.5px] font-medium sm:w-[190px] sm:shrink-0">
-                      {t.name}
-                      {t.coverage_score === 0 && (
-                        <span className="ml-1.5 inline-block align-middle">
-                          <Badge tone="muted">still blank</Badge>
-                        </span>
-                      )}
-                    </span>
-                    <div className="flex-1">
-                      <CoverageBar value={t.coverage_score} low={t.coverage_score > 0 && t.coverage_score < LOW_COVERAGE} />
-                    </div>
+              <div className="mt-1">
+                {pendingQuestions.map((q, i) => (
+                  <div key={q.id} className="flex items-baseline gap-3 border-b border-line py-2.5 last:border-b-0">
+                    <span className="w-5 shrink-0 text-right text-[12px] font-semibold text-faint">{i + 1}</span>
+                    <span className="serif text-[14.5px] leading-[1.5] text-ink">{q.text}</span>
                   </div>
                 ))}
               </div>
@@ -258,7 +253,7 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {suggestedTopics.map((t) => (
-                    <PromoteChip key={t.id} topicId={t.id} name={t.name} />
+                    <PromoteChip key={t.id} topicId={t.id} seriesId={series.id} name={t.name} />
                   ))}
                 </div>
               </div>
