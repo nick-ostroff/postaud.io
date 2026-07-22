@@ -163,195 +163,191 @@ export default async function KnowledgePage({ params }: { params: Params }) {
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_336px]">
-        <div className="flex flex-col gap-3.5">
+      <div className="flex flex-col gap-3.5">
+        {needsReviewFacts.length > 0 && (
           <Card className="px-[22px] py-5">
-            <h3>Memories</h3>
-            <p className="text-[13px] text-muted">
-              Everything {interviewer} has saved so far, session by session.
-            </p>
-
-            {memoryGroups.length === 0 ? (
-              <p className="mt-2 text-[13.5px] text-muted">
-                Nothing saved yet — memories will show up here after the first session.
-              </p>
-            ) : (
-              memoryGroups.map((g) => (
-                <div key={g.key}>
-                  <div className={navLabel} style={{ padding: "16px 0 4px" }}>
-                    {[g.label, g.startedAt && shortDate(g.startedAt)].filter(Boolean).join(" · ")}
-                    {" · "}
-                    {g.facts.length} {g.facts.length === 1 ? "memory" : "memories"}
+            <Badge tone="amber">
+              {needsReviewFacts.length} needs review
+            </Badge>
+            <div className="mt-2.5">
+              {needsReviewFacts.map((f) => {
+                const meta = [
+                  (f.topic_id && topicNameById.get(f.topic_id)) || null,
+                  f.source_interview_id && sessionNumberById.get(f.source_interview_id)
+                    ? `Session ${sessionNumberById.get(f.source_interview_id)}`
+                    : null,
+                  formatOffset(f.audio_offset_sec),
+                ]
+                  .filter(Boolean)
+                  .join(" · ");
+                return (
+                  <div key={f.id} className="flex gap-2.5 border-b border-line py-2.5 last:border-b-0 last:pb-0">
+                    <span aria-hidden className="mt-[7px] h-[7px] w-[7px] shrink-0 rounded-full bg-amber" />
+                    <div>
+                      <div className="serif text-[14px] leading-[1.5]">{f.statement}</div>
+                      {meta && <div className="mt-0.5 text-[11.5px] text-faint">{meta}</div>}
+                    </div>
                   </div>
-                  <div>
-                    {g.facts.map((f) => {
-                      const meta = [
-                        (f.topic_id && topicNameById.get(f.topic_id)) || null,
-                        formatOffset(f.audio_offset_sec),
-                      ]
-                        .filter(Boolean)
-                        .join(" · ");
-                      return (
-                        <Link
-                          key={f.id}
-                          href={`/app/memories/${f.id}`}
-                          className="flex items-start gap-2.5 border-b border-line py-2.5 last:border-b-0 hover:bg-[rgba(33,30,26,0.02)] hover:no-underline"
-                        >
-                          <div className="flex-1">
-                            <div className="serif text-[14.5px] italic leading-[1.5] text-ink">
-                              {f.statement}
-                            </div>
-                            {(meta || f.status === "needs_review") && (
-                              <div className="mt-[3px] flex flex-wrap items-center gap-1.5 text-[11.5px] text-faint">
-                                {f.status === "needs_review" && <Badge tone="amber">needs review</Badge>}
-                                {meta && <span>{meta}</span>}
-                              </div>
-                            )}
+                );
+              })}
+            </div>
+            <Link href="/app/memories" className="mt-2.5 inline-block text-[13px] font-medium">
+              Review it →
+            </Link>
+          </Card>
+        )}
+
+        <Card className="px-[22px] py-5">
+          <h3>Memories</h3>
+          <p className="text-[13px] text-muted">
+            Everything {interviewer} has saved so far, session by session.
+          </p>
+
+          {memoryGroups.length === 0 ? (
+            <p className="mt-2 text-[13.5px] text-muted">
+              Nothing saved yet — memories will show up here after the first session.
+            </p>
+          ) : (
+            memoryGroups.map((g) => (
+              <div key={g.key}>
+                <div className={navLabel} style={{ padding: "16px 0 4px" }}>
+                  {[g.label, g.startedAt && shortDate(g.startedAt)].filter(Boolean).join(" · ")}
+                  {" · "}
+                  {g.facts.length} {g.facts.length === 1 ? "memory" : "memories"}
+                </div>
+                <div>
+                  {g.facts.map((f) => {
+                    const meta = [
+                      (f.topic_id && topicNameById.get(f.topic_id)) || null,
+                      formatOffset(f.audio_offset_sec),
+                    ]
+                      .filter(Boolean)
+                      .join(" · ");
+                    return (
+                      <Link
+                        key={f.id}
+                        href={`/app/memories/${f.id}`}
+                        className="flex items-start gap-2.5 border-b border-line py-2.5 last:border-b-0 hover:bg-[rgba(33,30,26,0.02)] hover:no-underline"
+                      >
+                        <div className="flex-1">
+                          <div className="serif text-[14.5px] italic leading-[1.5] text-ink">
+                            {f.statement}
                           </div>
-                          <span aria-hidden className="pt-[3px] text-[13px] text-faint">
-                            ▸
-                          </span>
-                        </Link>
-                      );
-                    })}
+                          {(meta || f.status === "needs_review") && (
+                            <div className="mt-[3px] flex flex-wrap items-center gap-1.5 text-[11.5px] text-faint">
+                              {f.status === "needs_review" && <Badge tone="amber">needs review</Badge>}
+                              {meta && <span>{meta}</span>}
+                            </div>
+                          )}
+                        </div>
+                        <span aria-hidden className="pt-[3px] text-[13px] text-faint">
+                          ▸
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
+          )}
+        </Card>
+
+        <Card className="px-[22px] py-5">
+          <h3>Coverage</h3>
+          <p className="mb-2 text-[13px] text-muted">
+            How much of each topic {interviewer} has explored so far.
+          </p>
+
+          {queueTopics.length === 0 ? (
+            <p className="text-[13.5px] text-muted">
+              No topics yet — they&apos;ll show up here once the first session runs.
+            </p>
+          ) : (
+            <div>
+              {queueTopics.map((t) => (
+                <div
+                  key={t.id}
+                  className="flex flex-col items-stretch gap-1.5 py-[7px] sm:flex-row sm:items-center sm:gap-3"
+                >
+                  <span className="text-[13.5px] font-medium sm:w-[210px] sm:shrink-0">
+                    {t.name}
+                    {t.coverage_score === 0 && (
+                      <span className="ml-1.5 inline-block align-middle">
+                        <Badge tone="muted">still blank</Badge>
+                      </span>
+                    )}
+                  </span>
+                  <div className="flex-1">
+                    <CoverageBar value={t.coverage_score} low={t.coverage_score < LOW_COVERAGE} />
                   </div>
                 </div>
-              ))
-            )}
-          </Card>
-
-          <Card className="px-[22px] py-5">
-            <h3>Coverage</h3>
-            <p className="mb-2 text-[13px] text-muted">
-              How much of each topic {interviewer} has explored so far.
-            </p>
-
-            {queueTopics.length === 0 ? (
-              <p className="text-[13.5px] text-muted">
-                No topics yet — they&apos;ll show up here once the first session runs.
-              </p>
-            ) : (
-              <div>
-                {queueTopics.map((t) => (
-                  <div
-                    key={t.id}
-                    className="flex flex-col items-stretch gap-1.5 py-[7px] sm:flex-row sm:items-center sm:gap-3"
-                  >
-                    <span className="text-[13.5px] font-medium sm:w-[210px] sm:shrink-0">
-                      {t.name}
-                      {t.coverage_score === 0 && (
-                        <span className="ml-1.5 inline-block align-middle">
-                          <Badge tone="muted">still blank</Badge>
-                        </span>
-                      )}
-                    </span>
-                    <div className="flex-1">
-                      <CoverageBar value={t.coverage_score} low={t.coverage_score < LOW_COVERAGE} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {blankTopics.length > 0 && (
-              <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                <Badge tone="amber">still blank</Badge>
-                <span className="text-[12.5px] text-muted">
-                  {interviewer} hasn&apos;t touched {blankTopics.map((t) => t.name).join(", ")} yet — nudge{" "}
-                  {blankTopics.length === 1 ? "it" : "them"} up the queue for the next session.
-                </span>
-              </div>
-            )}
-          </Card>
-
-          <Card className="px-[22px] py-5">
-            <h3>People</h3>
-            <p className="mb-1 text-[13px] text-muted">
-              Everyone who keeps coming up in {series.subject_name}&apos;s stories.
-            </p>
-            {people.length === 0 ? (
-              <p className="mt-2 text-[13.5px] text-muted">No one identified yet.</p>
-            ) : (
-              <div className="mt-1 flex flex-wrap gap-1.5">
-                {people.map((p) => (
-                  <Chip key={p.id}>
-                    {p.name}
-                    {p.detail && (
-                      <span className="text-[10.5px] uppercase tracking-[0.08em] text-faint">{p.detail}</span>
-                    )}
-                  </Chip>
-                ))}
-              </div>
-            )}
-
-            <div className={navLabel} style={{ padding: "16px 0 8px" }}>
-              Places
+              ))}
             </div>
-            {places.length === 0 ? (
-              <p className="text-[13.5px] text-muted">No places identified yet.</p>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {places.map((p) => (
-                  <Chip key={p.id}>{p.name}</Chip>
-                ))}
-              </div>
-            )}
-          </Card>
-
-          <Card className="px-[22px] py-5">
-            <h3 className="mb-2">Timeline</h3>
-            {timeline.length === 0 ? (
-              <p className="text-[13.5px] text-muted">
-                No timeline moments yet — dates {interviewer} hears about will show up here.
-              </p>
-            ) : (
-              <div className="relative pl-[22px] before:absolute before:bottom-1.5 before:left-[5px] before:top-1.5 before:w-[1.5px] before:bg-line-strong before:content-['']">
-                {timeline.map((t) => (
-                  <div key={t.id} className="relative pb-[18px] last:pb-1">
-                    <div className="absolute -left-[22px] top-[5px] h-[11px] w-[11px] rounded-full border-[2.5px] border-paper bg-green" />
-                    <div className="text-[11.5px] font-bold tracking-[0.08em] text-green-deep">{t.year}</div>
-                    <div className="serif text-[15px]">{t.statement}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-        </div>
-
-        <div className="flex flex-col gap-[18px]">
-          {needsReviewFacts.length > 0 && (
-            <Card className="px-[22px] py-5">
-              <Badge tone="amber">
-                {needsReviewFacts.length} needs review
-              </Badge>
-              <div className="mt-2.5">
-                {needsReviewFacts.map((f) => {
-                  const meta = [
-                    (f.topic_id && topicNameById.get(f.topic_id)) || null,
-                    f.source_interview_id && sessionNumberById.get(f.source_interview_id)
-                      ? `Session ${sessionNumberById.get(f.source_interview_id)}`
-                      : null,
-                    formatOffset(f.audio_offset_sec),
-                  ]
-                    .filter(Boolean)
-                    .join(" · ");
-                  return (
-                    <div key={f.id} className="flex gap-2.5 border-b border-line py-2.5 last:border-b-0 last:pb-0">
-                      <span aria-hidden className="mt-[7px] h-[7px] w-[7px] shrink-0 rounded-full bg-amber" />
-                      <div>
-                        <div className="serif text-[14px] leading-[1.5]">{f.statement}</div>
-                        {meta && <div className="mt-0.5 text-[11.5px] text-faint">{meta}</div>}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <Link href="/app/memories" className="mt-2.5 inline-block text-[13px] font-medium">
-                Review it →
-              </Link>
-            </Card>
           )}
-        </div>
+
+          {blankTopics.length > 0 && (
+            <div className="mt-2.5 flex flex-wrap items-center gap-2">
+              <Badge tone="amber">still blank</Badge>
+              <span className="text-[12.5px] text-muted">
+                {interviewer} hasn&apos;t touched {blankTopics.map((t) => t.name).join(", ")} yet — nudge{" "}
+                {blankTopics.length === 1 ? "it" : "them"} up the queue for the next session.
+              </span>
+            </div>
+          )}
+        </Card>
+
+        <Card className="px-[22px] py-5">
+          <h3>People</h3>
+          <p className="mb-1 text-[13px] text-muted">
+            Everyone who keeps coming up in {series.subject_name}&apos;s stories.
+          </p>
+          {people.length === 0 ? (
+            <p className="mt-2 text-[13.5px] text-muted">No one identified yet.</p>
+          ) : (
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {people.map((p) => (
+                <Chip key={p.id}>
+                  {p.name}
+                  {p.detail && (
+                    <span className="text-[10.5px] uppercase tracking-[0.08em] text-faint">{p.detail}</span>
+                  )}
+                </Chip>
+              ))}
+            </div>
+          )}
+
+          <div className={navLabel} style={{ padding: "16px 0 8px" }}>
+            Places
+          </div>
+          {places.length === 0 ? (
+            <p className="text-[13.5px] text-muted">No places identified yet.</p>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {places.map((p) => (
+                <Chip key={p.id}>{p.name}</Chip>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        <Card className="px-[22px] py-5">
+          <h3 className="mb-2">Timeline</h3>
+          {timeline.length === 0 ? (
+            <p className="text-[13.5px] text-muted">
+              No timeline moments yet — dates {interviewer} hears about will show up here.
+            </p>
+          ) : (
+            <div className="relative pl-[22px] before:absolute before:bottom-1.5 before:left-[5px] before:top-1.5 before:w-[1.5px] before:bg-line-strong before:content-['']">
+              {timeline.map((t) => (
+                <div key={t.id} className="relative pb-[18px] last:pb-1">
+                  <div className="absolute -left-[22px] top-[5px] h-[11px] w-[11px] rounded-full border-[2.5px] border-paper bg-green" />
+                  <div className="text-[11.5px] font-bold tracking-[0.08em] text-green-deep">{t.year}</div>
+                  <div className="serif text-[15px]">{t.statement}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
       </div>
 
     </div>
