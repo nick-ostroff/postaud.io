@@ -46,12 +46,18 @@ export default async function RecapPage({ params }: { params: Params }) {
   const series = await getSeries(supabase, interview.series_id);
   if (!series) notFound();
 
-  const [summary, facts, knowledge, sessions] = await Promise.all([
+  const [summary, facts, knowledge, sessions, queueCountRes] = await Promise.all([
     getInterviewSummary(supabase, id),
     getInterviewFacts(supabase, id),
     getSeriesKnowledge(supabase, series.id),
     listInterviewsForSeries(supabase, series.id),
+    supabase
+      .from("queued_questions")
+      .select("id", { count: "exact", head: true })
+      .eq("series_id", series.id)
+      .eq("status", "pending"),
   ]);
+  const queueCount = queueCountRes.count ?? 0;
 
   const session = sessions.find((s) => s.id === id) ?? null;
   const durationLabel =
@@ -99,6 +105,25 @@ export default async function RecapPage({ params }: { params: Params }) {
           })}
         </Card>
       )}
+
+      {queueCount > 0 ? (
+        <Card className="mt-4 border-[1.5px] border-green-deep/35 bg-green-tint/40 px-[18px] py-3.5">
+          <div className="flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="text-[13.5px] font-semibold">
+                {queueCount === 1 ? "1 question in your queue" : `${queueCount} questions in your queue`}
+              </div>
+              <div className="mt-0.5 text-[12px] text-muted">They&apos;ll open the next session.</div>
+            </div>
+            <Link
+              href={`/app/series/${series.id}/queue`}
+              className="shrink-0 text-[12.5px] font-semibold text-green-deep"
+            >
+              Review ›
+            </Link>
+          </div>
+        </Card>
+      ) : null}
 
       {nextTopic && (
         <div className="mt-4 rounded-card border border-green-tint bg-green-tint px-4 py-3">

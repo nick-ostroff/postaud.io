@@ -331,7 +331,7 @@ export function LiveInterview({
               } catch {
                 // Malformed args — ack anyway so the model moves on.
               }
-              if (index > 0) setQuickfireProgress({ index, total });
+              if (index > 0 && total > 0) setQuickfireProgress({ index, total });
 
               // Ack the tool so the model continues to the next question.
               const dc = dcRef.current;
