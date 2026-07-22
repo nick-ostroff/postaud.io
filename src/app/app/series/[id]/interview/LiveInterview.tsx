@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { ConversationMode } from "@/db/types";
 import { TranscriptBatch, type TranscriptTurn } from "@/lib/transcript-batch";
 
 type LiveInterviewProps = {
@@ -10,6 +11,8 @@ type LiveInterviewProps = {
   seriesTitle: string;
   subjectName: string;
   handoff: boolean;
+  mode: ConversationMode;
+  pendingQueue: { id: string; text: string }[];
 };
 
 /** Orb / conversation state driven by Realtime data-channel events. */
@@ -101,6 +104,10 @@ export function LiveInterview({
   seriesTitle,
   subjectName,
   handoff,
+  mode,
+  // Threaded through for Tasks 8-9's flow/quickfire session UI — not
+  // rendered here, this task only wires the prop.
+  pendingQueue: _pendingQueue,
 }: LiveInterviewProps) {
   const router = useRouter();
 
@@ -591,7 +598,9 @@ export function LiveInterview({
           {connected ? (
             <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[oklch(0.62_0.16_25)]" />
           ) : null}
-          {connected ? `REC ${formatElapsed(elapsedSec)}` : "connecting…"}
+          {connected
+            ? `${mode === "flow" ? "FLOW" : mode === "quickfire" ? "QUICKFIRE" : "REC"} ${formatElapsed(elapsedSec)}`
+            : "connecting…"}
         </div>
       </header>
 

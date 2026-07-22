@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/db/types";
+import type { ConversationMode, Database } from "@/db/types";
 
 /**
  * Typed start-interview failure the caller (`POST /api/series/[id]/interviews`)
@@ -22,6 +22,8 @@ export type StartInterviewInput = {
   conductedBy: string;
   handoff: boolean;
   creditsRemaining: number;
+  /** Mode this session should run in (picker choice or the series default). */
+  mode: ConversationMode;
 };
 
 /**
@@ -73,6 +75,14 @@ export async function startInterview(
 
   const existingId = await findInProgress(supabase, input.seriesId, input.conductedBy);
   if (existingId) {
+    // Stamp the requested mode even on a resumed session: a reconnect that
+    // chose differently (or a resume after the series default changed)
+    // should mint instructions matching the mode the user is looking at now.
+    const { error: modeErr } = await supabase
+      .from("interviews")
+      .update({ mode: input.mode })
+      .eq("id", existingId);
+    if (modeErr) throw new Error(modeErr.message);
     return { interviewId: existingId };
   }
 
@@ -83,6 +93,7 @@ export async function startInterview(
       series_id: input.seriesId,
       conducted_by: input.conductedBy,
       hand_the_mic: input.handoff,
+      mode: input.mode,
     })
     .select("id")
     .single();

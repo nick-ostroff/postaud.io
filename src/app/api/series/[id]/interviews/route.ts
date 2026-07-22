@@ -25,7 +25,7 @@ export async function POST(request: Request, { params }: { params: Params }) {
 
   const { data: series, error: seriesErr } = await supabase
     .from("series")
-    .select("id, subject_user_id")
+    .select("id, subject_user_id, conversation_mode")
     .eq("id", id)
     .maybeSingle();
   if (seriesErr) {
@@ -58,6 +58,9 @@ export async function POST(request: Request, { params }: { params: Params }) {
       conductedBy: user.id,
       handoff: parsed.data.handoff ?? false,
       creditsRemaining: organization.credits_remaining,
+      // This API route has no picker UI of its own (that's the interview
+      // page's job) — fall back to the series' configured default mode.
+      mode: series.conversation_mode,
     });
     return NextResponse.json({ interviewId });
   } catch (err) {

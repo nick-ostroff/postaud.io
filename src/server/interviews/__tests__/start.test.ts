@@ -14,19 +14,24 @@ type StubOptions = {
     data: { id: string } | null;
     error: { code?: string; message: string } | null;
   };
+  updateResult?: {
+    error: { message: string } | null;
+  };
 };
 
 /**
- * Minimal chainable stand-in for the two query shapes startInterview() uses:
+ * Minimal chainable stand-in for the query shapes startInterview() uses:
  *   from("interviews").select("id").eq().eq().eq().order().limit(1)
  *   from("interviews").insert({...}).select("id").single()
- * Records inserted rows and select-chain filters so tests can assert on them.
+ *   from("interviews").update({...}).eq("id", ...)
+ * Records inserted/updated rows and select-chain filters so tests can assert on them.
  */
 function makeSupabaseStub(opts: StubOptions = {}) {
   const selectQueue = [...(opts.selectResults ?? [[]])];
   const calls = {
     inserts: [] as Record<string, unknown>[],
     selectFilters: [] as Record<string, unknown>[],
+    updates: [] as { row: Record<string, unknown>; filters: Record<string, unknown> }[],
   };
 
   const stub = {
@@ -63,6 +68,16 @@ function makeSupabaseStub(opts: StubOptions = {}) {
             },
           };
         },
+        update(row: Record<string, unknown>) {
+          const filters: Record<string, unknown> = {};
+          return {
+            async eq(col: string, val: unknown) {
+              filters[col] = val;
+              calls.updates.push({ row, filters });
+              return { error: opts.updateResult?.error ?? null };
+            },
+          };
+        },
       };
     },
   };
@@ -76,6 +91,7 @@ const baseInput = {
   conductedBy: "user-1",
   handoff: false,
   creditsRemaining: 3,
+  mode: "deep" as const,
 };
 
 describe("startInterview", () => {
@@ -114,7 +130,37 @@ describe("startInterview", () => {
       series_id: "series-1",
       conducted_by: "user-1",
       hand_the_mic: true,
+      mode: "deep",
     });
+  });
+
+  it("stamps the requested mode on a new interview row", async () => {
+    const { supabase, calls } = makeSupabaseStub({
+      selectResults: [[]],
+      insertResult: { data: { id: "new-1" }, error: null },
+    });
+    const result = await startInterview(supabase, { ...baseInput, mode: "flow" });
+    expect(result).toEqual({ interviewId: "new-1" });
+    expect(calls.inserts).toHaveLength(1);
+    expect(calls.inserts[0]).toEqual({
+      organization_id: "org-1",
+      series_id: "series-1",
+      conducted_by: "user-1",
+      hand_the_mic: false,
+      mode: "flow",
+    });
+  });
+
+  it("updates mode when resuming an in-progress interview started in another mode", async () => {
+    const { supabase, calls } = makeSupabaseStub({
+      selectResults: [[{ id: "existing-1" }]],
+    });
+    const result = await startInterview(supabase, { ...baseInput, mode: "quickfire" });
+    expect(result).toEqual({ interviewId: "existing-1" });
+    expect(calls.inserts).toHaveLength(0);
+    expect(calls.updates).toHaveLength(1);
+    expect(calls.updates[0].row).toEqual({ mode: "quickfire" });
+    expect(calls.updates[0].filters).toEqual({ id: "existing-1" });
   });
 
   it("resolves a lost 23505 race by returning the concurrent winner's row", async () => {
