@@ -140,6 +140,9 @@ export function LiveInterview({
   const [queueCount, setQueueCount] = useState(pendingQueue.length);
   const [toast, setToast] = useState<string | null>(null);
 
+  // Quickfire mode: "Question N of T" progress, driven by mark_question_asked.
+  const [quickfireProgress, setQuickfireProgress] = useState<{ index: number; total: number } | null>(null);
+
   // Session plumbing lives in refs — none of it should re-render the stage.
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const dcRef = useRef<RTCDataChannel | null>(null);
@@ -197,8 +200,10 @@ export function LiveInterview({
    * - output_audio_buffer.started / stopped → speaking/listening
    * - response.done → accumulates event.response.usage (exact token counts,
    *   never estimated — see RealtimeUsageAccumulator)
-   * - response.output_item.done → Flow mode only: item.type === "function_call"
+   * - response.output_item.done → Flow mode: item.type === "function_call"
    *   with item.name === "propose_followups" surfaces the follow-up cards.
+   *   Quickfire mode: item.name === "mark_question_asked" updates the
+   *   progress line and flips the matching queue row to asked.
    */
   const attachDataChannel = useCallback(
     (dc: RTCDataChannel) => {
@@ -311,12 +316,60 @@ export function LiveInterview({
                 if (!pausedRef.current) setOrbState("listening");
               }
             }
+            if (
+              mode === "quickfire" &&
+              item?.type === "function_call" &&
+              item.name === "mark_question_asked" &&
+              item.call_id
+            ) {
+              let index = 0;
+              let total = 0;
+              try {
+                const args = JSON.parse(item.arguments ?? "{}") as { index?: number; total?: number };
+                index = typeof args.index === "number" ? args.index : 0;
+                total = typeof args.total === "number" ? args.total : 0;
+              } catch {
+                // Malformed args — ack anyway so the model moves on.
+              }
+              if (index > 0) setQuickfireProgress({ index, total });
+
+              // Ack the tool so the model continues to the next question.
+              const dc = dcRef.current;
+              if (dc?.readyState === "open") {
+                dc.send(
+                  JSON.stringify({
+                    type: "conversation.item.create",
+                    item: {
+                      type: "function_call_output",
+                      call_id: item.call_id,
+                      output: JSON.stringify({ ok: true }),
+                    },
+                  }),
+                );
+                dc.send(JSON.stringify({ type: "response.create" }));
+              }
+
+              // Items 1..pendingQueue.length in the QUESTION LIST are queue
+              // rows, in order (the token route builds the list queue-first
+              // from the same position sort). Flip the matching row to
+              // asked — best-effort.
+              const queueItem = index >= 1 && index <= pendingQueue.length ? pendingQueue[index - 1] : null;
+              if (queueItem) {
+                void fetch(`/api/series/${seriesId}/queue`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ action: "markAsked", ids: [queueItem.id], interviewId }),
+                }).catch(() => {
+                  // Unmarked rows stay pending and get re-asked next time — acceptable.
+                });
+              }
+            }
             break;
           }
         }
       };
     },
-    [addTurn, mode],
+    [addTurn, mode, pendingQueue, seriesId, interviewId],
   );
 
   /** Stop every media resource. Safe to call repeatedly. */
@@ -812,6 +865,12 @@ export function LiveInterview({
               Connecting to Anna…
             </p>
           )}
+          {mode === "quickfire" && quickfireProgress ? (
+            <p className="mt-2 text-[12px] font-medium tabular-nums text-[rgba(247,245,240,0.55)]">
+              Question {Math.min(quickfireProgress.index + 1, quickfireProgress.total)} of{" "}
+              {quickfireProgress.total}
+            </p>
+          ) : null}
           <p
             className="spoken mt-5 min-h-6 text-[15px] text-[rgba(247,245,240,0.55)]"
             style={{
