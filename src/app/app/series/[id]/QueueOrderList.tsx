@@ -9,9 +9,9 @@ export type QueueOrderItem = { id: string; text: string };
  * The Question queue card's list: numbered pending questions that admins can
  * reorder by dragging the ⠿ handle (HTML5 drag & drop — desktop) or with the
  * ↑/↓ buttons (also the touch/keyboard path), both via the queue API's
- * existing `reorder` action. Optimistic — the new order shows immediately and
- * rolls back if the write fails; the queue page stays the place for
- * pin/remove.
+ * existing `reorder` action, plus a ✕ per row (the API's `remove` action).
+ * Optimistic — changes show immediately and roll back if the write fails;
+ * the queue page stays the place for pin + provenance.
  */
 export function QueueOrderList({
   seriesId,
@@ -56,6 +56,29 @@ export function QueueOrderList({
     [order[idx], order[next]] = [order[next], order[idx]];
     setItems(order);
     commit(order, items);
+  }
+
+  function remove(idx: number) {
+    if (busy) return;
+    const prev = items;
+    const target = items[idx];
+    setItems(items.filter((_, i) => i !== idx));
+    setBusy(true);
+    setError(null);
+    fetch(`/api/series/${seriesId}/queue`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "remove", id: target.id }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error();
+        router.refresh();
+      })
+      .catch(() => {
+        setItems(prev);
+        setError("Couldn't remove that question — try again.");
+      })
+      .finally(() => setBusy(false));
   }
 
   function onDragStart(idx: number) {
@@ -124,6 +147,9 @@ export function QueueOrderList({
                 onClick={() => move(i, 1)}
               >
                 ↓
+              </ArrowButton>
+              <ArrowButton label="Remove question" disabled={busy} onClick={() => remove(i)}>
+                ✕
               </ArrowButton>
             </span>
           )}
