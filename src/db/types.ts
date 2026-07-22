@@ -16,6 +16,9 @@ export type SeriesStatus = "active" | "paused" | "archived"
 export type SubjectKind = "member" | "self" | "person" | "organization"
 export type SeriesTone = "warm" | "neutral" | "playful"
 export type SeriesDepth = "single" | "light" | "balanced" | "deep"
+export type ConversationMode = "deep" | "flow" | "quickfire"
+export type QueuedQuestionSource = "flow" | "member"
+export type QueuedQuestionStatus = "pending" | "asked" | "removed"
 export type InterviewStatus = "in_progress" | "completed" | "processed" | "abandoned"
 export type MessageRole = "interviewer" | "subject"
 export type FactStatus = "active" | "needs_review" | "superseded" | "retell_queued"
@@ -178,6 +181,8 @@ export type Database = {
           voice: string
           interviewer_name: string
           depth: SeriesDepth
+          conversation_mode: ConversationMode
+          ask_mode_each_time: boolean
           planned_sessions: number | null
           photo_path: string | null
           status: SeriesStatus
@@ -200,6 +205,8 @@ export type Database = {
           voice?: string
           interviewer_name?: string
           depth?: SeriesDepth
+          conversation_mode?: ConversationMode
+          ask_mode_each_time?: boolean
           planned_sessions?: number | null
           photo_path?: string | null
           status?: SeriesStatus
@@ -222,6 +229,8 @@ export type Database = {
           voice?: string
           interviewer_name?: string
           depth?: SeriesDepth
+          conversation_mode?: ConversationMode
+          ask_mode_each_time?: boolean
           planned_sessions?: number | null
           photo_path?: string | null
           status?: SeriesStatus
@@ -296,6 +305,7 @@ export type Database = {
           status: InterviewStatus
           conducted_by: string | null
           hand_the_mic: boolean
+          mode: ConversationMode | null
           started_at: string
           ended_at: string | null
           duration_sec: number | null
@@ -311,6 +321,7 @@ export type Database = {
           status?: InterviewStatus
           conducted_by?: string | null
           hand_the_mic?: boolean
+          mode?: ConversationMode | null
           started_at?: string
           ended_at?: string | null
           duration_sec?: number | null
@@ -326,6 +337,7 @@ export type Database = {
           status?: InterviewStatus
           conducted_by?: string | null
           hand_the_mic?: boolean
+          mode?: ConversationMode | null
           started_at?: string
           ended_at?: string | null
           duration_sec?: number | null
@@ -439,6 +451,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      queued_questions: {
+        Row: {
+          id: string
+          series_id: string
+          text: string
+          source: QueuedQuestionSource
+          created_by: string | null
+          source_interview_id: string | null
+          position: number
+          status: QueuedQuestionStatus
+          asked_in_interview_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          series_id: string
+          text: string
+          source: QueuedQuestionSource
+          created_by?: string | null
+          source_interview_id?: string | null
+          position?: number
+          status?: QueuedQuestionStatus
+          asked_in_interview_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          series_id?: string
+          text?: string
+          source?: QueuedQuestionSource
+          created_by?: string | null
+          source_interview_id?: string | null
+          position?: number
+          status?: QueuedQuestionStatus
+          asked_in_interview_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       facts: {
         Row: {
@@ -815,6 +869,7 @@ export type Database = {
       subject_kind: "member" | "self" | "person" | "organization"
       series_tone: "warm" | "neutral" | "playful"
       series_depth: "single" | "light" | "balanced" | "deep"
+      conversation_mode: "deep" | "flow" | "quickfire"
       interview_status: "in_progress" | "completed" | "processed" | "abandoned"
       message_role: "interviewer" | "subject"
       fact_status: "active" | "needs_review" | "superseded" | "retell_queued"
@@ -953,6 +1008,7 @@ export const Constants = {
       subject_kind: ["member", "self", "person", "organization"],
       series_tone: ["warm", "neutral", "playful"],
       series_depth: ["single", "light", "balanced", "deep"],
+      conversation_mode: ["deep", "flow", "quickfire"],
       interview_status: ["in_progress", "completed", "processed", "abandoned"],
       message_role: ["interviewer", "subject"],
       fact_status: ["active", "needs_review", "superseded", "retell_queued"],
@@ -972,6 +1028,7 @@ export type SeriesAccess = Tables<"series_access">
 export type Interview = Tables<"interviews">
 export type InterviewMessage = Tables<"interview_messages">
 export type Topic = Tables<"topics">
+export type QueuedQuestion = Tables<"queued_questions">
 export type Fact = Tables<"facts">
 export type Entity = Tables<"entities">
 export type FactEntity = Tables<"fact_entities">

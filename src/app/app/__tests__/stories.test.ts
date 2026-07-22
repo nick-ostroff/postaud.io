@@ -21,6 +21,8 @@ function series(overrides: Partial<Series> & Pick<Series, "id">): Series {
     voice: DEFAULT_VOICE,
     interviewer_name: "Anna",
     depth: "balanced",
+    conversation_mode: "deep",
+    ask_mode_each_time: false,
     planned_sessions: null,
     status: "active",
     created_by: null,
