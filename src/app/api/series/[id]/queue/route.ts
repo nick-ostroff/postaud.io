@@ -86,6 +86,18 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
 
   if (body.action === "markAsked") {
     if (!ctx.canInterview) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // Verify the interview actually belongs to this series before stamping
+    // it as the asked-in interview — a client-supplied id from another
+    // series must not be trusted.
+    const { data: interview, error: ivErr } = await svc
+      .from("interviews")
+      .select("id")
+      .eq("id", body.interviewId)
+      .eq("series_id", id)
+      .maybeSingle();
+    if (ivErr) return NextResponse.json({ error: ivErr.message }, { status: 500 });
+    if (!interview) return NextResponse.json({ error: "invalid_interview" }, { status: 400 });
+
     const { error } = await svc
       .from("queued_questions")
       .update({ status: "asked", asked_in_interview_id: body.interviewId, updated_at: new Date().toISOString() })
@@ -99,13 +111,26 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
   if (ctx.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   if (body.action === "reorder") {
-    // ids is the full desired pending order; write positions 0..n-1.
-    for (let i = 0; i < body.ids.length; i++) {
-      const { error } = await svc
-        .from("queued_questions")
-        .update({ position: i, updated_at: new Date().toISOString() })
-        .eq("series_id", id)
-        .eq("id", body.ids[i]);
+    // ids is the desired pending order; write positions 0..n-1 in one
+    // atomic upsert rather than a per-row loop, so a mid-write failure can't
+    // leave the queue half-reordered.
+    const { data: pending, error: listErr } = await svc
+      .from("queued_questions")
+      .select("*")
+      .eq("series_id", id)
+      .eq("status", "pending");
+    if (listErr) return NextResponse.json({ error: listErr.message }, { status: 500 });
+    const byId = new Map((pending ?? []).map((r) => [r.id, r] as const));
+    // Ignore ids that aren't actually pending in this series — this also
+    // guarantees the upsert below can never insert a new row.
+    const orderedIds = body.ids.filter((qid) => byId.has(qid));
+    const rows = orderedIds.map((qid, i) => ({
+      ...byId.get(qid)!,
+      position: i,
+      updated_at: new Date().toISOString(),
+    }));
+    if (rows.length > 0) {
+      const { error } = await svc.from("queued_questions").upsert(rows, { onConflict: "id" });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     }
     return NextResponse.json({ ok: true });
@@ -113,22 +138,26 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
 
   if (body.action === "pin") {
     // Pin = re-write positions from the freshly-read pending order with the
-    // pinned id first. Small table — per-row updates are fine at queue sizes.
+    // pinned id first, in one atomic upsert.
     const { data: pending, error: listErr } = await svc
       .from("queued_questions")
-      .select("id")
+      .select("*")
       .eq("series_id", id)
       .eq("status", "pending")
       .order("position", { ascending: true })
       .order("created_at", { ascending: true });
     if (listErr) return NextResponse.json({ error: listErr.message }, { status: 500 });
-    const order = [body.id, ...(pending ?? []).map((r) => r.id).filter((x) => x !== body.id)];
-    for (let i = 0; i < order.length; i++) {
-      const { error } = await svc
-        .from("queued_questions")
-        .update({ position: i, updated_at: new Date().toISOString() })
-        .eq("series_id", id)
-        .eq("id", order[i]);
+    const byId = new Map((pending ?? []).map((r) => [r.id, r] as const));
+    const orderedIds = [body.id, ...(pending ?? []).map((r) => r.id).filter((x) => x !== body.id)].filter((qid) =>
+      byId.has(qid),
+    );
+    const rows = orderedIds.map((qid, i) => ({
+      ...byId.get(qid)!,
+      position: i,
+      updated_at: new Date().toISOString(),
+    }));
+    if (rows.length > 0) {
+      const { error } = await svc.from("queued_questions").upsert(rows, { onConflict: "id" });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     }
     return NextResponse.json({ ok: true });
