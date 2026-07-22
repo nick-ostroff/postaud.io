@@ -158,6 +158,11 @@ export async function POST(_request: Request, { params }: { params: Params }) {
     topics,
     retellQueue,
     sessionNumber,
+    // Interim until session tools land (plan Task 7 wires interview.mode + the
+    // live queue): every session runs the deep prompt path, which is
+    // byte-identical to pre-modes behavior.
+    mode: "deep",
+    queuedQuestions: [],
   });
 
   try {
