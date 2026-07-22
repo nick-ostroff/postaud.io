@@ -29,7 +29,7 @@ export async function POST(_request: Request, { params }: { params: Params }) {
 
   const { data: interview, error: interviewErr } = await svc
     .from("interviews")
-    .select("id, series_id, status, hand_the_mic, organization_id, started_at")
+    .select("id, series_id, status, hand_the_mic, organization_id, started_at, mode")
     .eq("id", id)
     .maybeSingle();
   if (interviewErr) {
@@ -67,7 +67,7 @@ export async function POST(_request: Request, { params }: { params: Params }) {
     return NextResponse.json({ error: "not_in_progress" }, { status: 409 });
   }
 
-  const [topicsRes, activeFactsRes, retellFactsRes, priorRes] = await Promise.all([
+  const [topicsRes, activeFactsRes, retellFactsRes, priorRes, queueRes] = await Promise.all([
     svc
       .from("topics")
       .select("id, name, coverage_score, must_cover, suggested")
@@ -101,6 +101,13 @@ export async function POST(_request: Request, { params }: { params: Params }) {
       .eq("series_id", series.id)
       .in("status", ["completed", "processed"])
       .lt("started_at", interview.started_at),
+    svc
+      .from("queued_questions")
+      .select("id, text")
+      .eq("series_id", series.id)
+      .eq("status", "pending")
+      .order("position", { ascending: true })
+      .order("created_at", { ascending: true }),
   ]);
   if (topicsRes.error) {
     return NextResponse.json({ error: topicsRes.error.message }, { status: 500 });
@@ -110,6 +117,9 @@ export async function POST(_request: Request, { params }: { params: Params }) {
   }
   if (retellFactsRes.error) {
     return NextResponse.json({ error: retellFactsRes.error.message }, { status: 500 });
+  }
+  if (queueRes.error) {
+    return NextResponse.json({ error: queueRes.error.message }, { status: 500 });
   }
   // A failed count shouldn't kill the interview — degrade to "unknown session
   // number", which just drops the pacing line from the prompt.
@@ -132,6 +142,11 @@ export async function POST(_request: Request, { params }: { params: Params }) {
     : [];
 
   const persona = personaFor(series.voice);
+
+  // Null mode = an interview started before modes existed (or a legacy row):
+  // fall back to the series default, never crash.
+  const mode = interview.mode ?? series.conversation_mode;
+  const queuedQuestions = (queueRes.data ?? []).map((q) => q.text);
 
   const instructions = buildInterviewerInstructions({
     series: {
@@ -158,15 +173,56 @@ export async function POST(_request: Request, { params }: { params: Params }) {
     topics,
     retellQueue,
     sessionNumber,
-    // Interim until Task 7 injects the live queue and declares session tools:
-    // mode comes from the series (so 0019-backfilled quickfire series keep
-    // their Q&A posture), queue is empty. Quickfire's prompt references a
-    // tool that isn't declared yet; the prompt also says never to mention it
-    // aloud, so this is harmless until Task 7. (Flow can't be selected yet —
-    // the settings UI lands later — so no flow-mode session can occur here.)
-    mode: series.conversation_mode,
-    queuedQuestions: [],
+    mode,
+    queuedQuestions,
   });
+
+  // Realtime function tools per mode. Shapes verified against
+  // node_modules/openai/resources/realtime/realtime.d.ts (RealtimeFunctionTool):
+  // { type: "function", name, description, parameters } — parameters is a raw
+  // JSON-schema object.
+  const FLOW_TOOLS = [
+    {
+      type: "function" as const,
+      name: "propose_followups",
+      description:
+        "Immediately after the subject finishes an answer, propose 2-3 short follow-up questions that " +
+        "build on what they just said. The subject picks one on screen; stay silent until the result arrives.",
+      parameters: {
+        type: "object",
+        properties: {
+          questions: {
+            type: "array",
+            items: { type: "string" },
+            minItems: 2,
+            maxItems: 3,
+            description: "Distinct, specific, one-sentence follow-up questions.",
+          },
+        },
+        required: ["questions"],
+      },
+    },
+  ];
+
+  const QUICKFIRE_TOOLS = [
+    {
+      type: "function" as const,
+      name: "mark_question_asked",
+      description:
+        "Call after the subject finishes answering an item from the QUESTION LIST, before asking the next " +
+        "one. index is the item's 1-based number in the list; total is the list length.",
+      parameters: {
+        type: "object",
+        properties: {
+          index: { type: "number" },
+          total: { type: "number" },
+        },
+        required: ["index", "total"],
+      },
+    },
+  ];
+
+  const tools = mode === "flow" ? FLOW_TOOLS : mode === "quickfire" ? QUICKFIRE_TOOLS : undefined;
 
   try {
     const client = openaiClient();
@@ -175,6 +231,7 @@ export async function POST(_request: Request, { params }: { params: Params }) {
         type: "realtime",
         model: REALTIME_MODEL,
         instructions,
+        ...(tools ? { tools, tool_choice: "auto" as const } : {}),
         audio: {
           input: {
             transcription: { model: "whisper-1" },

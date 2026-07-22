@@ -156,6 +156,7 @@ function makeSvcStub() {
       voice: "cedar",
       interviewer_name: "Some Stale Name",
       depth: "balanced",
+      conversation_mode: "deep",
       planned_sessions: 6,
     },
     error: null,
@@ -167,6 +168,7 @@ function makeSvcStub() {
       if (table === "series") return makeChain(seriesResult);
       if (table === "topics") return makeChain({ data: [], error: null });
       if (table === "facts") return makeChain({ data: [], error: null });
+      if (table === "queued_questions") return makeChain({ data: [], error: null });
       throw new Error(`unexpected table: ${table}`);
     },
   };
