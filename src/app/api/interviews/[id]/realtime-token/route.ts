@@ -42,7 +42,7 @@ export async function POST(_request: Request, { params }: { params: Params }) {
   const { data: series, error: seriesErr } = await svc
     .from("series")
     .select(
-      "id, subject_user_id, title, subject_name, subject_relationship, goal, opening_prompt, dont_bring_up, tone, session_minutes, voice, interviewer_name, depth, planned_sessions",
+      "id, subject_user_id, title, subject_name, subject_relationship, goal, opening_prompt, dont_bring_up, tone, session_minutes, voice, interviewer_name, depth, conversation_mode, planned_sessions",
     )
     .eq("id", interview.series_id)
     .maybeSingle();
@@ -158,10 +158,13 @@ export async function POST(_request: Request, { params }: { params: Params }) {
     topics,
     retellQueue,
     sessionNumber,
-    // Interim until session tools land (plan Task 7 wires interview.mode + the
-    // live queue): every session runs the deep prompt path, which is
-    // byte-identical to pre-modes behavior.
-    mode: "deep",
+    // Interim until Task 7 injects the live queue and declares session tools:
+    // mode comes from the series (so 0019-backfilled quickfire series keep
+    // their Q&A posture), queue is empty. Quickfire's prompt references a
+    // tool that isn't declared yet; the prompt also says never to mention it
+    // aloud, so this is harmless until Task 7. (Flow can't be selected yet —
+    // the settings UI lands later — so no flow-mode session can occur here.)
+    mode: series.conversation_mode,
     queuedQuestions: [],
   });
 

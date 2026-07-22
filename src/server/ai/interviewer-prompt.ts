@@ -196,6 +196,10 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
     // is truly exhausted"), so it's the one thing here that has to flex with
     // depth. `single` goes further: the queue IS the agenda. `balanced` and
     // `deep` keep the exact original wording.
+    // NOTE: the `effectiveDepth === "single"` branch below is currently
+    // unreachable — quickfire (the only mode where effectiveDepth is
+    // "single") takes the QUESTION LIST branch above and never reaches this
+    // intro. Kept for structural symmetry in case a future mode routes here.
     const exploreIntro =
       effectiveDepth === "single"
         ? "These are the questions still to be answered, least-covered first. This series is a single Q&A " +
