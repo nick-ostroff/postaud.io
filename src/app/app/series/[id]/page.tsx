@@ -17,13 +17,10 @@ import {
   getViewer,
   listInterviewsForSeries,
 } from "@/db/queries";
-import { getVaultLink } from "@/db/queries/vault";
 import { personaFor } from "@/lib/voices";
-import { ExportCard } from "./ExportCard";
 import { PendingSummaryRefresher } from "./PendingSummaryRefresher";
 import { PromoteChip } from "./PromoteChip";
 import { ReprocessButton } from "./ReprocessButton";
-import { VaultCard } from "./VaultCard";
 
 /** Coverage below this reads as amber — matches the card grid's threshold. */
 const LOW_COVERAGE = 0.4;
@@ -57,18 +54,17 @@ type Params = Promise<{ id: string }>;
 
 export default async function SeriesDetailPage({ params }: { params: Params }) {
   const { id } = await params;
-  const { supabase, role, user } = await getViewer();
+  const { supabase, role } = await getViewer();
   const isAdmin = role === "admin";
 
   const series = await getSeries(supabase, id);
   if (!series) notFound();
 
-  const [summaries, knowledge, sessions, access, vaultLink] = await Promise.all([
+  const [summaries, knowledge, sessions, access] = await Promise.all([
     getSeriesSummaries(supabase, [id]),
     getSeriesKnowledge(supabase, id),
     listInterviewsForSeries(supabase, id),
     getSeriesAccessSummary(supabase, id),
-    getVaultLink(supabase, id, user.id),
   ]);
 
   const summary = summaries[id];
@@ -355,15 +351,6 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
             </div>
           </Card>
 
-          <Card className="px-[22px] py-5">
-            <h3>Export</h3>
-            <p className="text-[13px] text-muted">
-              Take everything {personaFor(series.voice).name} has learned with you — nothing is locked in.
-            </p>
-            <ExportCard seriesId={series.id} />
-          </Card>
-
-          <VaultCard seriesId={series.id} link={vaultLink} />
         </div>
       </div>
 

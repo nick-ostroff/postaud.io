@@ -31,11 +31,11 @@ const SCOPE_OPTIONS: { key: ScopeKey; title: string; description: string; defaul
 ];
 
 /**
- * Interactive slice of the series detail page's Export card (Task 16): pick
+ * Interactive slice of the series settings page's Export card (Task 16): pick
  * a format + what to include, then download via a plain `<a>` to the export
  * route — no fetch/JS-driven download, so it works exactly like clicking a
  * link to any other file. Kept as its own "use client" component so the rest
- * of the series page stays a server component.
+ * of the settings page stays a server component.
  */
 export function ExportCard({ seriesId }: { seriesId: string }) {
   const [format, setFormat] = useState<"md" | "txt">("md");

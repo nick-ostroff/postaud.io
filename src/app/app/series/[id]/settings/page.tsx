@@ -5,20 +5,24 @@ import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { SeriesPhotoEditor } from "@/components/series/SeriesPhotoEditor";
 import { getSeries, getViewer, listMembers } from "@/db/queries";
+import { getVaultLink } from "@/db/queries/vault";
 import { profilePhotoUrl } from "@/server/profile/photo-url";
 import { subjectPhotoUrl } from "@/server/series/photo-url";
 import { AccessManager, type AccessLevel, type AccessMember } from "./AccessManager";
-import type { VoiceId } from "@/lib/voices";
+import { personaFor, type VoiceId } from "@/lib/voices";
 import { ArchiveSeriesButton } from "./ArchiveSeriesButton";
+import { ExportCard } from "../ExportCard";
 import { InterviewGuideForm } from "./InterviewGuideForm";
 import { SeriesDetailsForm } from "./SeriesDetailsForm";
+import { VaultCard } from "../VaultCard";
 
 type Params = Promise<{ id: string }>;
 
 /**
  * Series settings — the full-screen admin surface for one series: photo,
  * name/relationship/goal, who can see it (the old Access page lives here now),
- * and the archive action. Admin-only; non-admins bounce back to the series hub.
+ * export + Obsidian vault sync, and the archive action. Admin-only;
+ * non-admins bounce back to the series hub.
  */
 export default async function SeriesSettingsPage({ params }: { params: Params }) {
   const { id } = await params;
@@ -31,10 +35,11 @@ export default async function SeriesSettingsPage({ params }: { params: Params })
     redirect(`/app/series/${id}`);
   }
 
-  const [members, accessRes, queueCountRes] = await Promise.all([
+  const [members, accessRes, queueCountRes, vaultLink] = await Promise.all([
     listMembers(supabase),
     supabase.from("series_access").select("user_id, can_view, can_interview").eq("series_id", id),
     supabase.from("queued_questions").select("id", { count: "exact", head: true }).eq("series_id", id).eq("status", "pending"),
+    getVaultLink(supabase, id, user.id),
   ]);
   if (accessRes.error) throw new Error(accessRes.error.message);
   const queueCount = queueCountRes.count ?? 0;
@@ -222,6 +227,17 @@ export default async function SeriesSettingsPage({ params }: { params: Params })
               </div>
             </Card>
           )}
+
+          <Card className="px-[22px] py-5">
+            <h3>Export</h3>
+            <p className="text-[13px] text-muted">
+              Take everything {personaFor(series.voice as VoiceId).name} has learned with you — nothing is
+              locked in.
+            </p>
+            <ExportCard seriesId={series.id} />
+          </Card>
+
+          <VaultCard seriesId={series.id} link={vaultLink} />
 
           <Card className="px-[22px] py-5">
             <h3>Archive</h3>

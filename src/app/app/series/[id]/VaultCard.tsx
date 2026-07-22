@@ -5,7 +5,7 @@ import { formatShortDate } from "@/lib/time";
 import { VaultActions } from "./VaultActions";
 
 /**
- * The series page's "Vault" card — the user-facing half of Obsidian sync.
+ * The series settings page's "Vault" card — the user-facing half of Obsidian sync.
  * PostAud.io is a cloud server and cannot write into a user's local vault
  * folder, so pressing Send only stamps `push_requested_at` here; the
  * Obsidian plugin is what actually writes files, the next time it's open.
@@ -18,7 +18,7 @@ import { VaultActions } from "./VaultActions";
  *  - linked, `isPushPending(link)` → Send button replaced by queued status.
  * Only the Send/Unlink buttons need interactivity, so those live in the
  * small "use client" child (`VaultActions`) — this component itself stays a
- * server component, matching how `ExportCard` splits off the series page.
+ * server component, matching how `ExportCard` splits off the settings page.
  */
 export function VaultCard({ seriesId, link }: { seriesId: string; link: VaultLink | null }) {
   if (!link) {
