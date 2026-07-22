@@ -15,6 +15,7 @@ import {
 } from "@/db/queries";
 import { staleness } from "@/server/series/staleness";
 import { PromoteChip } from "../PromoteChip";
+import { groupMemoriesBySession } from "./groupMemories";
 
 /** Coverage below this reads as amber — matches the hub + card-grid threshold (Task 7 convention). */
 const LOW_COVERAGE = 0.4;
@@ -40,6 +41,11 @@ function formatOffset(sec: number | null): string | null {
   const m = Math.floor(sec / 60);
   const s = Math.round(sec % 60);
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+/** "Jul 19" — same short-date register as the series + recap pages. */
+function shortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 export default async function KnowledgePage({ params }: { params: Params }) {
@@ -97,6 +103,9 @@ export default async function KnowledgePage({ params }: { params: Params }) {
   const needsReviewFacts = knowledge.facts.filter((f) => f.status === "needs_review");
   const topicNameById = new Map(knowledge.topics.map((t) => [t.id, t.name] as const));
   const sessionNumberById = new Map(sessions.map((s) => [s.id, s.sessionNumber] as const));
+
+  const memoryGroups = groupMemoriesBySession(facts, sessions);
+  const interviewer = series.interviewer_name;
 
   const { stale, label: freshnessLabel } = staleness(
     summary.lastSessionAt ? new Date(summary.lastSessionAt) : null,
@@ -160,9 +169,64 @@ export default async function KnowledgePage({ params }: { params: Params }) {
       <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_336px]">
         <div className="flex flex-col gap-3.5">
           <Card className="px-[22px] py-5">
+            <h3>Memories</h3>
+            <p className="text-[13px] text-muted">
+              Everything {interviewer} has saved so far, session by session.
+            </p>
+
+            {memoryGroups.length === 0 ? (
+              <p className="mt-2 text-[13.5px] text-muted">
+                Nothing saved yet — memories will show up here after the first session.
+              </p>
+            ) : (
+              memoryGroups.map((g) => (
+                <div key={g.key}>
+                  <div className={navLabel} style={{ padding: "16px 0 4px" }}>
+                    {[g.label, g.startedAt && shortDate(g.startedAt)].filter(Boolean).join(" · ")}
+                    {" · "}
+                    {g.facts.length} {g.facts.length === 1 ? "memory" : "memories"}
+                  </div>
+                  <div>
+                    {g.facts.map((f) => {
+                      const meta = [
+                        (f.topic_id && topicNameById.get(f.topic_id)) || null,
+                        formatOffset(f.audio_offset_sec),
+                      ]
+                        .filter(Boolean)
+                        .join(" · ");
+                      return (
+                        <Link
+                          key={f.id}
+                          href={`/app/memories/${f.id}`}
+                          className="flex items-start gap-2.5 border-b border-line py-2.5 last:border-b-0 hover:bg-[rgba(33,30,26,0.02)] hover:no-underline"
+                        >
+                          <div className="flex-1">
+                            <div className="serif text-[14.5px] italic leading-[1.5] text-ink">
+                              {f.statement}
+                            </div>
+                            {(meta || f.status === "needs_review") && (
+                              <div className="mt-[3px] flex flex-wrap items-center gap-1.5 text-[11.5px] text-faint">
+                                {f.status === "needs_review" && <Badge tone="amber">needs review</Badge>}
+                                {meta && <span>{meta}</span>}
+                              </div>
+                            )}
+                          </div>
+                          <span aria-hidden className="pt-[3px] text-[13px] text-faint">
+                            ▸
+                          </span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
+            )}
+          </Card>
+
+          <Card className="px-[22px] py-5">
             <h3>Coverage</h3>
             <p className="mb-2 text-[13px] text-muted">
-              How much of each topic Anna has explored so far.
+              How much of each topic {interviewer} has explored so far.
             </p>
 
             {queueTopics.length === 0 ? (
@@ -196,7 +260,7 @@ export default async function KnowledgePage({ params }: { params: Params }) {
               <div className="mt-2.5 flex flex-wrap items-center gap-2">
                 <Badge tone="amber">still blank</Badge>
                 <span className="text-[12.5px] text-muted">
-                  Anna hasn&apos;t touched {blankTopics.map((t) => t.name).join(", ")} yet — nudge{" "}
+                  {interviewer} hasn&apos;t touched {blankTopics.map((t) => t.name).join(", ")} yet — nudge{" "}
                   {blankTopics.length === 1 ? "it" : "them"} up the queue for the next session.
                 </span>
               </div>
@@ -241,7 +305,7 @@ export default async function KnowledgePage({ params }: { params: Params }) {
             <h3 className="mb-2">Timeline</h3>
             {timeline.length === 0 ? (
               <p className="text-[13.5px] text-muted">
-                No timeline moments yet — dates Anna hears about will show up here.
+                No timeline moments yet — dates {interviewer} hears about will show up here.
               </p>
             ) : (
               <div className="relative pl-[22px] before:absolute before:bottom-1.5 before:left-[5px] before:top-1.5 before:w-[1.5px] before:bg-line-strong before:content-['']">
