@@ -28,6 +28,15 @@ type RealtimeEvent = {
   transcript?: string;
   delta?: string;
   response?: { usage?: RealtimeResponseUsage };
+  /**
+   * Present on `response.output_item.done` (verified against openai@6.34.0's
+   * `ResponseOutputItemDoneEvent.item: ConversationItem` in
+   * node_modules/openai/resources/realtime/realtime.d.ts). For a function
+   * call the item is a `RealtimeConversationItemFunctionCall`:
+   * `{ type: "function_call", name, arguments, call_id? }` — `call_id` is
+   * optional per the SDK type, so callers must still guard for it.
+   */
+  item?: { type?: string; name?: string; call_id?: string; arguments?: string };
 };
 
 /**
@@ -84,6 +93,9 @@ function emptyUsageAccumulator(): RealtimeUsageAccumulator {
   };
 }
 
+/** One proposed follow-up question shown as a tappable card (Flow mode). */
+type FollowupCard = { text: string; queued: boolean };
+
 function formatElapsed(totalSec: number): string {
   const m = Math.floor(totalSec / 60);
   const s = totalSec % 60;
@@ -105,9 +117,7 @@ export function LiveInterview({
   subjectName,
   handoff,
   mode,
-  // Threaded through for Tasks 8-9's flow/quickfire session UI — not
-  // rendered here, this task only wires the prop.
-  pendingQueue: _pendingQueue,
+  pendingQueue,
 }: LiveInterviewProps) {
   const router = useRouter();
 
@@ -124,6 +134,12 @@ export function LiveInterview({
   const [endError, setEndError] = useState<string | null>(null);
   const [retryNonce, setRetryNonce] = useState(0);
 
+  // Flow mode: proposed follow-up cards, the save-for-later queue count, and
+  // a transient toast for queue/error feedback.
+  const [followups, setFollowups] = useState<FollowupCard[] | null>(null);
+  const [queueCount, setQueueCount] = useState(pendingQueue.length);
+  const [toast, setToast] = useState<string | null>(null);
+
   // Session plumbing lives in refs — none of it should re-render the stage.
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const dcRef = useRef<RTCDataChannel | null>(null);
@@ -137,6 +153,11 @@ export function LiveInterview({
   const endingRef = useRef(false);
   const usageRef = useRef<RealtimeUsageAccumulator>(emptyUsageAccumulator());
   const realtimeModelRef = useRef<string | null>(null);
+  // Flow mode: the call_id awaiting a chosen follow-up, the nudge fallback
+  // timer, and whether we've already nudged for the current turn.
+  const followupCallIdRef = useRef<string | null>(null);
+  const nudgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const nudgedRef = useRef(false);
 
   /** Flush unsent transcript turns to the messages route (at-least-once). */
   const flushTranscript = useCallback(async () => {
@@ -176,6 +197,8 @@ export function LiveInterview({
    * - output_audio_buffer.started / stopped → speaking/listening
    * - response.done → accumulates event.response.usage (exact token counts,
    *   never estimated — see RealtimeUsageAccumulator)
+   * - response.output_item.done → Flow mode only: item.type === "function_call"
+   *   with item.name === "propose_followups" surfaces the follow-up cards.
    */
   const attachDataChannel = useCallback(
     (dc: RTCDataChannel) => {
@@ -193,6 +216,28 @@ export function LiveInterview({
           case "conversation.item.input_audio_transcription.completed":
             if (event.transcript) addTurn("subject", event.transcript);
             setLiveLine("");
+            if (mode === "flow" && !pausedRef.current && !endingRef.current) {
+              if (nudgeTimerRef.current) clearTimeout(nudgeTimerRef.current);
+              nudgeTimerRef.current = setTimeout(() => {
+                // The model finished hearing an answer but never proposed
+                // follow-ups. Nudge once; if it still doesn't, the session
+                // degrades to a normal conversation — never block.
+                if (followupCallIdRef.current || nudgedRef.current || endingRef.current) return;
+                nudgedRef.current = true;
+                const dc = dcRef.current;
+                if (dc?.readyState === "open") {
+                  dc.send(
+                    JSON.stringify({
+                      type: "response.create",
+                      response: {
+                        instructions:
+                          "Call the propose_followups tool now with 2-3 follow-up questions to what the subject just said. Do not speak.",
+                      },
+                    }),
+                  );
+                }
+              }, 6000);
+            }
             break;
           case "response.output_audio_transcript.done":
             if (event.transcript) {
@@ -207,6 +252,8 @@ export function LiveInterview({
             if (!pausedRef.current) setOrbState("thinking");
             break;
           case "output_audio_buffer.started":
+            // The model chose to speak — don't nudge over it.
+            if (nudgeTimerRef.current) clearTimeout(nudgeTimerRef.current);
             if (!pausedRef.current) setOrbState("speaking");
             break;
           case "output_audio_buffer.stopped":
@@ -232,14 +279,49 @@ export function LiveInterview({
             }
             break;
           }
+          case "response.output_item.done": {
+            const item = event.item;
+            if (
+              mode === "flow" &&
+              item?.type === "function_call" &&
+              item.name === "propose_followups" &&
+              item.call_id
+            ) {
+              let questions: string[] = [];
+              try {
+                const args = JSON.parse(item.arguments ?? "{}") as { questions?: unknown };
+                if (Array.isArray(args.questions)) {
+                  questions = args.questions.filter(
+                    (q): q is string => typeof q === "string" && q.trim().length > 0,
+                  );
+                }
+              } catch {
+                // Malformed args — treat as no proposal; conversation continues.
+              }
+              if (questions.length > 0) {
+                followupCallIdRef.current = item.call_id;
+                if (nudgeTimerRef.current) clearTimeout(nudgeTimerRef.current);
+                nudgedRef.current = false;
+                // Freeze the mic while the cards are up so VAD can't race the choice.
+                micStreamRef.current?.getAudioTracks().forEach((t) => (t.enabled = false));
+                setFollowups(questions.slice(0, 3).map((text) => ({ text, queued: false })));
+                if (!pausedRef.current) setOrbState("listening");
+              }
+            }
+            break;
+          }
         }
       };
     },
-    [addTurn],
+    [addTurn, mode],
   );
 
   /** Stop every media resource. Safe to call repeatedly. */
   const teardownMedia = useCallback(() => {
+    if (nudgeTimerRef.current) {
+      clearTimeout(nudgeTimerRef.current);
+      nudgeTimerRef.current = null;
+    }
     if (recorderRef.current && recorderRef.current.state !== "inactive") {
       try {
         recorderRef.current.stop();
@@ -419,6 +501,47 @@ export function LiveInterview({
     );
     setOrbState("thinking");
   }, []);
+
+  /** Flow mode: answer a proposed follow-up card aloud — resumes the model. */
+  const answerFollowup = useCallback((text: string) => {
+    const dc = dcRef.current;
+    const callId = followupCallIdRef.current;
+    if (!dc || dc.readyState !== "open" || !callId) return;
+    dc.send(
+      JSON.stringify({
+        type: "conversation.item.create",
+        item: { type: "function_call_output", call_id: callId, output: JSON.stringify({ chosen: text }) },
+      }),
+    );
+    dc.send(JSON.stringify({ type: "response.create" }));
+    followupCallIdRef.current = null;
+    setFollowups(null);
+    micStreamRef.current?.getAudioTracks().forEach((t) => (t.enabled = true));
+    setOrbState("thinking");
+  }, []);
+
+  /** Flow mode: save a proposed follow-up for later instead of answering it now. */
+  const queueFollowup = useCallback(
+    async (index: number, text: string) => {
+      try {
+        const res = await fetch(`/api/interviews/${interviewId}/queue`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text }),
+        });
+        if (!res.ok) throw new Error();
+        const { pendingCount } = (await res.json()) as { pendingCount: number };
+        setQueueCount(pendingCount);
+        setFollowups((prev) => prev?.map((c, i) => (i === index ? { ...c, queued: true } : c)) ?? null);
+        setToast(`Saved for later — Queue · ${pendingCount}`);
+        setTimeout(() => setToast(null), 2500);
+      } catch {
+        setToast("Couldn't save that one — try again.");
+        setTimeout(() => setToast(null), 2500);
+      }
+    },
+    [interviewId],
+  );
 
   /** Stop the recorder and resolve with the session's single webm blob. */
   const stopRecorder = useCallback((): Promise<Blob | null> => {
@@ -608,7 +731,67 @@ export function LiveInterview({
       <main className="flex min-h-0 flex-1 flex-col items-center justify-center gap-8 px-6 text-center">
         <div className={orbClass} aria-hidden />
         <div className="max-w-2xl">
-          {connected ? (
+          {mode === "flow" && followups ? (
+            <div className="w-full max-w-md text-left">
+              {toast ? (
+                <div className="mx-auto mb-3 w-fit rounded-full border border-[oklch(0.72_0.08_165/0.45)] bg-[oklch(0.52_0.06_165/0.22)] px-4 py-2 text-[12.5px] font-semibold text-[oklch(0.85_0.05_165)]">
+                  {toast}
+                </div>
+              ) : null}
+              <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[rgba(240,237,230,0.5)]">
+                Where next?
+              </p>
+              <div className="flex flex-col gap-2.5">
+                {followups.map((card, i) => (
+                  <div
+                    key={card.text}
+                    className={`flex items-center gap-2.5 rounded-[13px] border px-3.5 py-3 ${
+                      card.queued
+                        ? "border-[rgba(240,237,230,0.18)] bg-[rgba(240,237,230,0.08)] opacity-45"
+                        : i === 0
+                          ? "border-[oklch(0.72_0.08_165/0.5)] bg-[oklch(0.52_0.06_165/0.18)]"
+                          : "border-[rgba(240,237,230,0.18)] bg-[rgba(240,237,230,0.08)]"
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => answerFollowup(card.text)}
+                      disabled={card.queued}
+                      className={`min-w-0 flex-1 text-left font-serif text-[14.5px] leading-snug ${
+                        card.queued ? "line-through" : ""
+                      }`}
+                    >
+                      {card.text}
+                    </button>
+                    {card.queued ? (
+                      <span aria-hidden className="shrink-0 text-[15px]">✓</span>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => answerFollowup(card.text)}
+                          className="shrink-0 text-[12px] font-semibold text-[oklch(0.82_0.06_165)]"
+                        >
+                          Answer ›
+                        </button>
+                        <button
+                          type="button"
+                          aria-label="Save for later"
+                          onClick={() => void queueFollowup(i, card.text)}
+                          className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full border-[1.5px] border-[rgba(240,237,230,0.35)] text-[16px] text-[rgba(240,237,230,0.8)]"
+                        >
+                          +
+                        </button>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2.5 text-center text-[12px] text-[rgba(240,237,230,0.5)]">
+                tap to answer · + saves for later
+              </p>
+            </div>
+          ) : connected ? (
             <p className="font-serif text-[clamp(20px,3.2vw,30px)] leading-snug text-[#F7F5F0]">
               {currentQuestion ??
                 (handoff
@@ -644,14 +827,23 @@ export function LiveInterview({
             onClick={togglePause}
             disabled={!connected || isEnding}
           />
+          {mode === "flow" ? (
+            <SessionButton
+              label={`Queue · ${queueCount}`}
+              glyph="≡"
+              onClick={() => setDrawerOpen((v) => !v)}
+              disabled={!connected || isEnding}
+            />
+          ) : (
+            <SessionButton
+              label="Skip question"
+              glyph="→"
+              onClick={skipQuestion}
+              disabled={!connected || isPaused || isEnding}
+            />
+          )}
           <SessionButton
-            label="Skip question"
-            glyph="→"
-            onClick={skipQuestion}
-            disabled={!connected || isPaused || isEnding}
-          />
-          <SessionButton
-            label={isEnding ? "Wrapping up…" : "I'm done"}
+            label={isEnding ? "Wrapping up…" : mode === "flow" && followups ? "Stop here" : "I'm done"}
             glyph="✓"
             onClick={() => void endSession()}
             disabled={!connected || isEnding}
