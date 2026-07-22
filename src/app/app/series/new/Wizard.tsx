@@ -160,8 +160,11 @@ export function Wizard({
   const [conversationMode, setConversationMode] = useState<ConversationMode>("flow");
   const [plannedSessions, setPlannedSessions] = useState<string>("");
 
-  // Step 4 — Review
+  // Step 4 — Review. The drafted questions land in `suggestedQuestions` and
+  // only move into `questionPlan` (what actually seeds the queue) when the
+  // user taps + on them — suggestions are opt-in, never auto-queued.
   const [questionPlan, setQuestionPlan] = useState<string[]>([]);
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
   const [questionPlanLoaded, setQuestionPlanLoaded] = useState(false);
   // Derived (not its own state) so the fetch effect doesn't need a
   // synchronous setState call at the top of its body.
@@ -294,11 +297,11 @@ export function Wizard({
         });
         if (!res.ok) throw new Error(`question-plan ${res.status}`);
         const body = await res.json();
-        if (!cancelled) setQuestionPlan(Array.isArray(body?.questions) ? body.questions : []);
+        if (!cancelled) setSuggestedQuestions(Array.isArray(body?.questions) ? body.questions : []);
       } catch {
         // Task 6 hasn't landed yet (404) or the model call failed (500) —
         // degrade to an empty, fully-editable list rather than blocking the wizard.
-        if (!cancelled) setQuestionPlan([]);
+        if (!cancelled) setSuggestedQuestions([]);
       } finally {
         if (!cancelled) setQuestionPlanLoaded(true);
       }
@@ -700,17 +703,20 @@ export function Wizard({
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div>
               <Card className="px-5 py-5">
-                <h3 className="serif text-[18px]">{persona.name} drafted the first session</h3>
+                <h3 className="serif text-[18px]">{persona.name} drafted some questions</h3>
                 <p className="mt-1 text-[13px] text-ink-soft">
                   {conversationMode === "quickfire"
-                    ? `Reorder, edit, or remove anything — this is the list ${persona.name} will work through, one question and one answer at a time, with no follow-ups.`
-                    : `Reorder, edit, or remove anything — this is a starting point. ${persona.name} improvises follow-ups from whatever ${subjectName || "they"} say.`}
+                    ? `Tap + on the ones you want — only questions you add make the list ${persona.name} works through, one question and one answer at a time, with no follow-ups.`
+                    : `Tap + on the ones you want — only questions you add go in the queue. ${persona.name} improvises follow-ups from whatever ${subjectName || "they"} say.`}
                 </p>
 
                 <div className="mt-3">
-                  {questionPlanLoading && <div className="py-4 text-[13px] text-ink-soft">Drafting the first session…</div>}
                   {!questionPlanLoading && questionPlan.length === 0 && (
-                    <div className="py-3 text-[13px] text-ink-soft">No questions yet — add your own below.</div>
+                    <div className="py-3 text-[13px] text-ink-soft">
+                      {suggestedQuestions.length > 0
+                        ? "Nothing queued yet — tap + on a suggestion, or add your own below."
+                        : "No questions yet — add your own below."}
+                    </div>
                   )}
                   {questionPlan.map((q, i) => (
                     <div key={i} className="flex items-center gap-3 border-b border-line py-3 last:border-b-0">
@@ -735,12 +741,53 @@ export function Wizard({
                     </div>
                   ))}
                 </div>
+                {questionPlanLoading && (
+                  <div className="py-4 text-[13px] text-ink-soft">Drafting suggestions…</div>
+                )}
+                {!questionPlanLoading && suggestedQuestions.length > 0 && (
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between">
+                      <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-faint">
+                        Suggested by {persona.name}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setQuestionPlan((prev) => [...prev, ...suggestedQuestions]);
+                          setSuggestedQuestions([]);
+                        }}
+                        className="text-[12.5px] font-semibold text-green-deep hover:text-ink"
+                      >
+                        Add all
+                      </button>
+                    </div>
+                    <div className="mt-2 flex flex-col gap-1.5">
+                      {suggestedQuestions.map((q, i) => (
+                        <button
+                          key={`${i}-${q}`}
+                          type="button"
+                          onClick={() => {
+                            setQuestionPlan((prev) => [...prev, q]);
+                            setSuggestedQuestions((prev) => prev.filter((_, idx) => idx !== i));
+                          }}
+                          className="flex items-start gap-2.5 rounded-card border border-dashed border-line-strong px-3.5 py-2.5 text-left hover:border-green hover:text-green-deep"
+                        >
+                          <span aria-hidden className="shrink-0 text-[14px] leading-[1.4] text-green-deep">
+                            ＋
+                          </span>
+                          <span className="serif text-[14.5px] leading-snug text-ink-soft">{q}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <button
                   type="button"
                   onClick={() => setQuestionPlan((prev) => [...prev, ""])}
                   className="mt-3 block w-full rounded-card border border-dashed border-line-strong py-3 text-center text-[13px] font-semibold text-ink-soft hover:border-green hover:text-green-deep"
                 >
-                  ＋ Add a question
+                  ＋ Add your own question
                 </button>
               </Card>
 
