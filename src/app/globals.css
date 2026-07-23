@@ -15,11 +15,12 @@
   --paper-2: #EFECE6;
   --ink: #211E1A;
   --ink-soft: #3A362F;
-  --muted: #6E675C;
-  /* Darkened from #9A9285 (~3.3:1 on white — failed WCAG AA) to ~4.8:1 so
-     placeholders, review-card labels, and hints stay legible while still
-     reading as the lightest text tier below --muted. */
-  --faint: #78715F;
+  /* Secondary/tertiary text darkened for small-screen legibility (2026-07):
+     --muted ~7.4:1 and --faint ~6.3:1 on white — comfortably past WCAG AA
+     even at the 12–13px sizes they're used at, while still reading as two
+     tiers below --ink-soft. */
+  --muted: #5C5549;
+  --faint: #665F4E;
   --green: oklch(0.52 0.06 165);
   --green-deep: oklch(0.40 0.06 165);
   --green-tint: oklch(0.52 0.06 165 / 0.11);
@@ -144,6 +145,13 @@ body {
      sites. No element uses vw-based widths, so this can't cause H-overflow.
      One knob: raise/lower to taste (1 = original density). */
   zoom: 1.15;
+}
+
+/* Phones get a bigger notch on the same knob — the px-authored small text
+   (12.5–13px meta, chips, breadcrumbs) lands near 16px effective, without
+   touching any call sites. Single-column at this width, so no overflow. */
+@media (max-width: 640px) {
+  body { zoom: 1.25; }
 }
 
 h1, h2, h3, .serif {
