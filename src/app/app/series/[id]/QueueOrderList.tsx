@@ -108,7 +108,7 @@ export function QueueOrderList({
   }
 
   return (
-    <div className="mt-1">
+    <div className="mt-2.5 space-y-2.5">
       {items.map((q, i) => (
         <div
           key={q.id}
@@ -117,41 +117,46 @@ export function QueueOrderList({
           onDragOver={(e) => onDragOver(e, i)}
           onDrop={(e) => e.preventDefault()}
           onDragEnd={onDragEnd}
-          className={`flex items-baseline gap-3 border-b border-line py-2.5 last:border-b-0 ${
+          className={`rounded-xl border border-line bg-[rgba(33,30,26,0.025)] transition-opacity ${
             dragIdx === i ? "opacity-50" : ""
           }`}
         >
-          {canManage && (
-            <span
-              aria-hidden
-              title="Drag to reorder"
-              className="shrink-0 cursor-grab self-center text-[13px] leading-none text-faint active:cursor-grabbing"
-            >
-              ⠿
+          <div className="flex items-start gap-3 px-3.5 pt-3 pb-2.5">
+            <span className="mt-px flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-[rgba(33,30,26,0.07)] text-[11.5px] font-semibold text-faint">
+              {i + 1}
             </span>
-          )}
-          <span className="w-5 shrink-0 text-right text-[12px] font-semibold text-faint">{i + 1}</span>
-          <span className="serif min-w-0 flex-1 text-[14.5px] leading-[1.5] text-ink">{q.text}</span>
+            <span className="serif min-w-0 flex-1 text-[15px] leading-[1.55] text-ink">{q.text}</span>
+          </div>
           {canManage && (
-            <span className="flex shrink-0 items-center gap-0.5 self-center">
-              <ArrowButton
-                label="Move up"
-                disabled={busy || i === 0}
-                onClick={() => move(i, -1)}
+            <div className="flex items-center justify-between border-t border-line px-2 py-1">
+              <span
+                aria-hidden
+                title="Drag to reorder"
+                className="cursor-grab px-2 py-1 text-[14px] leading-none text-faint active:cursor-grabbing"
               >
-                ↑
-              </ArrowButton>
-              <ArrowButton
-                label="Move down"
-                disabled={busy || i === items.length - 1}
-                onClick={() => move(i, 1)}
-              >
-                ↓
-              </ArrowButton>
-              <ArrowButton label="Remove question" disabled={busy} onClick={() => remove(i)}>
-                ✕
-              </ArrowButton>
-            </span>
+                ⠿
+              </span>
+              <span className="flex items-center gap-1">
+                <ArrowButton
+                  label="Move up"
+                  disabled={busy || i === 0}
+                  onClick={() => move(i, -1)}
+                >
+                  ↑
+                </ArrowButton>
+                <ArrowButton
+                  label="Move down"
+                  disabled={busy || i === items.length - 1}
+                  onClick={() => move(i, 1)}
+                >
+                  ↓
+                </ArrowButton>
+                <span aria-hidden className="mx-1 h-4 w-px bg-line" />
+                <ArrowButton label="Remove question" disabled={busy} onClick={() => remove(i)}>
+                  ✕
+                </ArrowButton>
+              </span>
+            </div>
           )}
         </div>
       ))}
@@ -178,7 +183,7 @@ function ArrowButton({
       title={label}
       onClick={onClick}
       disabled={disabled}
-      className="flex h-7 w-7 items-center justify-center rounded-full text-[13px] text-faint transition-colors hover:bg-[rgba(33,30,26,0.05)] hover:text-ink disabled:pointer-events-none disabled:opacity-30"
+      className="flex h-9 w-9 items-center justify-center rounded-full text-[15px] text-faint transition-colors hover:bg-[rgba(33,30,26,0.05)] hover:text-ink disabled:pointer-events-none disabled:opacity-30"
     >
       {children}
     </button>
