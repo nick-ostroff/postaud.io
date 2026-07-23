@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
-import { CoverageBar } from "@/components/ui/CoverageBar";
 import { SeriesPhotoEditor } from "@/components/series/SeriesPhotoEditor";
 import { profilePhotoUrl } from "@/server/profile/photo-url";
 import { subjectPhotoUrl } from "@/server/series/photo-url";
@@ -25,9 +24,6 @@ import { PendingSummaryRefresher } from "./PendingSummaryRefresher";
 import { PromoteChip } from "./PromoteChip";
 import { QueueOrderList } from "./QueueOrderList";
 import { ReprocessButton } from "./ReprocessButton";
-
-/** Coverage below this reads as amber — matches the card grid's threshold. */
-const LOW_COVERAGE = 0.4;
 
 /** Sessions shown before collapsing the rest into a muted "and N earlier" line. */
 const VISIBLE_SESSIONS = 6;
@@ -118,6 +114,10 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
     ? `${series.subject_name} · ${series.subject_relationship}`
     : series.subject_name;
 
+  const persona = personaFor(series.voice);
+  // Legacy deep rows read as Flow here — deep is no longer a selectable mode.
+  const modeLabel = series.conversation_mode === "quickfire" ? "Quick fire" : "Flow";
+
   return (
     <div>
       {summaryPending && <PendingSummaryRefresher />}
@@ -145,10 +145,8 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
               />
               {subjectSubtitle}
             </Chip>
-            <Chip kicker="covered">
-              <span className="inline-block w-16">
-                <CoverageBar value={summary.meanCoverage} low={summary.meanCoverage < LOW_COVERAGE} />
-              </span>
+            <Chip kicker="interviewer">
+              {persona.name} · {modeLabel}
             </Chip>
           </div>
         </div>
@@ -239,7 +237,7 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
               </Link>
             </div>
             <p className="text-[13px] text-muted">
-              What {personaFor(series.voice).name} will ask next — saved from Flow sessions or added by you.
+              What {persona.name} will ask next — saved from Flow sessions or added by you.
             </p>
 
             {pendingQuestions.length === 0 ? (
@@ -278,7 +276,7 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
 
         <div className="flex flex-col gap-[18px]">
           <Card className="px-[22px] py-5">
-            <h3>What {personaFor(series.voice).name} knows</h3>
+            <h3>What {persona.name} knows</h3>
             <p className="text-[13px] text-muted">
               {summary.memoriesCount > 0
                 ? `${summary.memoriesCount} ${summary.memoriesCount === 1 ? "memory" : "memories"} saved so far.`
