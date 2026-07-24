@@ -84,6 +84,26 @@ describe("GET /api/unsplash/search", () => {
     ]);
   });
 
+  it("retries without the squarish filter when it returns no results", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ total: 0, total_pages: 0, results: [] }), { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ total_pages: 3, results: [PHOTO] }), { status: 200 }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const res = await GET(searchReq("?query=pickleball%20court"));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(new URL(fetchMock.mock.calls[0][0]).searchParams.get("orientation")).toBe("squarish");
+    expect(new URL(fetchMock.mock.calls[1][0]).searchParams.get("orientation")).toBeNull();
+    expect(body.totalPages).toBe(3);
+    expect(body.results).toHaveLength(1);
+  });
+
   it("maps an Unsplash 403 (rate limit) to 429", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("limit", { status: 403 })));
     const res = await GET(searchReq("?query=sofa"));

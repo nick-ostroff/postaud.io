@@ -39,17 +39,19 @@ export async function GET(request: Request) {
   }
   const page = Math.min(50, Math.max(1, Math.floor(Number(searchParams.get("page")) || 1)));
 
-  const url = new URL("https://api.unsplash.com/search/photos");
-  url.searchParams.set("query", query);
-  url.searchParams.set("page", String(page));
-  url.searchParams.set("per_page", String(PER_PAGE));
-  // The photo becomes a circular avatar — squarish frames crop best.
-  url.searchParams.set("orientation", "squarish");
-  url.searchParams.set("content_filter", "high");
+  function searchUrl(orientation: string | null) {
+    const url = new URL("https://api.unsplash.com/search/photos");
+    url.searchParams.set("query", query);
+    url.searchParams.set("page", String(page));
+    url.searchParams.set("per_page", String(PER_PAGE));
+    // The photo becomes a circular avatar — squarish frames crop best.
+    if (orientation) url.searchParams.set("orientation", orientation);
+    url.searchParams.set("content_filter", "high");
+    return url;
+  }
 
-  const res = await fetch(url, {
-    headers: { Authorization: `Client-ID ${key}`, "Accept-Version": "v1" },
-  });
+  const headers = { Authorization: `Client-ID ${key}`, "Accept-Version": "v1" };
+  let res = await fetch(searchUrl("squarish"), { headers });
   if (res.status === 401 || res.status === 403) {
     // 403 is how Unsplash reports a blown rate limit (demo tier: 50/hr).
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });
@@ -58,7 +60,19 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "unsplash_error" }, { status: 502 });
   }
 
-  const body = (await res.json()) as { total_pages: number; results: UnsplashPhoto[] };
+  let body = (await res.json()) as { total: number; total_pages: number; results: UnsplashPhoto[] };
+
+  // Niche queries (e.g. "pickleball court") sometimes have zero squarish
+  // photos while landscape/portrait ones exist. Better to show those — the
+  // cropper handles any aspect ratio — than a dead-end empty grid. Applies on
+  // every page, so "Load more" keeps paging the fallback set, not the empty
+  // squarish one.
+  if (body.results.length === 0) {
+    res = await fetch(searchUrl(null), { headers });
+    if (res.ok) {
+      body = (await res.json()) as typeof body;
+    }
+  }
   return NextResponse.json({
     totalPages: body.total_pages,
     results: body.results.map((p) => ({
