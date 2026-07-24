@@ -13,7 +13,7 @@ const updateSeriesSchema = z.object({
   // Total talk time for the WHOLE series, in minutes; null = unlimited.
   totalMinutes: z.union([z.literal(10), z.literal(20), z.literal(45)]).nullable().optional(),
   voice: z.enum(VOICE_IDS).optional(),
-  conversationMode: z.enum(["flow", "quickfire"]).optional(),
+  conversationMode: z.enum(["flow", "quickfire", "ritual"]).optional(),
   plannedSessions: z.number().int().min(1).max(50).nullable().optional(),
 });
 

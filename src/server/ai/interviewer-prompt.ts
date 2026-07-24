@@ -177,7 +177,7 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
     if (a.mustCover !== b.mustCover) return a.mustCover ? -1 : 1;
     return 0;
   });
-  if (input.mode === "quickfire") {
+  if (input.mode === "quickfire" || input.mode === "ritual") {
     // Quickfire replaces the whole EXPLORE NEXT section with a numbered
     // agenda: queued questions first (position order), then must-cover
     // topics by lowest coverage. Non-must-cover topics are deliberately
@@ -185,27 +185,44 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
     // Capped to what plausibly fits this session (≈1.5 min/question); an
     // unlimited series gets a comfortable default rather than no cap. Queue
     // items win the cap over topics since they come first.
+    //
+    // Ritual shares the numbered-agenda mechanics but is queue-ONLY (no
+    // topic fallback — the queue IS the ritual) and framed as a recurring
+    // entry: the same questions get asked every session, and the app never
+    // consumes queue rows for ritual sessions.
     const sessionBudget = Math.min(input.remainingMinutes ?? 30, 45);
     const cap = Math.max(1, Math.round(sessionBudget / 1.5));
     const combined = [
       ...input.queuedQuestions.map((q) => `${q} [from the queue]`),
-      ...(queueOnly ? [] : sortedTopics.filter((t) => t.mustCover).map((t) => t.name)),
+      ...(queueOnly || input.mode === "ritual"
+        ? []
+        : sortedTopics.filter((t) => t.mustCover).map((t) => t.name)),
     ].slice(0, cap);
     const numbered = combined.map((item, i) => `${i + 1}. ${item}`);
     sections.push(
       [
         "QUESTION LIST (ask in order)",
-        queueOnly
-          ? "This session is Quickfire, and the owner chose to ask ONLY the questions below — they are the " +
-            "entire session. Ask each one as a single clear question, near-verbatim, one at a time, in order. " +
-            "Take the answer as given — no follow-ups (see ONE QUESTION, ONE ANSWER). Never add questions of " +
-            "your own; when the list is done, the session is done (see ENDING)."
-          : "This session is Quickfire: the list below IS the agenda. Ask each item as a single clear question, " +
-            "near-verbatim for queue items, one at a time, in order. Take the answer as given — no follow-ups " +
-            "(see ONE QUESTION, ONE ANSWER). It is fine to get through all of them.",
+        input.mode === "ritual"
+          ? "This is a Ritual session — a recurring entry. The subject answers the SAME questions below every " +
+            "session, like a daily journal, so treat them as today's entry: ask each one as a single clear " +
+            "question, near-verbatim, one at a time, in order. Never remark that the questions repeat — the " +
+            "repetition is the point. Take the answer as given — no follow-ups (see ONE QUESTION, ONE ANSWER). " +
+            "Never add questions of your own; when the list is done, the session is done (see ENDING)."
+          : queueOnly
+            ? "This session is Quickfire, and the owner chose to ask ONLY the questions below — they are the " +
+              "entire session. Ask each one as a single clear question, near-verbatim, one at a time, in order. " +
+              "Take the answer as given — no follow-ups (see ONE QUESTION, ONE ANSWER). Never add questions of " +
+              "your own; when the list is done, the session is done (see ENDING)."
+            : "This session is Quickfire: the list below IS the agenda. Ask each item as a single clear question, " +
+              "near-verbatim for queue items, one at a time, in order. Take the answer as given — no follow-ups " +
+              "(see ONE QUESTION, ONE ANSWER). It is fine to get through all of them.",
         ...(numbered.length > 0
           ? numbered
-          : ["1. (The queue and must-cover topics are empty — follow the goal with simple, single questions.)"]),
+          : [
+              input.mode === "ritual"
+                ? "1. (The queue is empty — ask how today went, then wrap up warmly and suggest adding questions to the queue for next time.)"
+                : "1. (The queue and must-cover topics are empty — follow the goal with simple, single questions.)",
+            ]),
         `After the subject finishes answering an item, call the mark_question_asked tool with {"index": <its number>, "total": ${Math.max(numbered.length, 1)}} before you ask the next one. Never mention the tool or the numbering out loud.`,
       ].join("\n"),
     );

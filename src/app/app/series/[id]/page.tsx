@@ -118,7 +118,12 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
 
   const persona = personaFor(series.voice);
   // Legacy deep rows read as Flow here — deep is no longer a selectable mode.
-  const modeLabel = series.conversation_mode === "quickfire" ? "Quick fire" : "Flow";
+  const modeLabel =
+    series.conversation_mode === "quickfire"
+      ? "Quick fire"
+      : series.conversation_mode === "ritual"
+        ? "Ritual"
+        : "Flow";
   const totalTalkSec = sessions.reduce((sum, s) => sum + (s.durationSec ?? 0), 0);
 
   return (
@@ -245,7 +250,9 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
               </Link>
             </div>
             <p className="text-[13px] text-muted">
-              What {persona.name} will ask next — saved from Flow sessions or added by you.
+              {series.conversation_mode === "ritual"
+                ? `The ritual — ${persona.name} asks these same questions every session.`
+                : `What ${persona.name} will ask next — saved from Flow sessions or added by you.`}
             </p>
 
             {pendingQuestions.length === 0 ? (

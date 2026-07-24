@@ -60,14 +60,16 @@ const LENGTH_OPTIONS = [
 const MODE_OPTIONS: { value: ConversationMode; label: string }[] = [
   { value: "flow", label: "Flow" },
   { value: "quickfire", label: "Quick fire" },
+  { value: "ritual", label: "Ritual" },
 ];
 
 const MODE_HINTS: Record<string, string> = {
   flow: "Answer, then choose where to go next. Save follow-ups for later.",
   quickfire: "One question after another from your queue and topics.",
+  ritual: "The same queue questions every session — a daily journal or recurring check-in.",
 };
 
-const MODE_LABELS: Record<string, string> = { flow: "Flow", quickfire: "Quick fire" };
+const MODE_LABELS: Record<string, string> = { flow: "Flow", quickfire: "Quick fire", ritual: "Ritual" };
 
 const INVITE_ERROR_MESSAGES: Record<string, string> = {
   already_member: "Already a member of this workspace.",
@@ -705,9 +707,11 @@ export function Wizard({
               <Card className="px-5 py-5">
                 <h3 className="serif text-[18px]">{persona.name} drafted some questions</h3>
                 <p className="mt-1 text-[13px] text-ink-soft">
-                  {conversationMode === "quickfire"
-                    ? `Tap + on the ones you want — only questions you add make the list ${persona.name} works through, one question and one answer at a time, with no follow-ups.`
-                    : `Tap + on the ones you want — only questions you add go in the queue. ${persona.name} improvises follow-ups from whatever ${subjectName || "they"} say.`}
+                  {conversationMode === "ritual"
+                    ? `Tap + on the ones you want — the questions you add become the ritual: ${persona.name} asks the same list every session, like a daily journal.`
+                    : conversationMode === "quickfire"
+                      ? `Tap + on the ones you want — only questions you add make the list ${persona.name} works through, one question and one answer at a time, with no follow-ups.`
+                      : `Tap + on the ones you want — only questions you add go in the queue. ${persona.name} improvises follow-ups from whatever ${subjectName || "they"} say.`}
                 </p>
 
                 <div className="mt-3">

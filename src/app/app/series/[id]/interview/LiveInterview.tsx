@@ -373,7 +373,7 @@ export function LiveInterview({
               }
             }
             if (
-              mode === "quickfire" &&
+              (mode === "quickfire" || mode === "ritual") &&
               item?.type === "function_call" &&
               item.name === "mark_question_asked" &&
               item.call_id
@@ -410,9 +410,12 @@ export function LiveInterview({
               // route baked into the prompt at mint time — the same one shown
               // to the model — so it can't desync from an admin reorder between
               // page load and mint, and it self-heals on reconnect. Flip the
-              // matching row to asked — best-effort.
+              // matching row to asked — best-effort. Ritual never consumes the
+              // queue: the same questions get asked again next session.
               const queueId =
-                index >= 1 && index <= queueIdsRef.current.length ? queueIdsRef.current[index - 1] : null;
+                mode === "quickfire" && index >= 1 && index <= queueIdsRef.current.length
+                  ? queueIdsRef.current[index - 1]
+                  : null;
               if (queueId) {
                 void fetch(`/api/series/${seriesId}/queue`, {
                   method: "PATCH",
@@ -852,7 +855,7 @@ export function LiveInterview({
             <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[oklch(0.62_0.16_25)]" />
           ) : null}
           {connected
-            ? `${mode === "flow" ? "FLOW" : mode === "quickfire" ? "QUICKFIRE" : "REC"} ${formatElapsed(elapsedSec)}`
+            ? `${mode === "flow" ? "FLOW" : mode === "quickfire" ? "QUICKFIRE" : mode === "ritual" ? "RITUAL" : "REC"} ${formatElapsed(elapsedSec)}`
             : "connecting…"}
         </div>
       </header>
@@ -933,7 +936,7 @@ export function LiveInterview({
               Connecting to {interviewerName}…
             </p>
           )}
-          {mode === "quickfire" && quickfireProgress ? (
+          {(mode === "quickfire" || mode === "ritual") && quickfireProgress ? (
             <p className="mt-2 text-[12px] font-medium tabular-nums text-[rgba(247,245,240,0.55)]">
               Question {Math.min(quickfireProgress.index + 1, quickfireProgress.total)} of{" "}
               {quickfireProgress.total}

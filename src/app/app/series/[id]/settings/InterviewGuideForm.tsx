@@ -22,11 +22,13 @@ const LENGTH_OPTIONS = [
 const MODE_OPTIONS: { value: ConversationMode; label: string }[] = [
   { value: "flow", label: "Flow" },
   { value: "quickfire", label: "Quick fire" },
+  { value: "ritual", label: "Ritual" },
 ];
 
 const MODE_HINTS: Record<string, string> = {
   flow: "Answer, then choose where to go next. Save follow-ups for later.",
   quickfire: "One question after another from your queue and topics.",
+  ritual: "The same queue questions every session — a daily journal or recurring check-in.",
 };
 
 /**

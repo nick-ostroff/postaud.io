@@ -14,7 +14,7 @@ import { LiveInterview } from "./LiveInterview";
 type Params = Promise<{ id: string }>;
 type Search = Promise<{ handoff?: string; mode?: string }>;
 
-const MODES = ["flow", "quickfire"] as const;
+const MODES = ["flow", "quickfire", "ritual"] as const;
 function parseMode(raw: string | undefined): ConversationMode | null {
   return (MODES as readonly string[]).includes(raw ?? "") ? (raw as ConversationMode) : null;
 }

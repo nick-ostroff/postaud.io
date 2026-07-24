@@ -86,6 +86,16 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
 
   if (body.action === "markAsked") {
     if (!ctx.canInterview) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // Ritual series never consume their queue — the same questions get asked
+    // every session. The client already skips this call in ritual mode; this
+    // is the server-side backstop so a stale client can't eat the ritual.
+    const { data: modeRow, error: modeErr } = await svc
+      .from("series")
+      .select("conversation_mode")
+      .eq("id", id)
+      .single();
+    if (modeErr) return NextResponse.json({ error: modeErr.message }, { status: 500 });
+    if (modeRow.conversation_mode === "ritual") return NextResponse.json({ ok: true, skipped: "ritual" });
     // Verify the interview actually belongs to this series AND is still in
     // progress before stamping it as the asked-in interview — a client-supplied
     // id from another series, or a stale/finished one, must not be trusted.

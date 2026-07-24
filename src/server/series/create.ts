@@ -18,7 +18,7 @@ export type CreateSeriesInput = {
   /** Total talk time for the whole series, in minutes; null = unlimited. */
   totalMinutes: number | null;
   voice?: string;
-  conversationMode?: "flow" | "quickfire";
+  conversationMode?: "flow" | "quickfire" | "ritual";
   plannedSessions?: number | null;
   access: { userId: string; canView: boolean; canInterview: boolean }[];
   inviteSubjectEmail?: string;

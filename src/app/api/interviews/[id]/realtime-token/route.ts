@@ -236,7 +236,10 @@ export async function POST(_request: Request, { params }: { params: Params }) {
     },
   ];
 
-  const tools = mode === "flow" ? FLOW_TOOLS : mode === "quickfire" ? QUICKFIRE_TOOLS : undefined;
+  // Ritual reuses quickfire's progress tool — the client shows "Question N of
+  // T" the same way, it just never flips queue rows to asked afterwards.
+  const tools =
+    mode === "flow" ? FLOW_TOOLS : mode === "quickfire" || mode === "ritual" ? QUICKFIRE_TOOLS : undefined;
 
   try {
     const client = openaiClient();

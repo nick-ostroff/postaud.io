@@ -24,7 +24,7 @@ export const createSeriesSchema = z.object({
   // Total talk time for the WHOLE series, in minutes; null = unlimited.
   totalMinutes: z.union([z.literal(10), z.literal(20), z.literal(45)]).nullable().default(null),
   voice: z.enum(VOICE_IDS).default(DEFAULT_VOICE),
-  conversationMode: z.enum(["flow", "quickfire"]).default("flow"),
+  conversationMode: z.enum(["flow", "quickfire", "ritual"]).default("flow"),
   plannedSessions: z.number().int().min(1).max(50).nullable().default(null),
   access: z.array(accessEntrySchema).default([]),
   inviteSubjectEmail: z.string().email().optional(),

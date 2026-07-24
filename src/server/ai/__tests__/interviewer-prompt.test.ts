@@ -224,6 +224,29 @@ describe("conversation modes", () => {
     expect(out).toContain("As the remaining time runs low"); // normal ENDING
   });
 
+  it("ritual builds a queue-only numbered list framed as a recurring entry", () => {
+    const out = buildInterviewerInstructions({
+      ...base,
+      mode: "ritual",
+      queuedQuestions: ["What did you work on today?", "What's on your mind for tomorrow?"],
+      topics: [{ name: "The warehouse years", coverageScore: 0, mustCover: true, suggested: false }],
+    });
+    expect(out).toContain("Ritual session");
+    expect(out).toContain("SAME questions");
+    expect(out).toContain("1. What did you work on today? [from the queue]");
+    expect(out).toContain("2. What's on your mind for tomorrow? [from the queue]");
+    // No topic fallback — the queue IS the ritual.
+    expect(out).not.toContain("The warehouse years");
+    expect(out).toContain("mark_question_asked");
+    expect(out).not.toContain("EXPLORE NEXT");
+  });
+
+  it("ritual with an empty queue asks about today instead of falling back to topics", () => {
+    const out = buildInterviewerInstructions({ ...base, mode: "ritual", queuedQuestions: [] });
+    expect(out).toContain("The queue is empty");
+    expect(out).not.toContain("1. Health & habits");
+  });
+
   it("queue-only outside quickfire changes nothing", () => {
     const off = buildInterviewerInstructions({ ...base, mode: "flow" });
     const on = buildInterviewerInstructions({ ...base, mode: "flow", quickfireQueueOnly: true });
