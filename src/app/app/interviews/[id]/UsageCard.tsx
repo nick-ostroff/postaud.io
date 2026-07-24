@@ -1,46 +1,7 @@
 import { Card } from "@/components/ui/Card";
 import type { InterviewUsage } from "@/db/types";
-import { RATES_UPDATED, summarizeUsage, type UsageModelGroup } from "@/server/usage/pricing";
-
-/** Phase-agnostic human label per provider — a group can span multiple
- * phases (e.g. anthropic covers both "extract" and "merge" rows summed
- * together), so the label names the capability, not a specific phase. */
-function providerLabel(provider: string): string {
-  if (provider === "openai_realtime") return "Voice conversation";
-  if (provider === "anthropic") return "Knowledge extraction";
-  return provider;
-}
-
-function fmtInt(n: number): string {
-  return n.toLocaleString("en-US");
-}
-
-function fmtUsd(usd: number): string {
-  if (usd <= 0) return "$0.00";
-  if (usd < 0.01) return "< $0.01";
-  return `$${usd.toFixed(2)}`;
-}
-
-/** "audio 1.2k in / text 300 in / cached 0 in / audio 800 out / text 40 out" style breakdown. */
-function realtimeBreakdown(g: UsageModelGroup): string {
-  return [
-    `${fmtInt(g.audioInputTokens)} audio in`,
-    `${fmtInt(g.textInputTokens)} text in`,
-    `${fmtInt(g.cachedInputTokens)} cached in`,
-    `${fmtInt(g.audioOutputTokens)} audio out`,
-    `${fmtInt(g.textOutputTokens)} text out`,
-  ].join(" · ");
-}
-
-function anthropicBreakdown(g: UsageModelGroup): string {
-  const plainInput = Math.max(0, g.inputTokens - g.cacheReadInputTokens - g.cacheCreationInputTokens);
-  return [
-    `${fmtInt(plainInput)} input`,
-    `${fmtInt(g.cacheReadInputTokens)} cache read`,
-    `${fmtInt(g.cacheCreationInputTokens)} cache write`,
-    `${fmtInt(g.outputTokens)} output`,
-  ].join(" · ");
-}
+import { RATES_UPDATED, summarizeUsage } from "@/server/usage/pricing";
+import { anthropicBreakdown, fmtInt, fmtUsd, providerLabel, realtimeBreakdown } from "@/components/usage/format";
 
 /**
  * Admin-only "API usage & cost" card for the session results page (usage-2).

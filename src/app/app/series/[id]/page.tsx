@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { SeriesPhotoEditor } from "@/components/series/SeriesPhotoEditor";
+import { fmtTalkTime } from "@/components/usage/format";
 import { profilePhotoUrl } from "@/server/profile/photo-url";
 import { subjectPhotoUrl } from "@/server/series/photo-url";
 import {
@@ -44,15 +45,6 @@ function formatDuration(sec: number | null): string | null {
   return `${mins} min`;
 }
 
-/** Series-total talk time for the header chip — hours once it earns them. */
-function formatTotalTime(sec: number): string {
-  const mins = Math.round(sec / 60);
-  if (mins < 1) return "under 1 min";
-  if (mins < 60) return `${mins} min`;
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return m ? `${h} hr ${m} min` : `${h} hr`;
-}
 
 const badgeLabel: Record<string, string> = {
   owner: "owner",
@@ -161,7 +153,7 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
             </Chip>
             {sessions.length > 0 && (
               <Chip kicker="sessions">
-                {sessions.length} · {formatTotalTime(totalTalkSec)} total
+                {sessions.length} · {fmtTalkTime(totalTalkSec)} total
               </Chip>
             )}
           </div>

@@ -284,6 +284,32 @@ export async function getInterviewUsage(
 }
 
 /**
+ * Every usage ledger row across ALL of a series' interviews (any status —
+ * a failed processing attempt's spend is still spend), for the settings
+ * page's Activity card. Same exact-token semantics as `getInterviewUsage`.
+ */
+export async function getSeriesUsage(
+  sb: SupabaseClient<Database>,
+  seriesId: string,
+): Promise<InterviewUsage[]> {
+  const { data: interviews, error: interviewsErr } = await sb
+    .from("interviews")
+    .select("id")
+    .eq("series_id", seriesId);
+  if (interviewsErr) throw new Error(interviewsErr.message);
+  const ids = (interviews ?? []).map((i) => i.id);
+  if (ids.length === 0) return [];
+
+  const { data, error } = await sb
+    .from("interview_usage")
+    .select("*")
+    .in("interview_id", ids)
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+/**
  * All transcript turns for one interview, oldest first (`seq` order) — the
  * session results page's full transcript. `interview_messages` is
  * insert-only and RLS-gated the same way as everything else here

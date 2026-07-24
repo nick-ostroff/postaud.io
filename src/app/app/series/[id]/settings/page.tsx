@@ -4,12 +4,14 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { SeriesPhotoEditor } from "@/components/series/SeriesPhotoEditor";
-import { getSeries, getViewer, listMembers } from "@/db/queries";
+import { getSeries, getSeriesUsage, getViewer, listInterviewsForSeries, listMembers } from "@/db/queries";
 import { getVaultLink } from "@/db/queries/vault";
 import { profilePhotoUrl } from "@/server/profile/photo-url";
 import { subjectPhotoUrl } from "@/server/series/photo-url";
+import { fmtTalkTime } from "@/components/usage/format";
 import { AccessManager, type AccessLevel, type AccessMember } from "./AccessManager";
 import { personaFor, type VoiceId } from "@/lib/voices";
+import { ActivityCard } from "./ActivityCard";
 import { ArchiveSeriesButton } from "./ArchiveSeriesButton";
 import { ExportCard } from "../ExportCard";
 import { InterviewGuideForm } from "./InterviewGuideForm";
@@ -35,11 +37,13 @@ export default async function SeriesSettingsPage({ params }: { params: Params })
     redirect(`/app/series/${id}`);
   }
 
-  const [members, accessRes, queueCountRes, vaultLink] = await Promise.all([
+  const [members, accessRes, queueCountRes, vaultLink, sessions, usageRows] = await Promise.all([
     listMembers(supabase),
     supabase.from("series_access").select("user_id, can_view, can_interview").eq("series_id", id),
     supabase.from("queued_questions").select("id", { count: "exact", head: true }).eq("series_id", id).eq("status", "pending"),
     getVaultLink(supabase, id, user.id),
+    listInterviewsForSeries(supabase, id),
+    getSeriesUsage(supabase, id),
   ]);
   if (accessRes.error) throw new Error(accessRes.error.message);
   const queueCount = queueCountRes.count ?? 0;
@@ -78,6 +82,8 @@ export default async function SeriesSettingsPage({ params }: { params: Params })
   // subject_kind 'person'/'organization' never have an account (subject_user_id
   // stays null) — 'self'/'member' always do. So "no account" reduces to this.
   const noAccountSubject = subjectUserId == null;
+
+  const totalTalkSec = sessions.reduce((sum, s) => sum + (s.durationSec ?? 0), 0);
 
   return (
     <div>
@@ -236,6 +242,12 @@ export default async function SeriesSettingsPage({ params }: { params: Params })
           </Card>
 
           <VaultCard seriesId={series.id} link={vaultLink} />
+
+          <ActivityCard
+            rows={usageRows}
+            sessionCount={sessions.length}
+            totalTalkLabel={fmtTalkTime(totalTalkSec)}
+          />
 
           <Card className="px-[22px] py-5">
             <h3>Archive</h3>
