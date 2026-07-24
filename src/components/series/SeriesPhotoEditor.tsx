@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";
 import { ImageCropperModal } from "@/components/ui/ImageCropperModal";
+import { PhotoSourceModal } from "@/components/series/PhotoSourceModal";
 
 const UPLOAD_ERRORS: Record<string, string> = {
   too_large: "That image is too large — try a smaller one.",
@@ -13,9 +14,10 @@ const UPLOAD_ERRORS: Record<string, string> = {
 
 /**
  * The series avatar on the detail page. Read-only for non-admins (plain
- * `Avatar`); for admins it becomes a button that opens a file picker + circular
- * cropper and POSTs the result to `/api/series/[id]/photo`, refreshing the page
- * so the new photo (and the card grid) pick it up.
+ * `Avatar`); for admins it becomes a button that opens a source chooser
+ * (upload a file or search Unsplash), runs the chosen image through the
+ * circular cropper, and POSTs the result to `/api/series/[id]/photo`,
+ * refreshing the page so the new photo (and the card grid) pick it up.
  */
 export function SeriesPhotoEditor({
   seriesId,
@@ -32,6 +34,7 @@ export function SeriesPhotoEditor({
 }) {
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement | null>(null);
+  const [chooserOpen, setChooserOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,7 +80,7 @@ export function SeriesPhotoEditor({
     <>
       <button
         type="button"
-        onClick={() => fileInput.current?.click()}
+        onClick={() => setChooserOpen(true)}
         className="group relative -m-0.5 cursor-pointer rounded-full p-0.5 outline-none focus-visible:ring-2 focus-visible:ring-green"
         aria-label={photoUrl ? "Change series photo" : "Add series photo"}
         title={photoUrl ? "Change photo" : "Add photo"}
@@ -88,6 +91,18 @@ export function SeriesPhotoEditor({
         </span>
       </button>
       <input ref={fileInput} type="file" accept="image/*" hidden onChange={pick} />
+      {chooserOpen && (
+        <PhotoSourceModal
+          title={photoUrl ? "Change photo" : "Add photo"}
+          onClose={() => setChooserOpen(false)}
+          onUpload={() => fileInput.current?.click()}
+          onPicked={(picked) => {
+            setChooserOpen(false);
+            setError(null);
+            setFile(picked);
+          }}
+        />
+      )}
       {file && (
         <ImageCropperModal
           file={file}

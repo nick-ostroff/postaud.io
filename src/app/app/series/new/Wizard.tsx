@@ -13,6 +13,7 @@ import type { ConversationMode, MemberRole, SubjectKind } from "@/db/types";
 import { DEFAULT_VOICE, personaFor } from "@/lib/voices";
 import type { VoiceId } from "@/lib/voices";
 import { VoicePicker } from "@/components/series/VoicePicker";
+import { PhotoSourceModal } from "@/components/series/PhotoSourceModal";
 import { ChipEditor, RadioCard, StepsIndicator, WizardField, inputClasses, textareaClasses } from "./formkit";
 import type { MemberOption } from "./formkit";
 
@@ -141,6 +142,7 @@ export function Wizard({
   // Photo (optional) — cropped client-side, held as a webp Blob and uploaded
   // to the new series right after it's created (the row must exist first).
   const photoInput = useRef<HTMLInputElement | null>(null);
+  const [photoChooserOpen, setPhotoChooserOpen] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null); // pending crop
   const [photoBlob, setPhotoBlob] = useState<Blob | null>(null); // cropped, ready to upload
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -472,7 +474,7 @@ export function Wizard({
             >
               <div className="flex items-center gap-3.5">
                 <Avatar name={subjectName || "?"} size="lg" tone="plain" src={photoPreview ?? subjectProfilePhoto} />
-                <Button type="button" variant="secondary" onClick={() => photoInput.current?.click()}>
+                <Button type="button" variant="secondary" onClick={() => setPhotoChooserOpen(true)}>
                   {photoPreview ? "Change photo" : "Add photo"}
                 </Button>
                 {photoPreview && (
@@ -487,6 +489,18 @@ export function Wizard({
               </div>
               <input ref={photoInput} type="file" accept="image/*" hidden onChange={onPhotoPick} />
             </WizardField>
+
+            {photoChooserOpen && (
+              <PhotoSourceModal
+                title={photoPreview ? "Change photo" : "Add photo"}
+                onClose={() => setPhotoChooserOpen(false)}
+                onUpload={() => photoInput.current?.click()}
+                onPicked={(picked) => {
+                  setPhotoChooserOpen(false);
+                  setPhotoFile(picked);
+                }}
+              />
+            )}
 
             {photoFile && (
               <ImageCropperModal
