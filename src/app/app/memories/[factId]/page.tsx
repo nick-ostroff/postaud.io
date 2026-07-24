@@ -54,7 +54,7 @@ export default async function MemoryDetailPage({ params }: { params: Params }) {
       {sourceLine && <p className="mt-2 text-[13px] text-muted">{sourceLine}</p>}
 
       <div className="mt-6">
-        <ReviewActions factId={fact.id} initialStatement={fact.statement} />
+        <ReviewActions factId={fact.id} initialStatement={fact.statement} interviewerName={fact.interviewerName} />
       </div>
 
       <p className="mt-[18px] text-center text-[12.5px] text-faint">

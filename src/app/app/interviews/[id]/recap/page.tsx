@@ -65,20 +65,21 @@ export default async function RecapPage({ params }: { params: Params }) {
   const sessionLabel = session ? `Session ${session.sessionNumber}` : "This session";
 
   const nextTopic = pickNewestSuggestedTopic(knowledge.topics);
+  const interviewer = series.interviewer_name;
 
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-1 pb-4 pt-2">
       <h1 className="text-[27px]">What we heard today</h1>
       <p className="text-[13px] text-muted">
         {sessionLabel}
-        {durationLabel ? ` · ${durationLabel} with Anna` : " · with Anna"}
+        {durationLabel ? ` · ${durationLabel} with ${interviewer}` : ` · with ${interviewer}`}
       </p>
 
       <div className="mt-3">
         {summary ? (
           <p className="serif text-[16px] leading-[1.55] text-ink-soft">{summary.short}</p>
         ) : (
-          <ProcessingRecap />
+          <ProcessingRecap interviewerName={interviewer} />
         )}
       </div>
 
@@ -87,7 +88,7 @@ export default async function RecapPage({ params }: { params: Params }) {
       </div>
       {facts.length === 0 ? (
         <p className="text-[13.5px] text-muted">
-          Nothing saved here yet — check back once Anna finishes writing this session up.
+          Nothing saved here yet — check back once {interviewer} finishes writing this session up.
         </p>
       ) : (
         <Card className="px-4 py-1">
@@ -128,7 +129,7 @@ export default async function RecapPage({ params }: { params: Params }) {
       {nextTopic && (
         <div className="mt-4 rounded-card border border-green-tint bg-green-tint px-4 py-3">
           <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-green-deep">Next time</div>
-          <div className="serif mt-1 text-[15.5px]">Next time, Anna would love to hear about {nextTopic.name}.</div>
+          <div className="serif mt-1 text-[15.5px]">Next time, {interviewer} would love to hear about {nextTopic.name}.</div>
         </div>
       )}
 

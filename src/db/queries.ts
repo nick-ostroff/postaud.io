@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { DEFAULT_INTERVIEWER_NAME } from "@/lib/voices";
 import { createClient } from "@/db/server";
 import { serviceClient } from "@/db/service";
 import type {
@@ -654,6 +655,7 @@ export type FactDetail = {
   status: FactStatus;
   seriesId: string;
   seriesTitle: string;
+  interviewerName: string;
   topicName: string | null;
   sourceInterviewId: string | null;
   audioPath: string | null;
@@ -668,7 +670,7 @@ type FactDetailJoinRow = {
   source_interview_id: string | null;
   audio_offset_sec: number | null;
   topics: { name: string } | null;
-  series: { title: string } | null;
+  series: { title: string; interviewer_name: string } | null;
   interviews: { audio_path: string | null } | null;
 };
 
@@ -685,7 +687,7 @@ export async function getFactDetail(sb: SupabaseClient<Database>, factId: string
   const { data, error } = await sb
     .from("facts")
     .select(
-      "id, statement, status, series_id, source_interview_id, audio_offset_sec, topics ( name ), series ( title ), interviews ( audio_path )",
+      "id, statement, status, series_id, source_interview_id, audio_offset_sec, topics ( name ), series ( title, interviewer_name ), interviews ( audio_path )",
     )
     .eq("id", factId)
     .maybeSingle();
@@ -699,6 +701,7 @@ export async function getFactDetail(sb: SupabaseClient<Database>, factId: string
     status: f.status,
     seriesId: f.series_id,
     seriesTitle: f.series?.title ?? "",
+    interviewerName: f.series?.interviewer_name ?? DEFAULT_INTERVIEWER_NAME,
     topicName: f.topics?.name ?? null,
     sourceInterviewId: f.source_interview_id,
     audioPath: f.interviews?.audio_path ?? null,

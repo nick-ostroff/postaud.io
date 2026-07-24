@@ -15,7 +15,7 @@ const MAX_POLLS = 15; // ~60s
  * After ~60s of no luck, gives up polling and settles on a "check back
  * later" message instead of refreshing forever.
  */
-export function ProcessingRecap() {
+export function ProcessingRecap({ interviewerName }: { interviewerName: string }) {
   const router = useRouter();
   const [gaveUp, setGaveUp] = useState(false);
   const pollCount = useRef(0);
@@ -38,7 +38,7 @@ export function ProcessingRecap() {
     <p className="serif text-[16px] leading-[1.55] text-ink-soft">
       {gaveUp
         ? "This is taking a little longer than usual — check back in a bit and the recap will be waiting for you."
-        : "Anna is still listening back and writing this up — this page will update on its own in a moment."}
+        : `${interviewerName} is still listening back and writing this up — this page will update on its own in a moment.`}
     </p>
   );
 }

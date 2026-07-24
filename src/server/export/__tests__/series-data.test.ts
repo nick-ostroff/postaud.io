@@ -19,7 +19,13 @@ import type { SeriesExportScope } from "../markdown";
 
 const SUPABASE_STUB = {} as never;
 
-const SERIES = { id: "series-1", title: "Dad's Stories", subject_name: "Dad", goal: "Preserve his life story" };
+const SERIES = {
+  id: "series-1",
+  title: "Dad's Stories",
+  subject_name: "Dad",
+  goal: "Preserve his life story",
+  interviewer_name: "Anna",
+};
 
 const TOPICS = [
   { id: "topic-childhood", series_id: "series-1", name: "Childhood", position: 0 },

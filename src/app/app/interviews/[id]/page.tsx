@@ -92,6 +92,7 @@ export default async function InterviewResultsPage({ params }: { params: Params 
   const restTurns = messages.slice(VISIBLE_TURNS);
 
   const showProcessingNote = interview.status === "completed" && !!interview.process_error;
+  const interviewer = series.interviewer_name;
 
   return (
     <div>
@@ -155,7 +156,7 @@ export default async function InterviewResultsPage({ params }: { params: Params 
               </>
             ) : (
               <p className="serif mt-1.5 text-[15px] leading-[1.5] text-ink-soft">
-                Anna is still listening back and writing this session up — check back in a bit.
+                {interviewer} is still listening back and writing this session up — check back in a bit.
               </p>
             )}
           </Card>
@@ -197,7 +198,7 @@ export default async function InterviewResultsPage({ params }: { params: Params 
               <>
                 <div className="mt-1">
                   {firstTurns.map((m) => (
-                    <TurnRow key={m.id} message={m} subjectName={series.subject_name} />
+                    <TurnRow key={m.id} message={m} subjectName={series.subject_name} interviewerName={interviewer} />
                   ))}
                 </div>
                 {restTurns.length > 0 && (
@@ -207,7 +208,7 @@ export default async function InterviewResultsPage({ params }: { params: Params 
                     </summary>
                     <div className="mt-1">
                       {restTurns.map((m) => (
-                        <TurnRow key={m.id} message={m} subjectName={series.subject_name} />
+                        <TurnRow key={m.id} message={m} subjectName={series.subject_name} interviewerName={interviewer} />
                       ))}
                     </div>
                   </details>
@@ -221,7 +222,7 @@ export default async function InterviewResultsPage({ params }: { params: Params 
           <Card className="px-[22px] py-5">
             <h3>Where to go next</h3>
             <p className="mb-1 text-[13px] text-muted">
-              Topics Anna thinks are worth exploring — add them and she&apos;ll bring them up next time.
+              Topics {interviewer} thinks are worth exploring — add them and they&apos;ll come up next time.
             </p>
             {suggestedTopics.length === 0 ? (
               <p className="mt-2 text-[13.5px] text-muted">Nothing waiting to be explored — the queue is clear.</p>
@@ -243,7 +244,7 @@ export default async function InterviewResultsPage({ params }: { params: Params 
             <Card className="px-[22px] py-5">
               <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-faint">Next time</div>
               <p className="spoken mt-1.5 text-[15px] leading-[1.5]">
-                &ldquo;Next time, Anna would love to hear about {nextTopic.name}.&rdquo;
+                &ldquo;Next time, {interviewer} would love to hear about {nextTopic.name}.&rdquo;
               </p>
             </Card>
           )}
@@ -258,12 +259,14 @@ export default async function InterviewResultsPage({ params }: { params: Params 
 function TurnRow({
   message,
   subjectName,
+  interviewerName,
 }: {
   message: { id: string; role: "interviewer" | "subject"; text: string };
   subjectName: string;
+  interviewerName: string;
 }) {
   const isSubject = message.role === "subject";
-  const who = isSubject ? subjectName : "Anna";
+  const who = isSubject ? subjectName : interviewerName;
   return (
     <div className="border-b border-line py-2.5 last:border-b-0">
       <div className="mb-0.5 text-[10.5px] font-bold uppercase tracking-[0.1em] text-faint">{who}</div>

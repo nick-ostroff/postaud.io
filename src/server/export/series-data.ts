@@ -200,7 +200,7 @@ export async function buildSeriesExportData(
         return {
           sessionLabel: `Session ${s.sessionNumber}`,
           turns: messages.map((m) => ({
-            role: m.role === "interviewer" ? "Anna" : series.subject_name,
+            role: m.role === "interviewer" ? series.interviewer_name : series.subject_name,
             text: m.text,
           })),
         };

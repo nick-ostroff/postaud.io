@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 
-type Props = { factId: string; initialStatement: string };
+type Props = { factId: string; initialStatement: string; interviewerName: string };
 
 type PatchBody = { action: "confirm" } | { action: "correct"; statement: string } | { action: "retell" };
 
@@ -15,7 +15,8 @@ const textareaClasses =
  * The three stacked review actions on the memory-detail screen (mockup
  * #1g): "That's right" (primary — confirms as-is), "Fix a detail" (reveals
  * a textarea, then saves the correction), "Retell next time" (ghost —
- * queues it for Anna to ask about again). Exactly one primary action; the
+ * queues it for the interviewer to ask about again). Exactly one primary
+ * action; the
  * other two are visually quieter, matching the "one primary action per
  * screen" rule the interviewee-facing UI follows throughout.
  *
@@ -23,7 +24,7 @@ const textareaClasses =
  * transcript/audio are never touched here, only ever the fact's own
  * statement/status (spec invariant: transcripts and audio are immutable).
  */
-export function ReviewActions({ factId, initialStatement }: Props) {
+export function ReviewActions({ factId, initialStatement, interviewerName }: Props) {
   const router = useRouter();
   const [fixing, setFixing] = useState(false);
   const [draft, setDraft] = useState(initialStatement);
@@ -122,7 +123,7 @@ export function ReviewActions({ factId, initialStatement }: Props) {
         variant="ghost"
         className="w-full justify-center"
         disabled={pending !== null}
-        onClick={() => send({ action: "retell" }, "Got it — Anna will ask again next time.")}
+        onClick={() => send({ action: "retell" }, `Got it — ${interviewerName} will ask again next time.`)}
       >
         {pending === "retell" ? "Queuing…" : "Retell next time"}
       </Button>
