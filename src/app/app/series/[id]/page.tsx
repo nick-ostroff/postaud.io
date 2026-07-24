@@ -44,6 +44,16 @@ function formatDuration(sec: number | null): string | null {
   return `${mins} min`;
 }
 
+/** Series-total talk time for the header chip — hours once it earns them. */
+function formatTotalTime(sec: number): string {
+  const mins = Math.round(sec / 60);
+  if (mins < 1) return "under 1 min";
+  if (mins < 60) return `${mins} min`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m ? `${h} hr ${m} min` : `${h} hr`;
+}
+
 const badgeLabel: Record<string, string> = {
   owner: "owner",
   can_interview: "can interview",
@@ -117,6 +127,7 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
   const persona = personaFor(series.voice);
   // Legacy deep rows read as Flow here — deep is no longer a selectable mode.
   const modeLabel = series.conversation_mode === "quickfire" ? "Quick fire" : "Flow";
+  const totalTalkSec = sessions.reduce((sum, s) => sum + (s.durationSec ?? 0), 0);
 
   return (
     <div>
@@ -148,6 +159,11 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
             <Chip kicker="interviewer">
               {persona.name} · {modeLabel}
             </Chip>
+            {sessions.length > 0 && (
+              <Chip kicker="sessions">
+                {sessions.length} · {formatTotalTime(totalTalkSec)} total
+              </Chip>
+            )}
           </div>
         </div>
         {/* Below `sm` these stack full-width; the floating story bar carries
