@@ -241,6 +241,17 @@ describe("conversation modes", () => {
     expect(out).not.toContain("EXPLORE NEXT");
   });
 
+  it("ritual ends with the list, not the clock — no follow-ups after the queue is done", () => {
+    const out = buildInterviewerInstructions({
+      ...base,
+      mode: "ritual",
+      queuedQuestions: ["How did today go?"],
+    });
+    expect(out).toContain("The session is over when the QUESTION LIST is");
+    expect(out).not.toContain("As the remaining time runs low");
+    expect(out).not.toContain("When the conversation naturally winds down");
+  });
+
   it("ritual with an empty queue asks about today instead of falling back to topics", () => {
     const out = buildInterviewerInstructions({ ...base, mode: "ritual", queuedQuestions: [] });
     expect(out).toContain("The queue is empty");

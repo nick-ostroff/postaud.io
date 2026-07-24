@@ -465,10 +465,12 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
   sections.push(["STYLE", ...styleLines].join("\n"));
 
   // ---- ENDING ----
-  // Queue-only quickfire ends when the LIST ends, not when the clock does —
-  // the owner asked for exactly these questions and nothing more.
+  // Queue-only quickfire and ritual end when the LIST ends, not when the
+  // clock does — the owner asked for exactly these questions and nothing
+  // more. (Ritual's empty-queue placeholder is itself a list item, so the
+  // list-ends close still holds when the queue is empty.)
   sections.push(
-    queueOnly
+    queueOnly || input.mode === "ritual"
       ? [
           "ENDING",
           "The session is over when the QUESTION LIST is — do not stretch it to fill the session length, and " +
