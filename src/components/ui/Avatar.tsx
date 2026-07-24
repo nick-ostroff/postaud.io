@@ -1,4 +1,4 @@
-type AvatarTone = "green" | "warm" | "warm-dark" | "plain";
+type AvatarTone = "green" | "warm" | "warm-dark" | "plain" | "dark";
 type AvatarSize = "md" | "lg";
 
 const toneClasses: Record<AvatarTone, string> = {
@@ -7,6 +7,8 @@ const toneClasses: Record<AvatarTone, string> = {
   /* amber legible on the dark sidebar (`.acct` avatar in the desktop mockups) */
   "warm-dark": "bg-[oklch(0.52_0.06_50_/_0.35)] text-[oklch(0.85_0.05_50)]",
   plain: "bg-[rgba(33,30,26,0.08)] text-muted",
+  /* legible on --dark surfaces (series-detail header block) */
+  dark: "bg-[rgba(247,245,240,0.1)] text-[rgba(247,245,240,0.85)]",
 };
 
 const sizeClasses: Record<AvatarSize, string> = {

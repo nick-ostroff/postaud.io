@@ -5,10 +5,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
-import { SeriesPhotoEditor } from "@/components/series/SeriesPhotoEditor";
 import { fmtTalkTime } from "@/components/usage/format";
 import { profilePhotoUrl } from "@/server/profile/photo-url";
-import { subjectPhotoUrl } from "@/server/series/photo-url";
 import {
   getSeries,
   getSeriesAccessSummary,
@@ -45,6 +43,38 @@ function formatDuration(sec: number | null): string | null {
   return `${mins} min`;
 }
 
+
+function HeaderStat({
+  label,
+  mint = false,
+  children,
+}: {
+  label: string;
+  mint?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className={`serif text-[26px] leading-none ${mint ? "text-mint" : "text-paper"}`}>{children}</div>
+      <div className="mt-1.5 text-[12px] text-dark-muted">{label}</div>
+    </div>
+  );
+}
+
+/** fmtTalkTime with numerals at stat size and units small ("3 min", "1 hr 5 min"). */
+function TalkTime({ sec }: { sec: number }) {
+  const text = sec === 0 ? "0 min" : fmtTalkTime(sec);
+  return (
+    <>
+      {text.split(" ").map((token, i) => (
+        <span key={i} className={/^\d+$/.test(token) ? undefined : "text-[14px] text-dark-muted"}>
+          {i > 0 && " "}
+          {token}
+        </span>
+      ))}
+    </>
+  );
+}
 
 const badgeLabel: Record<string, string> = {
   owner: "owner",
@@ -129,59 +159,56 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
   return (
     <div>
       {summaryPending && <PendingSummaryRefresher />}
-      <div className="mb-2 text-[12.5px] text-faint">
-        <Link href="/app" className="text-muted">
-          Home
-        </Link>{" "}
-        /{" "}
-        <Link href="/app/series" className="text-muted">
-          Series
-        </Link>{" "}
-        / {series.title}
+      <div className="rounded-card bg-dark px-[22px] pb-[22px] pt-4 text-paper shadow-card">
+        <Link
+          href="/app/series"
+          className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-dark-muted hover:text-paper hover:no-underline"
+        >
+          <span aria-hidden>‹</span> Series
+        </Link>
+        <h1 className="mt-1 text-[30px] leading-[1.15] text-paper">{series.title}</h1>
+
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Avatar name={persona.name} size="lg" tone="dark" />
+          <div className="min-w-0 flex-1">
+            <div className="text-[14.5px] font-semibold leading-tight">{persona.name}</div>
+            <div className="mt-0.5 text-[13px] text-dark-muted">interviewing {subjectSubtitle}</div>
+          </div>
+          <span className="rounded-pill border border-mint/45 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-mint">
+            {modeLabel}
+          </span>
+        </div>
+
+        <div className="mt-[18px] flex flex-wrap gap-x-10 gap-y-3 border-t border-dark-line pt-4">
+          <HeaderStat label="sessions">{sessions.length}</HeaderStat>
+          <HeaderStat label="total time">
+            <TalkTime sec={totalTalkSec} />
+          </HeaderStat>
+          <HeaderStat label="memories" mint>
+            {summary.memoriesCount}
+          </HeaderStat>
+          <HeaderStat label="queued">{pendingQuestions.length}</HeaderStat>
+        </div>
       </div>
 
-      <div className="mb-[22px] flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[28px]">{series.title}</h1>
-          <div className="mt-1.5 flex flex-wrap items-center gap-2">
-            <Chip>
-              <SeriesPhotoEditor
-                seriesId={series.id}
-                name={series.subject_name}
-                photoUrl={subjectPhotoUrl(series)}
-                canEdit={isAdmin}
-              />
-              {subjectSubtitle}
-            </Chip>
-            <Chip kicker="interviewer">
-              {persona.name} · {modeLabel}
-            </Chip>
-            {sessions.length > 0 && (
-              <Chip kicker="sessions">
-                {sessions.length} · {fmtTalkTime(totalTalkSec)} total
-              </Chip>
-            )}
-          </div>
-        </div>
-        {/* Below `sm` these stack full-width; the floating story bar carries
-            the same Talk action on mobile, so nothing here is the only path. */}
-        <div className="flex w-full flex-wrap items-center gap-2.5 sm:w-auto">
-          {isAdmin && (
-            <Link href={`/app/series/${series.id}/settings`} className="hover:no-underline">
-              <Button variant="ghost">Settings</Button>
-            </Link>
-          )}
-          {series.subject_user_id == null && (
-            <Link href={`/app/series/${series.id}/handoff`} className="hover:no-underline">
-              <Button variant="secondary">Hand the mic</Button>
-            </Link>
-          )}
-          <Link href={`/app/series/${series.id}/interview`} className="w-full sm:w-auto">
-            <Button variant="primary" size="big" className="w-full justify-center">
-              Start interview
-            </Button>
+      {/* Below `sm` these stack full-width; the floating story bar carries
+          the same Talk action on mobile, so nothing here is the only path. */}
+      <div className="mb-[22px] mt-4 flex flex-wrap items-center gap-2.5">
+        <Link href={`/app/series/${series.id}/interview`} className="w-full sm:w-auto">
+          <Button variant="primary" size="big" className="w-full justify-center">
+            Start interview
+          </Button>
+        </Link>
+        {series.subject_user_id == null && (
+          <Link href={`/app/series/${series.id}/handoff`} className="hover:no-underline">
+            <Button variant="secondary">Hand the mic</Button>
           </Link>
-        </div>
+        )}
+        {isAdmin && (
+          <Link href={`/app/series/${series.id}/settings`} className="hover:no-underline">
+            <Button variant="ghost">Settings</Button>
+          </Link>
+        )}
       </div>
 
       <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_336px]">
