@@ -5,28 +5,35 @@ import { Button } from "@/components/ui/Button";
 
 const UTM = "utm_source=postaudio&utm_medium=referral";
 
-type UnsplashResult = {
+type StockPhoto = {
   id: string;
+  source: "unsplash" | "pexels";
   alt: string | null;
   color: string | null;
   thumbUrl: string;
   regularUrl: string;
-  downloadLocation: string;
+  downloadLocation: string | null;
   photographerName: string;
   photographerUrl: string;
 };
 
+const SOURCE_LABELS: Record<StockPhoto["source"], string> = {
+  unsplash: "Unsplash",
+  pexels: "Pexels",
+};
+
 const SEARCH_ERRORS: Record<string, string> = {
-  not_configured: "Unsplash search isn't set up yet — add an UNSPLASH_ACCESS_KEY.",
-  rate_limited: "Unsplash is rate-limiting us — try again in a minute.",
+  not_configured: "Photo search isn't set up yet — add an UNSPLASH_ACCESS_KEY or PEXELS_API_KEY.",
+  rate_limited: "The photo services are rate-limiting us — try again in a minute.",
 };
 
 /**
- * Source chooser for the series photo: upload a file, or search Unsplash and
- * pick a result. Either path ends in a `File` the caller feeds to the existing
- * `ImageCropperModal` — this modal never uploads anything itself. Search goes
- * through our `/api/unsplash/*` proxy (key stays server-side); the picked
- * image's bytes come straight from Unsplash's CDN, which allows CORS.
+ * Source chooser for the series photo: upload a file, or search stock photos
+ * (Unsplash + Pexels, merged) and pick a result. Either path ends in a `File`
+ * the caller feeds to the existing `ImageCropperModal` — this modal never
+ * uploads anything itself. Search goes through our `/api/photo-search` proxy
+ * (keys stay server-side); the picked image's bytes come straight from the
+ * provider's CDN, both of which allow CORS.
  */
 export function PhotoSourceModal({
   title = "Series photo",
@@ -42,7 +49,7 @@ export function PhotoSourceModal({
   onClose: () => void;
 }) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<UnsplashResult[] | null>(null);
+  const [results, setResults] = useState<StockPhoto[] | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [busy, setBusy] = useState<"search" | "more" | "pick" | null>(null);
@@ -63,7 +70,7 @@ export function PhotoSourceModal({
     setBusy(nextPage === 1 ? "search" : "more");
     setError(null);
     try {
-      const res = await fetch(`/api/unsplash/search?query=${encodeURIComponent(q)}&page=${nextPage}`);
+      const res = await fetch(`/api/photo-search?query=${encodeURIComponent(q)}&page=${nextPage}`);
       const body = await res.json().catch(() => null);
       if (!res.ok) {
         setError((body?.error && SEARCH_ERRORS[body.error]) ?? "Search failed — please try again.");
@@ -79,23 +86,25 @@ export function PhotoSourceModal({
     }
   }
 
-  async function pick(photo: UnsplashResult) {
+  async function pick(photo: StockPhoto) {
     setBusy("pick");
     setPickingId(photo.id);
     setError(null);
     try {
-      // Required by Unsplash's API terms on every pick; best-effort — a failed
-      // ping shouldn't block the user's photo.
-      fetch("/api/unsplash/use", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ downloadLocation: photo.downloadLocation }),
-      }).catch(() => {});
+      // Required by Unsplash's API terms on every pick (Pexels has no
+      // equivalent); best-effort — a failed ping shouldn't block the photo.
+      if (photo.downloadLocation) {
+        fetch("/api/unsplash/use", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ downloadLocation: photo.downloadLocation }),
+        }).catch(() => {});
+      }
 
       const res = await fetch(photo.regularUrl);
       if (!res.ok) throw new Error("download failed");
       const blob = await res.blob();
-      onPicked(new File([blob], `unsplash-${photo.id}.jpg`, { type: blob.type || "image/jpeg" }));
+      onPicked(new File([blob], `${photo.source}-${photo.id}.jpg`, { type: blob.type || "image/jpeg" }));
     } catch {
       setError("Couldn't fetch that photo — try another one.");
       setBusy(null);
@@ -128,7 +137,7 @@ export function PhotoSourceModal({
           >
             Upload a photo
           </Button>
-          <span className="text-[12.5px] text-muted">or search Unsplash:</span>
+          <span className="text-[12.5px] text-muted">or search stock photos:</span>
         </div>
 
         <form
@@ -191,7 +200,8 @@ export function PhotoSourceModal({
                           className="hover:underline"
                         >
                           {p.photographerName}
-                        </a>
+                        </a>{" "}
+                        · {SOURCE_LABELS[p.source]}
                       </figcaption>
                     </figure>
                   ))}
@@ -218,6 +228,10 @@ export function PhotoSourceModal({
               className="hover:underline"
             >
               Unsplash
+            </a>{" "}
+            &amp;{" "}
+            <a href="https://www.pexels.com" target="_blank" rel="noopener noreferrer" className="hover:underline">
+              Pexels
             </a>
           </span>
           <Button type="button" variant="ghost" onClick={onClose} disabled={busy === "pick"}>

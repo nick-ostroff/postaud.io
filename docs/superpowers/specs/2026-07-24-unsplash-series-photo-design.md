@@ -1,6 +1,14 @@
 # Unsplash search for the series photo
 
-**Date:** 2026-07-24 · **Status:** Approved
+**Date:** 2026-07-24 · **Status:** Shipped
+
+> **Amended same day:** Unsplash's catalog proved thin on niche terms (e.g.
+> pickleball), so search became `GET /api/photo-search` — a merged proxy that
+> fans out to Unsplash **and** Pexels (`PEXELS_API_KEY`) in parallel and
+> interleaves results. A provider with no key, a rate limit, or an error just
+> drops out. Each provider searches square-first and retries unconstrained
+> when empty. `/api/unsplash/use` remains for Unsplash's download-tracking
+> ping (Pexels needs none). The rest of the design below is unchanged.
 
 ## Goal
 
