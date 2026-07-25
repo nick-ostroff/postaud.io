@@ -34,7 +34,9 @@ export default async function SeriesListPage() {
     <div>
       {/* Full-bleed dark strip merging with the top nav (mockup 4a) — the rail
           is the series nav on phones, so the Home crumb is desktop-only. */}
-      <div className="-mx-5 -mt-6 mb-4 bg-dark px-5 pb-2 pt-3 lg:hidden">
+      {/* pt-5 balances the strip: 20px top − the rail's own -mt-2/pt-1 nets the
+          same 16px above the circles as the 16px below the labels. */}
+      <div className="-mx-5 -mt-6 mb-4 bg-dark px-5 pb-2 pt-5 lg:hidden">
         <StoryRail
           tone="dark"
           linkBase="series"
