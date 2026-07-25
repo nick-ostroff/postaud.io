@@ -1,12 +1,9 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { StoryRail } from "@/components/nav/StoryRail";
 import { ReorderableSeriesGrid } from "@/components/series/ReorderableSeriesGrid";
 import { SeriesCard } from "@/components/series/SeriesCard";
 import { getSeriesForUser, getSeriesSummaries, getViewer } from "@/db/queries";
-import { subjectPhotoUrl } from "@/server/series/photo-url";
-import { staleness } from "@/server/series/staleness";
 
 /** Same cards as the home grid (Task 7 brief) — every series this viewer can
  * see (RLS-scoped), without the stat tiles. */
@@ -17,37 +14,10 @@ export default async function SeriesListPage() {
   const summaries = await getSeriesSummaries(supabase, series.map((s) => s.id));
   const memoriesTotal = series.reduce((sum, s) => sum + (summaries[s.id]?.memoriesCount ?? 0), 0);
 
-  // The rail is the only series nav on phones, so it stays on screen here too —
-  // same circles as home, with "All series" ringed as the current view.
-  const now = new Date();
-  const railStories = series.map((s) => ({
-    id: s.id,
-    title: s.title,
-    photoUrl: subjectPhotoUrl(s),
-    waiting: staleness(
-      summaries[s.id]?.lastSessionAt ? new Date(summaries[s.id].lastSessionAt as string) : null,
-      now,
-    ).stale,
-  }));
-
+  // The rail is the only series nav on phones — it stays on screen here too,
+  // rendered by the layout's AppRailStrip with "All series" ringed.
   return (
     <div>
-      {/* Full-bleed dark strip merging with the top nav (mockup 4a) — the rail
-          is the series nav on phones, so the Home crumb is desktop-only. */}
-      {/* pt-5 balances the strip: 20px top − the rail's own -mt-2/pt-1 nets the
-          same 16px above the circles as the 16px below the labels. */}
-      <div className="-mx-5 -mt-6 mb-4 bg-dark px-5 pb-2 pt-5 lg:hidden">
-        <StoryRail
-          tone="dark"
-          linkBase="series"
-          stories={railStories}
-          activeId={null}
-          canCreate={role === "admin"}
-          showAllLink
-          allActive
-        />
-      </div>
-
       <div className="mb-2 hidden text-[12.5px] text-faint lg:block">
         <Link href="/app" className="text-muted">
           Home

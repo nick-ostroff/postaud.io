@@ -5,15 +5,11 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
-import { StoryRail } from "@/components/nav/StoryRail";
 import { fmtTalkTime, fmtTalkTimeShort } from "@/components/usage/format";
 import { profilePhotoUrl } from "@/server/profile/photo-url";
-import { subjectPhotoUrl } from "@/server/series/photo-url";
-import { staleness } from "@/server/series/staleness";
 import {
   getSeries,
   getSeriesAccessSummary,
-  getSeriesForUser,
   getSeriesKnowledge,
   getSeriesSummaries,
   getViewer,
@@ -93,14 +89,8 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
   const series = await getSeries(supabase, id);
   if (!series) notFound();
 
-  // Everything this viewer can see, for the mobile story rail — same circles
-  // as home, with this series ringed. Summaries fetched for the whole rail
-  // (waiting dots) in the same round trip that serves this page's stats.
-  const railSeries = (await getSeriesForUser(supabase)).filter((s) => s.status !== "archived");
-  const summaryIds = [...new Set([id, ...railSeries.map((s) => s.id)])];
-
   const [summaries, knowledge, sessions, access, pendingQuestions, canAddQuestion] = await Promise.all([
-    getSeriesSummaries(supabase, summaryIds),
+    getSeriesSummaries(supabase, [id]),
     getSeriesKnowledge(supabase, id),
     listInterviewsForSeries(supabase, id),
     getSeriesAccessSummary(supabase, id),
@@ -167,36 +157,15 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
   const totalTalkSec = sessions.reduce((sum, s) => sum + (s.durationSec ?? 0), 0);
   const queuedCount = pendingQuestions.length;
 
-  const now = new Date();
-  const railStories = railSeries.map((s) => ({
-    id: s.id,
-    title: s.title,
-    photoUrl: subjectPhotoUrl(s),
-    waiting: staleness(
-      summaries[s.id]?.lastSessionAt ? new Date(summaries[s.id].lastSessionAt as string) : null,
-      now,
-    ).stale,
-  }));
-
   const dot = <span aria-hidden>·</span>;
 
   return (
     <div>
       {summaryPending && <PendingSummaryRefresher />}
-      {/* On phones the header bleeds full-width into the dark top nav (mockup 5)
-          and carries the story rail — the rail is the series nav there, so the
+      {/* On phones the header bleeds full-width up to the layout's dark rail
+          strip (mockup 5) — the rail is the series nav there, so the
           "‹ Series" crumb is desktop-only. */}
       <div className="-mx-5 -mt-6 bg-dark px-5 pb-5 pt-3 text-paper lg:mx-0 lg:mt-0 lg:rounded-card lg:px-[22px] lg:pb-[22px] lg:pt-4 lg:shadow-card">
-        <div className="mb-3 border-b border-dark-line lg:hidden">
-          <StoryRail
-            tone="dark"
-            linkBase="series"
-            stories={railStories}
-            activeId={series.id}
-            canCreate={isAdmin}
-            showAllLink
-          />
-        </div>
         <Link
           href="/app/series"
           className="hidden items-center gap-1.5 text-[12.5px] font-medium text-dark-muted hover:text-paper hover:no-underline lg:inline-flex"

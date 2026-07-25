@@ -17,6 +17,7 @@ import {
 import { pickNewestSuggestedTopic } from "@/server/topics/pick";
 import { PromoteChip } from "../../series/[id]/PromoteChip";
 import { ReprocessButton } from "../../series/[id]/ReprocessButton";
+import { DeleteSessionButton } from "./DeleteSessionButton";
 import { UsageCard } from "./UsageCard";
 import { fmtTalkTime } from "@/components/usage/format";
 import type { InterviewUsage } from "@/db/types";
@@ -250,6 +251,23 @@ export default async function InterviewResultsPage({ params }: { params: Params 
           )}
 
           {isAdmin && <UsageCard rows={usageRows} creditCharged={interview.credit_charged} />}
+
+          {isAdmin && (
+            <Card className="px-[22px] py-5">
+              <h3>Remove this session</h3>
+              <p className="mt-1 text-[13px] text-muted">
+                Session happened by mistake? Deleting removes it and every memory it added — the rest of{" "}
+                {series.title} stays untouched.
+              </p>
+              <div className="mt-3">
+                <DeleteSessionButton
+                  interviewId={interview.id}
+                  seriesId={series.id}
+                  memoriesCount={facts.length}
+                />
+              </div>
+            </Card>
+          )}
         </div>
       </div>
     </div>

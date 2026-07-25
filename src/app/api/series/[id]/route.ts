@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getViewer } from "@/db/queries";
+import { serviceClient } from "@/db/service";
+import { AUDIO_BUCKET } from "@/server/facts/audio-url";
+import { SERIES_AVATAR_BUCKET } from "@/server/series/photo-url";
 import type { TablesUpdate } from "@/db/types";
 import { personaFor, VOICE_IDS } from "@/lib/voices";
 
@@ -83,27 +86,86 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
   return NextResponse.json({ ok: true });
 }
 
-// DELETE /api/series/[id] — archive, not a row delete: sets status='archived'
-// so history (interviews, facts, topics) stays intact. Admin-only.
-export async function DELETE(_request: Request, { params }: { params: Params }) {
+// DELETE /api/series/[id] — archive by default: sets status='archived' so
+// history (interviews, facts, topics) stays intact. With ?permanent=1 it's a
+// real row delete — every session, memory, topic, and queued question cascades
+// away, and the audio recordings + series photo are removed from storage.
+// Admin-only either way.
+export async function DELETE(request: Request, { params }: { params: Params }) {
   const { id } = await params;
-  const { supabase, organization, role } = await getViewer();
+  const { user, supabase, organization, role } = await getViewer();
   if (!organization || role !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { data, error } = await supabase
-    .from("series")
-    .update({ status: "archived" })
-    .eq("id", id)
-    .eq("organization_id", organization.id)
-    .select("id")
-    .maybeSingle();
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  const permanent = new URL(request.url).searchParams.get("permanent") === "1";
+
+  if (!permanent) {
+    const { data, error } = await supabase
+      .from("series")
+      .update({ status: "archived" })
+      .eq("id", id)
+      .eq("organization_id", organization.id)
+      .select("id")
+      .maybeSingle();
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    if (!data) {
+      return NextResponse.json({ error: "not_found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ ok: true });
   }
-  if (!data) {
+
+  // Permanent delete — RLS has no delete policies on series' child tables, so
+  // this runs on the service client after the explicit admin + org check above.
+  const svc = serviceClient();
+  const { data: series, error: loadErr } = await svc
+    .from("series")
+    .select("id, organization_id, photo_path")
+    .eq("id", id)
+    .maybeSingle();
+  if (loadErr) return NextResponse.json({ error: loadErr.message }, { status: 500 });
+  if (!series || series.organization_id !== organization.id) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+
+  // Collect audio paths before the cascade wipes the interview rows.
+  const { data: interviewRows, error: audioErr } = await svc
+    .from("interviews")
+    .select("audio_path")
+    .eq("series_id", id);
+  if (audioErr) return NextResponse.json({ error: audioErr.message }, { status: 500 });
+  const audioPaths = (interviewRows ?? [])
+    .map((i) => i.audio_path)
+    .filter((p): p is string => !!p);
+
+  const { error: delErr } = await svc.from("series").delete().eq("id", id);
+  if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 });
+
+  // Best-effort storage cleanup: the rows are already gone; stray objects
+  // aren't worth failing the request over.
+  if (audioPaths.length > 0) {
+    const { error: storageErr } = await svc.storage.from(AUDIO_BUCKET).remove(audioPaths);
+    if (storageErr) console.error("[series.DELETE] audio cleanup failed", storageErr);
+  }
+  if (series.photo_path) {
+    const { error: photoErr } = await svc.storage.from(SERIES_AVATAR_BUCKET).remove([series.photo_path]);
+    if (photoErr) console.error("[series.DELETE] photo cleanup failed", photoErr);
+  }
+
+  const { error: auditErr } = await svc.from("audit_logs").insert({
+    organization_id: organization.id,
+    actor_user_id: user.id,
+    action: "series.deleted",
+    target_type: "series",
+    target_id: id,
+    meta: { audioFilesRemoved: audioPaths.length },
+  });
+  if (auditErr) {
+    // Non-fatal — same tradeoff as the facts route's audit write.
+    console.error("[series.DELETE] audit log failed", auditErr);
   }
 
   return NextResponse.json({ ok: true });

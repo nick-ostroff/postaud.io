@@ -17,8 +17,6 @@ import {
 import { firstNameOf } from "@/lib/names";
 import { personaFor } from "@/lib/voices";
 import { pickIntervieweeSeries } from "@/server/interviewee/select-series";
-import { subjectPhotoUrl } from "@/server/series/photo-url";
-import { staleness } from "@/server/series/staleness";
 import { pickPersonalPromptTopic } from "@/server/topics/pick";
 import { IntervieweeHome } from "./IntervieweeHome";
 import { MobileHome } from "./MobileHome";
@@ -94,21 +92,10 @@ export default async function DashboardHome({ searchParams }: { searchParams: Se
   const isAdmin = role === "admin";
 
   // ---- the mobile dashboard ----
-  // Build every story up front so the rail can switch between them client-side
-  // with no per-tap server round-trip (see MobileHome). Memories come back in
-  // one batched query and are grouped per series; knowledge + access are the
-  // only per-series fetches, run in parallel.
-  const now = new Date();
-  const railStories = series.map((s) => ({
-    id: s.id,
-    title: s.title,
-    photoUrl: subjectPhotoUrl(s),
-    waiting: staleness(
-      summaries[s.id]?.lastSessionAt ? new Date(summaries[s.id].lastSessionAt as string) : null,
-      now,
-    ).stale,
-  }));
-
+  // Build every story up front so the rail (AppRailStrip, in the layout) can
+  // switch between them client-side with no per-tap server round-trip (see
+  // MobileHome). Memories come back in one batched query and are grouped per
+  // series; knowledge + access are the only per-series fetches, run in parallel.
   const allMemories = await getMemoriesForSeries(supabase, series.map((s) => s.id));
   const memoriesBySeries = new Map<string, typeof allMemories>();
   for (const m of allMemories) {
@@ -140,7 +127,6 @@ export default async function DashboardHome({ searchParams }: { searchParams: Se
   return (
     <div>
       <MobileHome
-        railStories={railStories}
         stories={mobileStories}
         initialActiveId={initialStoryId}
         canCreate={isAdmin}

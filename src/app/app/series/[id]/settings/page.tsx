@@ -13,6 +13,7 @@ import { AccessManager, type AccessLevel, type AccessMember } from "./AccessMana
 import { personaFor, type VoiceId } from "@/lib/voices";
 import { ActivityCard } from "./ActivityCard";
 import { ArchiveSeriesButton } from "./ArchiveSeriesButton";
+import { DeleteSeriesButton } from "./DeleteSeriesButton";
 import { ExportCard } from "../ExportCard";
 import { InterviewGuideForm } from "./InterviewGuideForm";
 import { SeriesDetailsForm } from "./SeriesDetailsForm";
@@ -257,6 +258,17 @@ export default async function SeriesSettingsPage({ params }: { params: Params })
             </p>
             <div className="mt-3">
               <ArchiveSeriesButton seriesId={series.id} title={series.title} />
+            </div>
+          </Card>
+
+          <Card className="px-[22px] py-5">
+            <h3>Delete</h3>
+            <p className="mt-1 text-[13px] text-muted">
+              Made this series by mistake? Deleting removes it for good — every session, memory, and
+              recording goes with it. Export first if you want a copy.
+            </p>
+            <div className="mt-3">
+              <DeleteSeriesButton seriesId={series.id} title={series.title} />
             </div>
           </Card>
         </div>

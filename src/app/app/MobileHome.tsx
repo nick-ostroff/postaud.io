@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { useActiveStory } from "@/components/nav/AppRailStrip";
 import { StoryBar } from "@/components/nav/StoryBar";
-import { StoryRail, type RailStory } from "@/components/nav/StoryRail";
 import { SeriesPhotoEditor } from "@/components/series/SeriesPhotoEditor";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -12,53 +11,36 @@ import type { MobileStory } from "./stories";
 export type { MobileStory };
 
 /**
- * The mobile home dashboard (Home mockup 1a/1b): the story rail switches
- * which story the whole screen is about, then a continue card, three roll-up
- * tiles, and the most recent memories — with the floating Talk bar scoped to
- * the selected story. The desktop card grid on `/app` is the same data, laid
- * out for a mouse; only one of the two is ever visible.
+ * The mobile home dashboard (Home mockup 1a/1b): the layout-owned story rail
+ * (AppRailStrip) switches which story the whole screen is about, then a
+ * continue card, three roll-up tiles, and the most recent memories — with the
+ * floating Talk bar scoped to the selected story. The desktop card grid on
+ * `/app` is the same data, laid out for a mouse; only one of the two is ever
+ * visible.
  *
- * Every story arrives fully built, so switching is instant client state — no
- * server round-trip per tap. The URL's `?story=` is kept in sync via
- * history.replaceState (no navigation) so a reload or shared link lands on the
- * same story.
+ * Every story arrives fully built, so switching is instant client state — the
+ * rail strip sets the shared active-story context (and keeps ?story= in the
+ * URL via replaceState), and this reads it. No server round-trip per tap.
  */
 export function MobileHome({
-  railStories,
   stories,
   initialActiveId,
   canCreate,
   canEditPhoto,
 }: {
-  railStories: RailStory[];
   stories: MobileStory[];
   initialActiveId: string | null;
   canCreate: boolean;
   /** Admins can tap the story avatar next to the title to add/change its photo. */
   canEditPhoto: boolean;
 }) {
-  const [activeId, setActiveId] = useState(initialActiveId);
-  const active = stories.find((s) => s.id === activeId) ?? stories[0] ?? null;
-
-  function selectStory(id: string) {
-    setActiveId(id);
-    if (typeof window !== "undefined") {
-      window.history.replaceState(window.history.state, "", `/app?story=${id}`);
-    }
-  }
+  const { activeId: selectedId } = useActiveStory();
+  const active = stories.find((s) => s.id === (selectedId ?? initialActiveId)) ?? stories[0] ?? null;
 
   return (
     <div className="lg:hidden">
-      <StoryRail
-        stories={railStories}
-        activeId={active?.id ?? null}
-        canCreate={canCreate}
-        showAllLink
-        onSelect={selectStory}
-      />
-
       {active === null ? (
-        <Card className="mt-5 flex flex-col items-center gap-3 px-6 py-12 text-center">
+        <Card className="flex flex-col items-center gap-3 px-6 py-12 text-center">
           <div className="serif text-xl">No stories yet</div>
           <p className="text-[13.5px] text-muted">
             A story is one person&apos;s life, told over many conversations. Start one and Anna takes it from
@@ -74,7 +56,7 @@ export function MobileHome({
         </Card>
       ) : (
         <>
-          <div className="mt-3 flex items-center gap-3 border-t border-line pt-4">
+          <div className="flex items-center gap-3">
             <SeriesPhotoEditor
               key={active.id}
               seriesId={active.id}
