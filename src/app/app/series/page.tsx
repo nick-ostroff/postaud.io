@@ -14,6 +14,12 @@ export default async function SeriesListPage() {
 
   return (
     <div>
+      <div className="mb-2 text-[12.5px] text-faint">
+        <Link href="/app" className="text-muted">
+          Home
+        </Link>{" "}
+        / Series
+      </div>
       <div className="mb-[22px] flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-[28px]">Series</h1>

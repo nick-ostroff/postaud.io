@@ -53,6 +53,7 @@ export function MobileHome({
         stories={railStories}
         activeId={active?.id ?? null}
         canCreate={canCreate}
+        showAllLink
         onSelect={selectStory}
       />
 
