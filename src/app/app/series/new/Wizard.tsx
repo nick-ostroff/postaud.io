@@ -171,8 +171,9 @@ export function Wizard({
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
   const [questionPlanLoaded, setQuestionPlanLoaded] = useState(false);
   // Derived (not its own state) so the fetch effect doesn't need a
-  // synchronous setState call at the top of its body.
-  const questionPlanLoading = step === 4 && !questionPlanLoaded;
+  // synchronous setState call at the top of its body. Ritual never drafts
+  // suggestions — the ritual is member-defined only — so it never loads.
+  const questionPlanLoading = step === 4 && !questionPlanLoaded && conversationMode !== "ritual";
 
   const [submitState, setSubmitState] = useState<"idle" | "submitting" | "error">("idle");
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -283,7 +284,10 @@ export function Wizard({
   }
 
   useEffect(() => {
-    if (step !== 4 || questionPlanLoaded) return;
+    // Ritual skips the draft entirely: the same member-written questions get
+    // asked every session, so AI suggestions never apply (and the model call
+    // is never burned). Switching modes on step 3 re-runs this on return.
+    if (step !== 4 || questionPlanLoaded || conversationMode === "ritual") return;
     let cancelled = false;
     (async () => {
       try {
@@ -314,7 +318,7 @@ export function Wizard({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, questionPlanLoaded]);
+  }, [step, questionPlanLoaded, conversationMode]);
 
   function buildPayload() {
     const inviteEmailTrimmed =
@@ -719,23 +723,48 @@ export function Wizard({
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div>
               <Card className="px-5 py-5">
-                <h3 className="serif text-[18px]">{persona.name} drafted some questions</h3>
+                <h3 className="serif text-[18px]">
+                  {conversationMode === "ritual" ? "Build the ritual" : `${persona.name} drafted some questions`}
+                </h3>
                 <p className="mt-1 text-[13px] text-ink-soft">
                   {conversationMode === "ritual"
-                    ? `Tap + on the ones you want — the questions you add become the ritual: ${persona.name} asks the same list every session, like a daily journal.`
+                    ? `These are yours to write — ${persona.name} asks this same list every session, like a daily journal.`
                     : conversationMode === "quickfire"
                       ? `Tap + on the ones you want — only questions you add make the list ${persona.name} works through, one question and one answer at a time, with no follow-ups.`
                       : `Tap + on the ones you want — only questions you add go in the queue. ${persona.name} improvises follow-ups from whatever ${subjectName || "they"} say.`}
                 </p>
 
                 <div className="mt-3">
-                  {!questionPlanLoading && questionPlan.length === 0 && (
-                    <div className="py-3 text-[13px] text-ink-soft">
-                      {suggestedQuestions.length > 0
-                        ? "Nothing queued yet — tap + on a suggestion, or add your own below."
-                        : "No questions yet — add your own below."}
+                  {conversationMode === "ritual" && openingPrompt.trim() && (
+                    <div className="flex items-start gap-3 border-b border-line py-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="serif break-words text-[15px] leading-snug text-ink-soft">
+                          {openingPrompt.trim()}
+                        </div>
+                        <div className="mt-1 text-[10.5px] font-bold uppercase tracking-[0.1em] text-faint">
+                          Opening question · asked first every session
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setStep(3)}
+                        className="shrink-0 text-[11px] font-semibold text-green-deep hover:underline"
+                      >
+                        Edit
+                      </button>
                     </div>
                   )}
+                  {!questionPlanLoading &&
+                    questionPlan.length === 0 &&
+                    !(conversationMode === "ritual" && openingPrompt.trim()) && (
+                      <div className="py-3 text-[13px] text-ink-soft">
+                        {conversationMode === "ritual"
+                          ? "No ritual questions yet — add the questions you want asked every session."
+                          : suggestedQuestions.length > 0
+                            ? "Nothing queued yet — tap + on a suggestion, or add your own below."
+                            : "No questions yet — add your own below."}
+                      </div>
+                    )}
                   {questionPlan.map((q, i) => (
                     <div key={i} className="flex items-center gap-3 border-b border-line py-3 last:border-b-0">
                       <span className="text-faint" aria-hidden>
@@ -762,7 +791,7 @@ export function Wizard({
                 {questionPlanLoading && (
                   <div className="py-4 text-[13px] text-ink-soft">Drafting suggestions…</div>
                 )}
-                {!questionPlanLoading && suggestedQuestions.length > 0 && (
+                {conversationMode !== "ritual" && !questionPlanLoading && suggestedQuestions.length > 0 && (
                   <div className="mt-4">
                     <div className="flex items-center justify-between">
                       <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-faint">
@@ -844,6 +873,30 @@ export function Wizard({
                 {mustCover.length} must-cover topic{mustCover.length === 1 ? "" : "s"} · {dontBringUp.length} thing
                 {dontBringUp.length === 1 ? "" : "s"} {persona.name} won&apos;t raise
               </KV>
+              {conversationMode === "ritual" &&
+                (() => {
+                  // The summary ends with the ritual itself — the exact
+                  // questions, in order, so the owner confirms knowing what
+                  // every session will ask.
+                  const ritualQuestions = [openingPrompt.trim(), ...questionPlan.map((q) => q.trim())].filter(
+                    Boolean,
+                  );
+                  return (
+                    <KV k={`Every session, ${persona.name} asks`}>
+                      {ritualQuestions.length > 0 ? (
+                        <ol className="list-decimal space-y-1.5 pl-4">
+                          {ritualQuestions.map((q, i) => (
+                            <li key={i} className="break-words">
+                              {q}
+                            </li>
+                          ))}
+                        </ol>
+                      ) : (
+                        "No questions yet — add at least one before you create the series."
+                      )}
+                    </KV>
+                  );
+                })()}
               {inviteSubjectEmail.trim() && subjectChoice === "new" && (
                 <div className="mt-2">
                   <Badge tone="muted">Will invite {inviteSubjectEmail.trim()}</Badge>

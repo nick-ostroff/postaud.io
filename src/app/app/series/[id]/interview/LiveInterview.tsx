@@ -226,6 +226,25 @@ export function LiveInterview({
    */
   const attachDataChannel = useCallback(
     (dc: RTCDataChannel) => {
+      // Anna opens the call herself the moment the line is live — the series'
+      // talk-time clock is already running, so the session never sits in
+      // silence waiting for the subject to speak first. On a reconnect the
+      // model context is fresh anyway, so re-greeting is the right behavior.
+      dc.onopen = () => {
+        if (endingRef.current) return;
+        dc.send(
+          JSON.stringify({
+            type: "response.create",
+            response: {
+              instructions:
+                `The call just connected. Open the session yourself, right now: greet ${subjectName} ` +
+                "warmly by name, introduce yourself in one short sentence, and go straight into your " +
+                "first question. Do not wait for the subject to speak first, and do not ask whether " +
+                "they can hear you.",
+            },
+          }),
+        );
+      };
       dc.onmessage = (msg: MessageEvent) => {
         let event: RealtimeEvent;
         try {
@@ -468,7 +487,7 @@ export function LiveInterview({
         }
       };
     },
-    [addTurn, mode, seriesId, interviewId],
+    [addTurn, mode, seriesId, interviewId, subjectName],
   );
 
   /** Stop every media resource. Safe to call repeatedly. */
@@ -589,7 +608,9 @@ export function LiveInterview({
         startedAtRef.current = Date.now();
         if (!cancelled) {
           setConnected(true);
-          setOrbState("listening");
+          // Anna speaks first (see dc.onopen) — the orb starts on "thinking"
+          // and flips to "speaking" when her greeting audio begins.
+          setOrbState("thinking");
         }
       } catch {
         if (!cancelled) setSessionError("connect_failed");
@@ -975,8 +996,8 @@ export function LiveInterview({
             <p className="font-serif text-[clamp(20px,3.2vw,30px)] leading-snug text-[#F7F5F0]">
               {currentQuestion ??
                 (handoff
-                  ? `Hi ${subjectName} — I'm ${interviewerName}. Whenever you're ready, just say hello.`
-                  : `${interviewerName} is listening — say hello whenever you're ready.`)}
+                  ? `Hi ${subjectName} — ${interviewerName} is here and will get things started.`
+                  : `${interviewerName} is here — starting the conversation…`)}
             </p>
           ) : (
             <p className="font-serif text-xl text-[rgba(247,245,240,0.7)]">
