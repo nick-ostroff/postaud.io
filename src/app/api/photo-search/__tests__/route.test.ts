@@ -123,6 +123,19 @@ describe("GET /api/photo-search", () => {
     ]);
   });
 
+  it("never sends Pexels an orientation filter", async () => {
+    const calls = stubFetch({
+      unsplash: () => unsplashResponse([UNSPLASH_PHOTO]),
+      pexels: () => pexelsResponse([PEXELS_PHOTO]),
+    });
+
+    await GET(searchReq("?query=pickleball"));
+
+    const pexelsCalls = calls.filter((u) => u.hostname === "api.pexels.com");
+    expect(pexelsCalls).toHaveLength(1);
+    expect(pexelsCalls[0].searchParams.get("orientation")).toBeNull();
+  });
+
   it("only queries providers that have a key", async () => {
     vi.stubEnv("PEXELS_API_KEY", "");
     const calls = stubFetch({ unsplash: () => unsplashResponse([UNSPLASH_PHOTO]) });

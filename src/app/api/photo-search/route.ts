@@ -39,11 +39,10 @@ type PexelsPhoto = {
 };
 
 /**
- * Both providers backfill niche queries poorly when constrained to square
- * photos (e.g. "pickleball court" has zero squarish Unsplash results), so
- * each provider searches square-first — best for the circular avatar crop —
- * and retries unconstrained when that comes back empty. The cropper handles
- * any aspect ratio.
+ * Unsplash searches square-first — best for the circular avatar crop, and its
+ * squarish results measurably rank better — but niche queries sometimes have
+ * zero squarish photos (e.g. "pickleball court"), so it retries unconstrained
+ * when the filtered search comes back empty.
  */
 async function searchUnsplash(key: string, query: string, page: number): Promise<ProviderOutcome> {
   async function attempt(orientation: string | null) {
@@ -83,25 +82,22 @@ async function searchUnsplash(key: string, query: string, page: number): Promise
   };
 }
 
+/**
+ * Unlike Unsplash, Pexels' `orientation=square` filter guts relevance instead
+ * of improving it (measured: "pickleball" square → 20 mostly-tennis results;
+ * unconstrained → 4k on-topic ones), so Pexels always searches unconstrained.
+ * The grid shows square thumbs via CSS and the cropper handles any ratio.
+ */
 async function searchPexels(key: string, query: string, page: number): Promise<ProviderOutcome> {
-  async function attempt(orientation: string | null) {
-    const url = new URL("https://api.pexels.com/v1/search");
-    url.searchParams.set("query", query);
-    url.searchParams.set("page", String(page));
-    url.searchParams.set("per_page", String(PER_PROVIDER));
-    if (orientation) url.searchParams.set("orientation", orientation);
-    return fetch(url, { headers: { Authorization: key } });
-  }
+  const url = new URL("https://api.pexels.com/v1/search");
+  url.searchParams.set("query", query);
+  url.searchParams.set("page", String(page));
+  url.searchParams.set("per_page", String(PER_PROVIDER));
 
-  let res = await attempt("square");
+  const res = await fetch(url, { headers: { Authorization: key } });
   if (res.status === 401 || res.status === 403 || res.status === 429) return "rate_limited";
   if (!res.ok) return "error";
-  let body = (await res.json()) as { total_results: number; photos: PexelsPhoto[] };
-
-  if (body.photos.length === 0) {
-    res = await attempt(null);
-    if (res.ok) body = (await res.json()) as typeof body;
-  }
+  const body = (await res.json()) as { total_results: number; photos: PexelsPhoto[] };
 
   return {
     totalPages: Math.ceil(body.total_results / PER_PROVIDER),
