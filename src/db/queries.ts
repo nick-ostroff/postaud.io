@@ -137,6 +137,9 @@ export async function getSeriesForUser(sb: SupabaseClient<Database>): Promise<Se
   const { data, error } = await sb
     .from("series")
     .select(SERIES_WITH_SUBJECT)
+    // Manual drag order first; ties (all 0 until someone drags, plus any
+    // series created after a drag) keep the old newest-first order.
+    .order("sort_order", { ascending: true })
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as SeriesWithSubject[];

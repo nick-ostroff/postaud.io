@@ -13,6 +13,7 @@ function series(overrides: Partial<Series> & Pick<Series, "id">): Series {
     subject_name: "Someone",
     subject_relationship: null,
     photo_path: null,
+    sort_order: 0,
     goal: "",
     opening_prompt: null,
     dont_bring_up: [],

@@ -37,6 +37,9 @@ export function StoryRail({
    * only series nav on phones (the sidebar is desktop-only), so without this
    * the mobile card view is unreachable. */
   showAllLink?: boolean;
+  /** Ring the "All series" circle — the rail is being shown on the card-grid
+   * view itself, so that's the current "story". */
+  allActive?: boolean;
   /** Switch stories client-side instead of navigating. */
   onSelect?: (id: string) => void;
 }) {

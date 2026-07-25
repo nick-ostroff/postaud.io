@@ -185,6 +185,7 @@ export type Database = {
           quickfire_queue_only: boolean
           planned_sessions: number | null
           photo_path: string | null
+          sort_order: number
           status: SeriesStatus
           created_by: string | null
           created_at: string
@@ -209,6 +210,7 @@ export type Database = {
           quickfire_queue_only?: boolean
           planned_sessions?: number | null
           photo_path?: string | null
+          sort_order?: number
           status?: SeriesStatus
           created_by?: string | null
           created_at?: string
@@ -233,6 +235,7 @@ export type Database = {
           quickfire_queue_only?: boolean
           planned_sessions?: number | null
           photo_path?: string | null
+          sort_order?: number
           status?: SeriesStatus
           created_by?: string | null
           created_at?: string

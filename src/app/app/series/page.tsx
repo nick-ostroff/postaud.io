@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { ReorderableSeriesGrid } from "@/components/series/ReorderableSeriesGrid";
 import { SeriesCard } from "@/components/series/SeriesCard";
 import { getSeriesForUser, getSeriesSummaries, getViewer } from "@/db/queries";
 
@@ -43,11 +44,13 @@ export default async function SeriesListPage() {
           </Link>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-[18px] md:grid-cols-2 xl:grid-cols-3">
-          {series.map((s) => (
-            <SeriesCard key={s.id} series={s} summary={summaries[s.id]} showSettings={role === "admin"} />
-          ))}
-        </div>
+        <ReorderableSeriesGrid
+          canReorder={role === "admin"}
+          items={series.map((s) => ({
+            id: s.id,
+            card: <SeriesCard series={s} summary={summaries[s.id]} showSettings={role === "admin"} />,
+          }))}
+        />
       )}
     </div>
   );
