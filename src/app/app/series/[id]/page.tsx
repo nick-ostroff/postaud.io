@@ -110,7 +110,10 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
 
   const summary = summaries[id];
 
-  const suggestedTopics = knowledge.topics.filter((t) => t.suggested);
+  // Ritual queues are fixed by the members — the same questions every session,
+  // so post-session topic suggestions never apply there.
+  const isRitual = series.conversation_mode === "ritual";
+  const suggestedTopics = isRitual ? [] : knowledge.topics.filter((t) => t.suggested);
 
   const people = knowledge.entities.filter((e) => e.kind === "person");
 
@@ -283,8 +286,9 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
 
             {pendingQuestions.length === 0 ? (
               <p className="mt-3 text-[13.5px] text-muted">
-                No questions queued yet — save follow-ups during a Flow session
-                {canAddQuestion ? ", or add your own below." : "."}
+                {isRitual
+                  ? `No ritual questions yet${canAddQuestion ? " — add the questions you want asked every session." : "."}`
+                  : `No questions queued yet — save follow-ups during a Flow session${canAddQuestion ? ", or add your own below." : "."}`}
               </p>
             ) : (
               <QueueOrderList

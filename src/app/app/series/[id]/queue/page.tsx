@@ -82,11 +82,19 @@ export default async function QueuePage({ params }: { params: Params }) {
         <div>
           <h1 className="text-[28px]">Question queue</h1>
           <div className="mt-0.5 text-[13.5px] text-muted">
-            Saved follow-ups — the next Quickfire session asks these first.
+            {series.conversation_mode === "ritual"
+              ? "The ritual — these same questions get asked every session."
+              : "Saved follow-ups — the next Quickfire session asks these first."}
           </div>
         </div>
         {items.length > 0 ? (
-          <Link href={`/app/series/${series.id}/interview?mode=quickfire`}>
+          <Link
+            href={
+              series.conversation_mode === "ritual"
+                ? `/app/series/${series.id}/interview`
+                : `/app/series/${series.id}/interview?mode=quickfire`
+            }
+          >
             <Button variant="primary">Answer these now</Button>
           </Link>
         ) : null}
