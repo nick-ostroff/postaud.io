@@ -13,6 +13,7 @@ import {
 } from "@/db/queries";
 import { pickNewestSuggestedTopic } from "@/server/topics/pick";
 import { ProcessingRecap } from "./ProcessingRecap";
+import { fmtTalkTime } from "@/components/usage/format";
 
 type Params = Promise<{ id: string }>;
 
@@ -60,8 +61,7 @@ export default async function RecapPage({ params }: { params: Params }) {
   const queueCount = queueCountRes.count ?? 0;
 
   const session = sessions.find((s) => s.id === id) ?? null;
-  const durationLabel =
-    session?.durationSec != null ? `${Math.round(session.durationSec / 60)} minutes` : null;
+  const durationLabel = session?.durationSec != null ? fmtTalkTime(session.durationSec) : null;
   const sessionLabel = session ? `Session ${session.sessionNumber}` : "This session";
 
   const nextTopic = pickNewestSuggestedTopic(knowledge.topics);

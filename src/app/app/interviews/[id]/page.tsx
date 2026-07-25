@@ -18,6 +18,7 @@ import { pickNewestSuggestedTopic } from "@/server/topics/pick";
 import { PromoteChip } from "../../series/[id]/PromoteChip";
 import { ReprocessButton } from "../../series/[id]/ReprocessButton";
 import { UsageCard } from "./UsageCard";
+import { fmtTalkTime } from "@/components/usage/format";
 import type { InterviewUsage } from "@/db/types";
 
 type Params = Promise<{ id: string }>;
@@ -33,11 +34,10 @@ function formatSessionDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-/** "22 min" style — matches the series hub's session-list duration format. */
+/** "22 min 14 sec" style — matches the series hub's session-list duration format. */
 function formatDuration(sec: number | null): string | null {
   if (sec == null) return null;
-  const mins = Math.round(sec / 60);
-  return `${mins} min`;
+  return fmtTalkTime(sec);
 }
 
 function formatOffset(sec: number | null): string | null {

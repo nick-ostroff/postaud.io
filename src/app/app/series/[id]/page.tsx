@@ -39,8 +39,7 @@ function formatSessionDate(iso: string): string {
 
 function formatDuration(sec: number | null): string | null {
   if (sec == null) return null;
-  const mins = Math.round(sec / 60);
-  return `${mins} min`;
+  return fmtTalkTime(sec);
 }
 
 
@@ -61,9 +60,9 @@ function HeaderStat({
   );
 }
 
-/** fmtTalkTime with numerals at stat size and units small ("3 min", "1 hr 5 min"). */
+/** fmtTalkTime with numerals at stat size and units small ("3 min 42 sec", "1 hr 5 min 12 sec"). */
 function TalkTime({ sec }: { sec: number }) {
-  const text = sec === 0 ? "0 min" : fmtTalkTime(sec);
+  const text = fmtTalkTime(sec);
   return (
     <>
       {text.split(" ").map((token, i) => (

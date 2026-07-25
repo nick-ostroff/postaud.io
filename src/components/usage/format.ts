@@ -19,14 +19,18 @@ export function fmtInt(n: number): string {
   return n.toLocaleString("en-US");
 }
 
-/** Series-total talk time ("42 min", "1 hr 5 min") — hours once it earns them. */
+/** Talk time down to the second ("45 sec", "4 min 12 sec", "1 hr 5 min 12 sec") — hours once it earns them. */
 export function fmtTalkTime(sec: number): string {
-  const mins = Math.round(sec / 60);
-  if (mins < 1) return "under 1 min";
-  if (mins < 60) return `${mins} min`;
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return m ? `${h} hr ${m} min` : `${h} hr`;
+  const whole = Math.max(0, Math.round(sec));
+  if (whole === 0) return "0 sec";
+  const h = Math.floor(whole / 3600);
+  const m = Math.floor((whole % 3600) / 60);
+  const s = whole % 60;
+  const parts: string[] = [];
+  if (h) parts.push(`${h} hr`);
+  if (m) parts.push(`${m} min`);
+  if (s) parts.push(`${s} sec`);
+  return parts.join(" ");
 }
 
 export function fmtUsd(usd: number): string {
