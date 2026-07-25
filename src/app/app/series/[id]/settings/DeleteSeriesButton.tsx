@@ -50,8 +50,8 @@ export function DeleteSeriesButton({ seriesId, title }: { seriesId: string; titl
   return (
     <div>
       <p className="text-[13px] text-muted">
-        Type <span className="font-semibold text-ink">{title}</span> to confirm — this deletes every
-        session, memory, and recording. There&apos;s no undo.
+        Type <span className="font-semibold text-ink">{title}</span>{" "}
+        to confirm — this deletes every session, memory, and recording. There&apos;s no undo.
       </p>
       <div className="mt-2">
         <Input
