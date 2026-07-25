@@ -32,8 +32,11 @@ export default async function SeriesListPage() {
 
   return (
     <div>
-      <div className="lg:hidden">
+      {/* Full-bleed dark strip merging with the top nav (mockup 4a) — the rail
+          is the series nav on phones, so the Home crumb is desktop-only. */}
+      <div className="-mx-5 -mt-6 mb-4 bg-dark px-5 pb-2 pt-3 lg:hidden">
         <StoryRail
+          tone="dark"
           stories={railStories}
           activeId={null}
           canCreate={role === "admin"}
@@ -42,7 +45,7 @@ export default async function SeriesListPage() {
         />
       </div>
 
-      <div className="mb-2 text-[12.5px] text-faint">
+      <div className="mb-2 hidden text-[12.5px] text-faint lg:block">
         <Link href="/app" className="text-muted">
           Home
         </Link>{" "}
