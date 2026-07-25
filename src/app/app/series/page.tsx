@@ -37,6 +37,7 @@ export default async function SeriesListPage() {
       <div className="-mx-5 -mt-6 mb-4 bg-dark px-5 pb-2 pt-3 lg:hidden">
         <StoryRail
           tone="dark"
+          linkBase="series"
           stories={railStories}
           activeId={null}
           canCreate={role === "admin"}

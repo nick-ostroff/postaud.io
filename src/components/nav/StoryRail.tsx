@@ -30,6 +30,7 @@ export function StoryRail({
   showAllLink = false,
   allActive = false,
   tone = "paper",
+  linkBase = "home",
   onSelect,
 }: {
   stories: RailStory[];
@@ -44,6 +45,10 @@ export function StoryRail({
   allActive?: boolean;
   /** "dark" restyles rings/labels for --dark surfaces (series-detail header). */
   tone?: "paper" | "dark";
+  /** Where a circle tap lands (when not using `onSelect`): "home" swaps the
+   * story on the /app dashboard; "series" opens that series' detail screen —
+   * used on the list + detail pages so switching never changes layout family. */
+  linkBase?: "home" | "series";
   /** Switch stories client-side instead of navigating. */
   onSelect?: (id: string) => void;
 }) {
@@ -126,7 +131,7 @@ export function StoryRail({
         ) : (
           <Link
             key={s.id}
-            href={`/app?story=${s.id}`}
+            href={linkBase === "series" ? `/app/series/${s.id}` : `/app?story=${s.id}`}
             aria-current={active ? "true" : undefined}
             className={avatarClass}
           >

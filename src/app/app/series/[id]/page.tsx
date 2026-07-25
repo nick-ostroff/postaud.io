@@ -190,6 +190,7 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
         <div className="mb-3 border-b border-dark-line lg:hidden">
           <StoryRail
             tone="dark"
+            linkBase="series"
             stories={railStories}
             activeId={series.id}
             canCreate={isAdmin}
