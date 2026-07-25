@@ -45,9 +45,9 @@ export function AddQueueQuestion({ seriesId }: { seriesId: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-green-deep hover:text-ink"
+        className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-dashed border-line-strong px-4 py-3 text-[13.5px] font-medium text-muted transition-colors hover:border-green hover:text-green-deep"
       >
-        <span aria-hidden className="text-[15px] leading-none">+</span> Add your own question
+        <span aria-hidden className="text-[15px] leading-none">+</span> Add a question
       </button>
     );
   }

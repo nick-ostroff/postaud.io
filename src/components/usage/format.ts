@@ -33,6 +33,18 @@ export function fmtTalkTime(sec: number): string {
   return parts.join(" ");
 }
 
+/** Compact talk time for tight rows ("2m 24s", "14m", "1h 5m") — series-detail
+ * stat line and session rows, where "2 min 24 sec" doesn't fit. */
+export function fmtTalkTimeShort(sec: number): string {
+  const whole = Math.max(0, Math.round(sec));
+  const h = Math.floor(whole / 3600);
+  const m = Math.floor((whole % 3600) / 60);
+  const s = whole % 60;
+  if (h) return m ? `${h}h ${m}m` : `${h}h`;
+  if (m) return s ? `${m}m ${s}s` : `${m}m`;
+  return `${s}s`;
+}
+
 export function fmtUsd(usd: number): string {
   if (usd <= 0) return "$0.00";
   if (usd < 0.01) return "< $0.01";
