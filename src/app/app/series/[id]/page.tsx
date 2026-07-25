@@ -5,11 +5,15 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
-import { fmtTalkTime } from "@/components/usage/format";
+import { StoryRail } from "@/components/nav/StoryRail";
+import { fmtTalkTime, fmtTalkTimeShort } from "@/components/usage/format";
 import { profilePhotoUrl } from "@/server/profile/photo-url";
+import { subjectPhotoUrl } from "@/server/series/photo-url";
+import { staleness } from "@/server/series/staleness";
 import {
   getSeries,
   getSeriesAccessSummary,
+  getSeriesForUser,
   getSeriesKnowledge,
   getSeriesSummaries,
   getViewer,
@@ -29,17 +33,15 @@ const VISIBLE_SESSIONS = 6;
 
 const navLabel = "text-[10.5px] font-bold uppercase tracking-[0.12em] text-faint";
 
+/** Absolute "Jul 19" (series-detail mockup 5) — session rows pair it with a
+ * compact duration, so relative phrasing ("5 days ago") no longer fits. */
 function formatSessionDate(iso: string): string {
-  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
-  if (days <= 0) return "today";
-  if (days === 1) return "yesterday";
-  if (days < 14) return `${days} days ago`;
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 function formatDuration(sec: number | null): string | null {
   if (sec == null) return null;
-  return fmtTalkTime(sec);
+  return fmtTalkTimeShort(sec);
 }
 
 
@@ -91,8 +93,14 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
   const series = await getSeries(supabase, id);
   if (!series) notFound();
 
+  // Everything this viewer can see, for the mobile story rail — same circles
+  // as home, with this series ringed. Summaries fetched for the whole rail
+  // (waiting dots) in the same round trip that serves this page's stats.
+  const railSeries = (await getSeriesForUser(supabase)).filter((s) => s.status !== "archived");
+  const summaryIds = [...new Set([id, ...railSeries.map((s) => s.id)])];
+
   const [summaries, knowledge, sessions, access, pendingQuestions, canAddQuestion] = await Promise.all([
-    getSeriesSummaries(supabase, [id]),
+    getSeriesSummaries(supabase, summaryIds),
     getSeriesKnowledge(supabase, id),
     listInterviewsForSeries(supabase, id),
     getSeriesAccessSummary(supabase, id),
@@ -157,31 +165,72 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
         ? "Ritual"
         : "Flow";
   const totalTalkSec = sessions.reduce((sum, s) => sum + (s.durationSec ?? 0), 0);
+  const queuedCount = pendingQuestions.length;
+
+  const now = new Date();
+  const railStories = railSeries.map((s) => ({
+    id: s.id,
+    title: s.title,
+    photoUrl: subjectPhotoUrl(s),
+    waiting: staleness(
+      summaries[s.id]?.lastSessionAt ? new Date(summaries[s.id].lastSessionAt as string) : null,
+      now,
+    ).stale,
+  }));
+
+  const dot = <span aria-hidden>·</span>;
 
   return (
     <div>
       {summaryPending && <PendingSummaryRefresher />}
-      <div className="rounded-card bg-dark px-[22px] pb-[22px] pt-4 text-paper shadow-card">
+      {/* On phones the header bleeds full-width into the dark top nav (mockup 5)
+          and carries the story rail — the rail is the series nav there, so the
+          "‹ Series" crumb is desktop-only. */}
+      <div className="-mx-5 -mt-6 bg-dark px-5 pb-5 pt-3 text-paper lg:mx-0 lg:mt-0 lg:rounded-card lg:px-[22px] lg:pb-[22px] lg:pt-4 lg:shadow-card">
+        <div className="mb-3 border-b border-dark-line lg:hidden">
+          <StoryRail
+            tone="dark"
+            stories={railStories}
+            activeId={series.id}
+            canCreate={isAdmin}
+            showAllLink
+          />
+        </div>
         <Link
           href="/app/series"
-          className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-dark-muted hover:text-paper hover:no-underline"
+          className="hidden items-center gap-1.5 text-[12.5px] font-medium text-dark-muted hover:text-paper hover:no-underline lg:inline-flex"
         >
           <span aria-hidden>‹</span> Series
         </Link>
-        <h1 className="mt-1 text-[30px] leading-[1.15] text-paper">{series.title}</h1>
+        <h1 className="text-[30px] leading-[1.15] text-paper lg:mt-1">{series.title}</h1>
 
-        <div className="mt-4 flex flex-wrap items-center gap-3">
+        <div className="mt-3.5 flex items-center gap-3 lg:mt-4">
           <Avatar name={persona.name} size="lg" tone="dark" />
-          <div className="min-w-0 flex-1">
-            <div className="text-[14.5px] font-semibold leading-tight">{persona.name}</div>
-            <div className="mt-0.5 text-[13px] text-dark-muted">interviewing {subjectSubtitle}</div>
+          <div className="min-w-0 flex-1 truncate text-[14px]">
+            <span className="font-semibold">{persona.name}</span>
+            <span className="text-dark-muted"> · interviewing {subjectSubtitle}</span>
           </div>
           <span className="rounded-pill border border-mint/45 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-mint">
             {modeLabel}
           </span>
         </div>
 
-        <div className="mt-[18px] flex flex-wrap gap-x-10 gap-y-3 border-t border-dark-line pt-4">
+        {/* Compact one-line stats on phones; the big serif stat row on desktop. */}
+        <div className="mt-3.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[13.5px] text-dark-muted lg:hidden">
+          <span className="font-semibold text-paper">
+            {sessions.length} {sessions.length === 1 ? "session" : "sessions"}
+          </span>
+          {dot}
+          <span>{fmtTalkTimeShort(totalTalkSec)}</span>
+          {dot}
+          <span>
+            {summary.memoriesCount} {summary.memoriesCount === 1 ? "memory" : "memories"}
+          </span>
+          {dot}
+          <span className={queuedCount > 0 ? "font-semibold text-mint" : undefined}>{queuedCount} queued</span>
+        </div>
+
+        <div className="mt-[18px] hidden flex-wrap gap-x-10 gap-y-3 border-t border-dark-line pt-4 lg:flex">
           <HeaderStat label="sessions">{sessions.length}</HeaderStat>
           <HeaderStat label="total time">
             <TalkTime sec={totalTalkSec} />
@@ -189,7 +238,7 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
           <HeaderStat label="memories" mint>
             {summary.memoriesCount}
           </HeaderStat>
-          <HeaderStat label="queued">{pendingQuestions.length}</HeaderStat>
+          <HeaderStat label="queued">{queuedCount}</HeaderStat>
         </div>
       </div>
 
@@ -198,7 +247,7 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
       <div className="mb-[22px] mt-4 flex flex-wrap items-center gap-2.5">
         <Link href={`/app/series/${series.id}/interview`} className="w-full sm:w-auto">
           <Button variant="primary" size="big" className="w-full justify-center">
-            Start interview
+            Start interview{queuedCount > 0 ? ` · ${queuedCount} waiting` : ""}
           </Button>
         </Link>
         {series.subject_user_id == null && (
@@ -214,109 +263,117 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
       </div>
 
       <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_336px]">
+        {/* A live queue is what the next session runs on, so it leads (mockup
+            5b); with nothing queued, Sessions lead and the empty queue trails
+            with its Add affordance (5a). */}
         <div className="flex flex-col gap-3.5">
-          <Card className="px-[22px] py-5">
-            <div className="flex items-center justify-between">
-              <h3>Sessions</h3>
-              <span className="text-[12.5px] text-faint">
-                {series.planned_sessions
-                  ? `${sessions.length} of ${series.planned_sessions} total`
-                  : sessions.length === 0
-                    ? "none yet"
-                    : `${sessions.length} so far`}
-              </span>
-            </div>
+          {(() => {
+            const sessionsCard = (
+              <Card key="sessions" className="px-[22px] py-5">
+                <div className="flex items-center justify-between">
+                  <h3>Sessions</h3>
+                  <span className="text-[12.5px] text-faint">
+                    {series.planned_sessions
+                      ? `${sessions.length} of ${series.planned_sessions} total`
+                      : sessions.length === 0
+                        ? "none yet"
+                        : `${sessions.length} total`}
+                  </span>
+                </div>
 
-            {sessions.length === 0 ? (
-              <p className="mt-3 text-[13.5px] text-muted">
-                No sessions yet — start the first interview to begin filling this in.
-              </p>
-            ) : (
-              <div className="mt-1">
-                {sessions.slice(0, VISIBLE_SESSIONS).map((s) => {
-                  const duration = formatDuration(s.durationSec);
-                  const memoriesWord = s.memoriesAdded === 1 ? "memory" : "memories";
-                  return (
-                    <div key={s.id} className="border-b border-line py-3.5 last:border-b-0 last:pb-1">
-                      <div className="flex flex-wrap items-baseline gap-2.5">
-                        <span className="text-[13.5px] font-semibold">
-                          <Link href={`/app/interviews/${s.id}`}>Session {s.sessionNumber}</Link>
-                        </span>
-                        <span className="text-[12.5px] text-faint">
-                          {formatSessionDate(s.startedAt)}
-                          {duration ? ` · ${duration}` : ""}
-                        </span>
-                        <Badge>
-                          {s.memoriesAdded} new {memoriesWord}
-                        </Badge>
-                        {s.processError && isAdmin && (
-                          <>
-                            <Badge tone="amber">processing failed</Badge>
-                            <ReprocessButton interviewId={s.id} />
-                          </>
-                        )}
-                      </div>
-                      <div className="serif mt-1 text-[14.5px] leading-[1.5] text-ink-soft">
-                        {s.summaryShort ?? "Summary pending — check back soon."}
-                      </div>
-                    </div>
-                  );
-                })}
-                {sessions.length > VISIBLE_SESSIONS && (
-                  <p className="pt-2.5 text-[12.5px] text-faint">
-                    and {sessions.length - VISIBLE_SESSIONS} earlier sessions
+                {sessions.length === 0 ? (
+                  <p className="mt-3 text-[13.5px] text-muted">
+                    No sessions yet — start the first interview to begin filling this in.
+                  </p>
+                ) : (
+                  <div className="mt-1">
+                    {sessions.slice(0, VISIBLE_SESSIONS).map((s) => {
+                      const duration = formatDuration(s.durationSec);
+                      return (
+                        <div key={s.id} className="border-b border-line py-3.5 last:border-b-0 last:pb-1">
+                          <div className="flex flex-wrap items-baseline gap-2.5">
+                            <span className="text-[13.5px] font-semibold">
+                              <Link href={`/app/interviews/${s.id}`}>Session {s.sessionNumber}</Link>
+                            </span>
+                            <span className="text-[12.5px] text-faint">
+                              {formatSessionDate(s.startedAt)}
+                              {duration ? ` · ${duration}` : ""}
+                            </span>
+                            <Badge>{s.memoriesAdded} new</Badge>
+                            {s.processError && isAdmin && (
+                              <>
+                                <Badge tone="amber">processing failed</Badge>
+                                <ReprocessButton interviewId={s.id} />
+                              </>
+                            )}
+                          </div>
+                          <div className="serif mt-1 text-[14.5px] leading-[1.5] text-ink-soft">
+                            {s.summaryShort ?? "Summary pending — check back soon."}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {sessions.length > VISIBLE_SESSIONS && (
+                      <p className="pt-2.5 text-[12.5px] text-faint">
+                        and {sessions.length - VISIBLE_SESSIONS} earlier sessions
+                      </p>
+                    )}
+                  </div>
+                )}
+              </Card>
+            );
+
+            const queueCard = (
+              <Card key="queue" className="px-[22px] py-5">
+                <div className="flex items-center justify-between">
+                  <h3>Question queue</h3>
+                  <Link href={`/app/series/${series.id}/queue`} className="text-[13px] font-medium">
+                    Manage →
+                  </Link>
+                </div>
+                {isRitual && (
+                  <p className="text-[13px] text-muted">
+                    The ritual — {persona.name} asks these same questions every session.
                   </p>
                 )}
-              </div>
-            )}
-          </Card>
 
-          <Card className="px-[22px] py-5">
-            <div className="flex items-center justify-between">
-              <h3>Question queue</h3>
-              <Link href={`/app/series/${series.id}/queue`} className="text-[13px] font-medium">
-                Manage the queue →
-              </Link>
-            </div>
-            <p className="text-[13px] text-muted">
-              {series.conversation_mode === "ritual"
-                ? `The ritual — ${persona.name} asks these same questions every session.`
-                : `What ${persona.name} will ask next — saved from Flow sessions or added by you.`}
-            </p>
+                {queuedCount === 0 ? (
+                  <p className="mt-3 text-[13.5px] text-muted">
+                    {isRitual
+                      ? `No ritual questions yet${canAddQuestion ? " — add the questions you want asked every session." : "."}`
+                      : `Empty — save follow-ups during a Flow session${canAddQuestion ? ", or add your own." : "."}`}
+                  </p>
+                ) : (
+                  <QueueOrderList
+                    // Remount whenever the server-side order changes (our own
+                    // refresh after a reorder, or another admin's) so the
+                    // client list never drifts from the source of truth.
+                    key={pendingQuestions.map((q) => q.id).join(",")}
+                    seriesId={series.id}
+                    initialItems={pendingQuestions.map((q) => ({ id: q.id, text: q.text }))}
+                    canManage={isAdmin}
+                  />
+                )}
 
-            {pendingQuestions.length === 0 ? (
-              <p className="mt-3 text-[13.5px] text-muted">
-                {isRitual
-                  ? `No ritual questions yet${canAddQuestion ? " — add the questions you want asked every session." : "."}`
-                  : `No questions queued yet — save follow-ups during a Flow session${canAddQuestion ? ", or add your own below." : "."}`}
-              </p>
-            ) : (
-              <QueueOrderList
-                // Remount whenever the server-side order changes (our own
-                // refresh after a reorder, or another admin's) so the
-                // client list never drifts from the source of truth.
-                key={pendingQuestions.map((q) => q.id).join(",")}
-                seriesId={series.id}
-                initialItems={pendingQuestions.map((q) => ({ id: q.id, text: q.text }))}
-                canManage={isAdmin}
-              />
-            )}
+                {suggestedTopics.length > 0 && (
+                  <div className="mt-3.5">
+                    <div className={navLabel} style={{ padding: "0 0 8px" }}>
+                      Suggested after the last session
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {suggestedTopics.map((t) => (
+                        <PromoteChip key={t.id} topicId={t.id} seriesId={series.id} name={t.name} />
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-            {suggestedTopics.length > 0 && (
-              <div className="mt-3.5">
-                <div className={navLabel} style={{ padding: "0 0 8px" }}>
-                  Suggested after the last session
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  {suggestedTopics.map((t) => (
-                    <PromoteChip key={t.id} topicId={t.id} seriesId={series.id} name={t.name} />
-                  ))}
-                </div>
-              </div>
-            )}
+                {canAddQuestion && <AddQueueQuestion seriesId={series.id} />}
+              </Card>
+            );
 
-            {canAddQuestion && <AddQueueQuestion seriesId={series.id} />}
-          </Card>
+            return queuedCount > 0 ? [queueCard, sessionsCard] : [sessionsCard, queueCard];
+          })()}
         </div>
 
         <div className="flex flex-col gap-[18px]">
