@@ -14,7 +14,7 @@ vi.mock("@/db/queries", () => ({
   listInterviewsForSeries: mocks.listInterviewsForSeries,
 }));
 
-import { buildSeriesExportData } from "../series-data";
+import { buildJsonPayload, buildSeriesExportData } from "../series-data";
 import type { SeriesExportScope } from "../markdown";
 
 const SUPABASE_STUB = {} as never;
@@ -284,5 +284,19 @@ describe("buildSeriesExportData", () => {
     // (sorted) output order — Apple before Zebra either way.
     expect(entitiesA.map((e) => e.name)).toEqual(["Apple", "Zebra"]);
     expect(entitiesB).toEqual(entitiesA);
+  });
+
+  it("carries each topic's id through factsByTopic and the JSON payload", async () => {
+    mocks.getSeriesKnowledge.mockResolvedValue({ topics: TOPICS, facts: FACTS, entities: ENTITIES });
+    const data = await buildSeriesExportData(SUPABASE_STUB, "series-1", FULL_SCOPE);
+    const payload = buildJsonPayload("series-1", data!);
+    for (const group of data!.factsByTopic.filter((g) => g.topic !== "Other")) {
+      expect(TOPICS.map((t) => t.id)).toContain(group.id);
+    }
+    const other = payload.topics.find((t) => t.name === "Other");
+    if (other) expect(other.id).toBeNull();
+    for (const t of payload.topics.filter((t) => t.name !== "Other")) {
+      expect(t.id).toEqual(TOPICS.find((x) => x.name === t.name)?.id);
+    }
   });
 });

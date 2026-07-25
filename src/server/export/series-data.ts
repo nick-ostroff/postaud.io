@@ -41,6 +41,7 @@ export type SeriesExportFactEntityRef = { id: string; name: string; kind: string
 export type SeriesExportFactWithEntities = SeriesExportFact & { entities: SeriesExportFactEntityRef[] };
 
 export type SeriesExportTopicGroupWithEntities = {
+  id: string | null;
   topic: string;
   facts: SeriesExportFactWithEntities[];
 };
@@ -114,7 +115,7 @@ export async function buildSeriesExportData(
   const topicOrder = [...knowledge.topics].sort((a, b) => a.position - b.position).map((t) => t.id);
 
   const groupsById = new Map<string, SeriesExportTopicGroupWithEntities>();
-  const otherGroup: SeriesExportTopicGroupWithEntities = { topic: "Other", facts: [] };
+  const otherGroup: SeriesExportTopicGroupWithEntities = { id: null, topic: "Other", facts: [] };
   for (const fact of activeFacts) {
     const sessionLabel = fact.source_interview_id
       ? (sessionLabelByInterview.get(fact.source_interview_id) ?? "Manual entry")
@@ -144,7 +145,11 @@ export async function buildSeriesExportData(
     };
     if (fact.topic_id && topicName.has(fact.topic_id)) {
       if (!groupsById.has(fact.topic_id)) {
-        groupsById.set(fact.topic_id, { topic: topicName.get(fact.topic_id) as string, facts: [] });
+        groupsById.set(fact.topic_id, {
+          id: fact.topic_id,
+          topic: topicName.get(fact.topic_id) as string,
+          facts: [],
+        });
       }
       groupsById.get(fact.topic_id)!.facts.push(entry);
     } else {
@@ -229,6 +234,7 @@ export type SeriesExportJsonFact = {
 };
 
 export type SeriesExportJsonTopic = {
+  id: string | null;
   name: string;
   hash: string;
   facts: SeriesExportJsonFact[];
@@ -272,7 +278,7 @@ export function buildJsonPayload(seriesId: string, data: SeriesExportData): Seri
       timestamp: f.timestamp,
       entities: f.entities,
     }));
-    return { name: group.topic, hash: stableHash(facts), facts };
+    return { id: group.id, name: group.topic, hash: stableHash(facts), facts };
   });
 
   const entities: SeriesExportJsonEntity[] = data.entities.map((e) => ({
