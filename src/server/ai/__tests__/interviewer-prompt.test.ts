@@ -254,6 +254,16 @@ describe("conversation modes", () => {
     expect(out).not.toContain("When the conversation naturally winds down");
   });
 
+  it("ritual's ENDING is a goodbye — the app hangs up, the subject never has to tap", () => {
+    const out = buildInterviewerInstructions({
+      ...base,
+      mode: "ritual",
+      queuedQuestions: ["How did today go?"],
+    });
+    expect(out).toContain("the call ends on its own");
+    expect(out).not.toContain("I'm done");
+  });
+
   it("ritual with an empty queue and no opening prompt asks about today instead of falling back to topics", () => {
     const out = buildInterviewerInstructions({
       ...base,

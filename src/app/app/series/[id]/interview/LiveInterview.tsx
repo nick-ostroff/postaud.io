@@ -172,6 +172,14 @@ export function LiveInterview({
   const followupCallIdRef = useRef<string | null>(null);
   const nudgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nudgedRef = useRef(false);
+  // Ritual: the final QUESTION LIST item has been marked asked. Once the
+  // interviewer finishes speaking after this (the goodbye), the session hangs
+  // up on its own — the subject never has to find the "I'm done" button.
+  const finalQuestionMarkedRef = useRef(false);
+  const autoEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Latest endSession, reachable from the data-channel closure (which is
+  // created before endSession is declared below).
+  const endSessionRef = useRef<(() => void) | null>(null);
 
   /** Flush unsent transcript turns to the messages route (at-least-once). */
   const flushTranscript = useCallback(async () => {
@@ -287,18 +295,38 @@ export function LiveInterview({
             }
             break;
           case "input_audio_buffer.speech_started":
+            // The subject spoke after the goodbye — don't hang up over them;
+            // the model's reply re-arms the auto-end when it finishes.
+            if (autoEndTimerRef.current) {
+              clearTimeout(autoEndTimerRef.current);
+              autoEndTimerRef.current = null;
+            }
             if (!pausedRef.current) setOrbState("listening");
             break;
           case "input_audio_buffer.speech_stopped":
             if (!pausedRef.current) setOrbState("thinking");
             break;
           case "output_audio_buffer.started":
-            // The model chose to speak — don't nudge over it.
+            // The model chose to speak — don't nudge over it, and don't hang
+            // up mid-goodbye if it split the closing across responses.
             if (nudgeTimerRef.current) clearTimeout(nudgeTimerRef.current);
+            if (autoEndTimerRef.current) {
+              clearTimeout(autoEndTimerRef.current);
+              autoEndTimerRef.current = null;
+            }
             if (!pausedRef.current) setOrbState("speaking");
             break;
           case "output_audio_buffer.stopped":
             if (!pausedRef.current) setOrbState("listening");
+            // Ritual: the goodbye after the final marked question just
+            // finished — hang up on the subject's behalf after a short beat.
+            if (finalQuestionMarkedRef.current && !endingRef.current && !pausedRef.current) {
+              if (autoEndTimerRef.current) clearTimeout(autoEndTimerRef.current);
+              autoEndTimerRef.current = setTimeout(() => {
+                autoEndTimerRef.current = null;
+                if (!endingRef.current) endSessionRef.current?.();
+              }, 2500);
+            }
             break;
           case "response.done": {
             // Sum only what the event actually reports — missing fields add 0,
@@ -389,6 +417,15 @@ export function LiveInterview({
               }
               if (index > 0 && total > 0) setQuickfireProgress({ index, total });
 
+              // Ritual ends when the list does: once the final item is
+              // marked, the model's next spoken turn is its goodbye, and the
+              // output_audio_buffer.stopped handler hangs up after it.
+              // Quickfire keeps the manual "I'm done" — its ENDING is
+              // clock-based and the model may keep going past the list.
+              if (mode === "ritual" && total > 0 && index >= total) {
+                finalQuestionMarkedRef.current = true;
+              }
+
               // Ack the tool so the model continues to the next question.
               const dc = dcRef.current;
               if (dc?.readyState === "open") {
@@ -439,6 +476,10 @@ export function LiveInterview({
     if (nudgeTimerRef.current) {
       clearTimeout(nudgeTimerRef.current);
       nudgeTimerRef.current = null;
+    }
+    if (autoEndTimerRef.current) {
+      clearTimeout(autoEndTimerRef.current);
+      autoEndTimerRef.current = null;
     }
     if (recorderRef.current && recorderRef.current.state !== "inactive") {
       try {
@@ -793,6 +834,12 @@ export function LiveInterview({
       setEndError("We couldn't wrap up just now. Your words are safe — try again.");
     }
   }, [flushTranscript, interviewId, postUsage, router, stopRecorder, uploadAudio]);
+
+  // The data-channel closure (declared above endSession) reaches the current
+  // endSession through this ref — the ritual auto-hangup path.
+  useEffect(() => {
+    endSessionRef.current = () => void endSession();
+  }, [endSession]);
 
   // ---- error cards ----
   if (sessionError === "mic_denied") {

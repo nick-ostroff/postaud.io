@@ -484,8 +484,9 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
           "ENDING",
           "The session is over when the QUESTION LIST is — do not stretch it to fill the session length, and " +
             "do not add questions beyond the list. After the final item is answered and marked, thank the " +
-            "subject warmly, reflect back one specific detail that stood out, and let them know they can tap " +
-            "“I'm done” whenever they're ready. Never cut off abruptly.",
+            "subject warmly, reflect back one specific detail that stood out, and say a brief goodbye — the " +
+            "call ends on its own right after you finish speaking. Do not ask whether there is anything else, " +
+            "and do not ask any further questions.",
         ].join("\n")
       : [
           "ENDING",
