@@ -12,6 +12,7 @@ function makeRow(overrides: Partial<InterviewUsage> & Pick<InterviewUsage, "prov
     id: "row-1",
     interview_id: "iv-1",
     organization_id: "org-1",
+    context_label: null,
     phase: "interview",
     input_tokens: 0,
     output_tokens: 0,

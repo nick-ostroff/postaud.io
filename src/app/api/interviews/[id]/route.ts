@@ -29,13 +29,32 @@ export async function DELETE(_request: Request, { params }: { params: Params }) 
   const svc = serviceClient();
   const { data: interview, error: loadErr } = await svc
     .from("interviews")
-    .select("id, series_id, organization_id, audio_path")
+    .select("id, series_id, organization_id, audio_path, started_at")
     .eq("id", id)
     .maybeSingle();
   if (loadErr) return NextResponse.json({ error: loadErr.message }, { status: 500 });
   if (!interview || interview.organization_id !== organization.id) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
+
+  // Stamp the spend ledger with a human-readable label BEFORE the row delete
+  // orphans it (interview_id goes null via SET NULL) — the workspace activity
+  // log keeps showing "which session this money bought" after the session is
+  // gone.
+  const [{ data: seriesRow }, { count: sessionNumber }] = await Promise.all([
+    svc.from("series").select("title").eq("id", interview.series_id).maybeSingle(),
+    svc
+      .from("interviews")
+      .select("id", { count: "exact", head: true })
+      .eq("series_id", interview.series_id)
+      .lte("started_at", interview.started_at),
+  ]);
+  const contextLabel = `${seriesRow?.title ?? "Deleted series"} — Session ${sessionNumber ?? "?"} (deleted)`;
+  const { error: stampErr } = await svc
+    .from("interview_usage")
+    .update({ context_label: contextLabel })
+    .eq("interview_id", id);
+  if (stampErr) return NextResponse.json({ error: stampErr.message }, { status: 500 });
 
   const { data: factRows, error: factsErr } = await svc
     .from("facts")

@@ -678,8 +678,9 @@ export type Database = {
       interview_usage: {
         Row: {
           id: string
-          interview_id: string
+          interview_id: string | null
           organization_id: string
+          context_label: string | null
           provider: string
           phase: string
           model: string
@@ -698,8 +699,9 @@ export type Database = {
         }
         Insert: {
           id?: string
-          interview_id: string
+          interview_id?: string | null
           organization_id: string
+          context_label?: string | null
           provider: string
           phase: string
           model: string
@@ -718,8 +720,9 @@ export type Database = {
         }
         Update: {
           id?: string
-          interview_id?: string
+          interview_id?: string | null
           organization_id?: string
+          context_label?: string | null
           provider?: string
           phase?: string
           model?: string

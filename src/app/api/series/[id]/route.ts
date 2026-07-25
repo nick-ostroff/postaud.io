@@ -123,7 +123,7 @@ export async function DELETE(request: Request, { params }: { params: Params }) {
   const svc = serviceClient();
   const { data: series, error: loadErr } = await svc
     .from("series")
-    .select("id, organization_id, photo_path")
+    .select("id, organization_id, photo_path, title")
     .eq("id", id)
     .maybeSingle();
   if (loadErr) return NextResponse.json({ error: loadErr.message }, { status: 500 });
@@ -134,12 +134,24 @@ export async function DELETE(request: Request, { params }: { params: Params }) {
   // Collect audio paths before the cascade wipes the interview rows.
   const { data: interviewRows, error: audioErr } = await svc
     .from("interviews")
-    .select("audio_path")
-    .eq("series_id", id);
+    .select("id, audio_path, started_at")
+    .eq("series_id", id)
+    .order("started_at", { ascending: true });
   if (audioErr) return NextResponse.json({ error: audioErr.message }, { status: 500 });
   const audioPaths = (interviewRows ?? [])
     .map((i) => i.audio_path)
     .filter((p): p is string => !!p);
+
+  // Stamp every session's spend-ledger rows with a label BEFORE the cascade
+  // orphans them (interview_id goes null via SET NULL) — the workspace
+  // activity log keeps the full cost history of a deleted series.
+  for (const [idx, row] of (interviewRows ?? []).entries()) {
+    const { error: stampErr } = await svc
+      .from("interview_usage")
+      .update({ context_label: `${series.title} — Session ${idx + 1} (deleted)` })
+      .eq("interview_id", row.id);
+    if (stampErr) return NextResponse.json({ error: stampErr.message }, { status: 500 });
+  }
 
   const { error: delErr } = await svc.from("series").delete().eq("id", id);
   if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 });
