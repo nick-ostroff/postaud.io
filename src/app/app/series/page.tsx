@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { StoryRail } from "@/components/nav/StoryRail";
 import { ReorderableSeriesGrid } from "@/components/series/ReorderableSeriesGrid";
 import { SeriesCard } from "@/components/series/SeriesCard";
 import { getSeriesForUser, getSeriesSummaries, getViewer } from "@/db/queries";
+import { subjectPhotoUrl } from "@/server/series/photo-url";
+import { staleness } from "@/server/series/staleness";
 
 /** Same cards as the home grid (Task 7 brief) — every series this viewer can
  * see (RLS-scoped), without the stat tiles. */
@@ -13,8 +16,31 @@ export default async function SeriesListPage() {
   const series = allSeries.filter((s) => s.status !== "archived");
   const summaries = await getSeriesSummaries(supabase, series.map((s) => s.id));
 
+  // The rail is the only series nav on phones, so it stays on screen here too —
+  // same circles as home, with "All series" ringed as the current view.
+  const now = new Date();
+  const railStories = series.map((s) => ({
+    id: s.id,
+    title: s.title,
+    photoUrl: subjectPhotoUrl(s),
+    waiting: staleness(
+      summaries[s.id]?.lastSessionAt ? new Date(summaries[s.id].lastSessionAt as string) : null,
+      now,
+    ).stale,
+  }));
+
   return (
     <div>
+      <div className="lg:hidden">
+        <StoryRail
+          stories={railStories}
+          activeId={null}
+          canCreate={role === "admin"}
+          showAllLink
+          allActive
+        />
+      </div>
+
       <div className="mb-2 text-[12.5px] text-faint">
         <Link href="/app" className="text-muted">
           Home
