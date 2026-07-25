@@ -39,6 +39,8 @@ function summary(overrides: Partial<SeriesSummary> = {}): SeriesSummary {
     sessionsThisMonth: 0,
     lastSessionAt: null,
     meanCoverage: 0,
+    talkSec: 0,
+    questionsWaiting: 0,
     ...overrides,
   };
 }

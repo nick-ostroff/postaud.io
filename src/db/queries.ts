@@ -350,6 +350,10 @@ export type SeriesSummary = {
   sessionsThisMonth: number;
   lastSessionAt: string | null;
   meanCoverage: number;
+  /** Total recorded talk time across all sessions, in seconds. */
+  talkSec: number;
+  /** Pending queued questions — the card's "N questions waiting" nudge. */
+  questionsWaiting: number;
 };
 
 const emptySummary = (): SeriesSummary => ({
@@ -358,6 +362,8 @@ const emptySummary = (): SeriesSummary => ({
   sessionsThisMonth: 0,
   lastSessionAt: null,
   meanCoverage: 0,
+  talkSec: 0,
+  questionsWaiting: 0,
 });
 
 /**
@@ -376,7 +382,7 @@ export async function getSeriesSummaries(
   for (const id of seriesIds) summaries[id] = emptySummary();
   if (seriesIds.length === 0) return summaries;
 
-  const [topicsRes, factsRes, interviewsRes] = await Promise.all([
+  const [topicsRes, factsRes, interviewsRes, questionsRes] = await Promise.all([
     sb.from("topics").select("series_id, coverage_score").eq("suggested", false).in("series_id", seriesIds),
     // "Memories" = facts that haven't been replaced by a newer correction —
     // needs_review/retell_queued facts still count (they're still saved
@@ -384,13 +390,15 @@ export async function getSeriesSummaries(
     sb.from("facts").select("series_id").neq("status", "superseded").in("series_id", seriesIds),
     sb
       .from("interviews")
-      .select("series_id, started_at")
+      .select("series_id, started_at, duration_sec")
       .in("status", ["completed", "processed"])
       .in("series_id", seriesIds),
+    sb.from("queued_questions").select("series_id").eq("status", "pending").in("series_id", seriesIds),
   ]);
   if (topicsRes.error) throw new Error(topicsRes.error.message);
   if (factsRes.error) throw new Error(factsRes.error.message);
   if (interviewsRes.error) throw new Error(interviewsRes.error.message);
+  if (questionsRes.error) throw new Error(questionsRes.error.message);
 
   const coverageSums = new Map<string, { sum: number; count: number }>();
   for (const t of topicsRes.data ?? []) {
@@ -413,10 +421,15 @@ export async function getSeriesSummaries(
     const s = summaries[i.series_id];
     if (!s) continue;
     s.sessionsCount += 1;
+    s.talkSec += i.duration_sec ?? 0;
     if (new Date(i.started_at) >= monthStart) s.sessionsThisMonth += 1;
     if (!s.lastSessionAt || new Date(i.started_at) > new Date(s.lastSessionAt)) {
       s.lastSessionAt = i.started_at;
     }
+  }
+
+  for (const q of questionsRes.data ?? []) {
+    if (summaries[q.series_id]) summaries[q.series_id].questionsWaiting += 1;
   }
 
   return summaries;

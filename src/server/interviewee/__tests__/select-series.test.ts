@@ -39,6 +39,8 @@ function summary(lastSessionAt: string | null): SeriesSummary {
     sessionsThisMonth: 0,
     lastSessionAt,
     meanCoverage: 0,
+    talkSec: 0,
+    questionsWaiting: 0,
   };
 }
 

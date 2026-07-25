@@ -15,6 +15,7 @@ export default async function SeriesListPage() {
   const allSeries = organization ? await getSeriesForUser(supabase) : [];
   const series = allSeries.filter((s) => s.status !== "archived");
   const summaries = await getSeriesSummaries(supabase, series.map((s) => s.id));
+  const memoriesTotal = series.reduce((sum, s) => sum + (summaries[s.id]?.memoriesCount ?? 0), 0);
 
   // The rail is the only series nav on phones, so it stays on screen here too —
   // same circles as home, with "All series" ringed as the current view.
@@ -50,10 +51,13 @@ export default async function SeriesListPage() {
       <div className="mb-[22px] flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-[28px]">Series</h1>
-          <div className="mt-[3px] text-[13.5px] text-muted">Every story your workspace is building.</div>
+          <div className="mt-[3px] text-[13.5px] text-muted">
+            {series.length} {series.length === 1 ? "story" : "stories"} · {memoriesTotal}{" "}
+            {memoriesTotal === 1 ? "memory" : "memories"}
+          </div>
         </div>
         <Link href="/app/series/new" className="hover:no-underline">
-          <Button variant="primary">＋ New series</Button>
+          <Button variant="primary">＋ New</Button>
         </Link>
       </div>
 
