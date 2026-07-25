@@ -68,76 +68,80 @@ export default async function RecapPage({ params }: { params: Params }) {
   const interviewer = series.interviewer_name;
 
   return (
-    <div className="mx-auto flex w-full max-w-xl flex-col gap-1 pb-4 pt-2">
+    <div className="flex w-full flex-col pb-4 pt-2">
       <h1 className="text-[27px]">What we heard today</h1>
-      <p className="text-[13px] text-muted">
+      <p className="mt-1 text-[13px] text-muted">
         {sessionLabel}
         {durationLabel ? ` · ${durationLabel} with ${interviewer}` : ` · with ${interviewer}`}
       </p>
 
-      <div className="mt-3">
-        {summary ? (
-          <p className="serif text-[16px] leading-[1.55] text-ink-soft">{summary.short}</p>
-        ) : (
-          <ProcessingRecap interviewerName={interviewer} />
-        )}
-      </div>
+      <div className="mt-3 grid items-start gap-x-10 gap-y-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <div className="flex min-w-0 flex-col">
+          {summary ? (
+            <p className="serif max-w-3xl text-[16px] leading-[1.55] text-ink-soft">{summary.short}</p>
+          ) : (
+            <ProcessingRecap interviewerName={interviewer} />
+          )}
 
-      <div className="mb-1 mt-7 text-[10.5px] font-bold uppercase tracking-[0.12em] text-faint">
-        Saved today
-      </div>
-      {facts.length === 0 ? (
-        <p className="text-[13.5px] text-muted">
-          Nothing saved here yet — check back once {interviewer} finishes writing this session up.
-        </p>
-      ) : (
-        <Card className="px-4 py-1">
-          {facts.map((f) => {
-            const meta = [f.topicName, formatAudioOffset(f.audioOffsetSec)].filter(Boolean).join(" · ");
-            return (
-              <div key={f.id} className="flex gap-2.5 border-b border-line py-3 last:border-b-0">
-                <span aria-hidden className="mt-[7px] h-[7px] w-[7px] shrink-0 rounded-full bg-green" />
-                <div>
-                  <div className="serif text-[14.5px] italic leading-[1.5]">{f.statement}</div>
-                  {meta && <div className="mt-0.5 text-[11.5px] text-faint">{meta}</div>}
-                </div>
-              </div>
-            );
-          })}
-        </Card>
-      )}
-
-      {queueCount > 0 ? (
-        <Card className="mt-4 border-[1.5px] border-green-deep/35 bg-green-tint/40 px-[18px] py-3.5">
-          <div className="flex items-center gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="text-[13.5px] font-semibold">
-                {queueCount === 1 ? "1 question in your queue" : `${queueCount} questions in your queue`}
-              </div>
-              <div className="mt-0.5 text-[12px] text-muted">They&apos;ll open the next session.</div>
-            </div>
-            <Link
-              href={`/app/series/${series.id}/queue`}
-              className="shrink-0 text-[12.5px] font-semibold text-green-deep"
-            >
-              Review ›
-            </Link>
+          <div className="mb-1 mt-7 text-[10.5px] font-bold uppercase tracking-[0.12em] text-faint">
+            Saved today
           </div>
-        </Card>
-      ) : null}
-
-      {nextTopic && (
-        <div className="mt-4 rounded-card border border-green-tint bg-green-tint px-4 py-3">
-          <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-green-deep">Next time</div>
-          <div className="serif mt-1 text-[15.5px]">Next time, {interviewer} would love to hear about {nextTopic.name}.</div>
+          {facts.length === 0 ? (
+            <p className="max-w-3xl text-[13.5px] text-muted">
+              Nothing saved here yet — check back once {interviewer} finishes writing this session up.
+            </p>
+          ) : (
+            <Card className="px-4 py-1">
+              {facts.map((f) => {
+                const meta = [f.topicName, formatAudioOffset(f.audioOffsetSec)].filter(Boolean).join(" · ");
+                return (
+                  <div key={f.id} className="flex gap-2.5 border-b border-line py-3 last:border-b-0">
+                    <span aria-hidden className="mt-[7px] h-[7px] w-[7px] shrink-0 rounded-full bg-green" />
+                    <div>
+                      <div className="serif text-[14.5px] italic leading-[1.5]">{f.statement}</div>
+                      {meta && <div className="mt-0.5 text-[11.5px] text-faint">{meta}</div>}
+                    </div>
+                  </div>
+                );
+              })}
+            </Card>
+          )}
         </div>
-      )}
 
-      <Link href="/app" className="mt-7">
-        <Button variant="primary" size="big" className="w-full justify-center">
-          Done
-        </Button>
-      </Link>
+        <div className="flex min-w-0 flex-col gap-4">
+          {queueCount > 0 ? (
+            <Card className="border-[1.5px] border-green-deep/35 bg-green-tint/40 px-[18px] py-3.5">
+              <div className="flex items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="text-[13.5px] font-semibold">
+                    {queueCount === 1 ? "1 question in your queue" : `${queueCount} questions in your queue`}
+                  </div>
+                  <div className="mt-0.5 text-[12px] text-muted">They&apos;ll open the next session.</div>
+                </div>
+                <Link
+                  href={`/app/series/${series.id}/queue`}
+                  className="shrink-0 text-[12.5px] font-semibold text-green-deep"
+                >
+                  Review ›
+                </Link>
+              </div>
+            </Card>
+          ) : null}
+
+          {nextTopic && (
+            <div className="rounded-card border border-green-tint bg-green-tint px-4 py-3">
+              <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-green-deep">Next time</div>
+              <div className="serif mt-1 text-[15.5px]">Next time, {interviewer} would love to hear about {nextTopic.name}.</div>
+            </div>
+          )}
+
+          <Link href="/app" className="mt-3">
+            <Button variant="primary" size="big" className="w-full justify-center">
+              Done
+            </Button>
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
