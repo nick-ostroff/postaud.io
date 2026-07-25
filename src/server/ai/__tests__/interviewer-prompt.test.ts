@@ -233,8 +233,10 @@ describe("conversation modes", () => {
     });
     expect(out).toContain("Ritual session");
     expect(out).toContain("SAME questions");
-    expect(out).toContain("1. What did you work on today? [from the queue]");
-    expect(out).toContain("2. What's on your mind for tomorrow? [from the queue]");
+    // base's opening prompt leads the list, so queue items start at 2.
+    expect(out).toContain("1. Start warm: Rotterdam first");
+    expect(out).toContain("2. What did you work on today? [from the queue]");
+    expect(out).toContain("3. What's on your mind for tomorrow? [from the queue]");
     // No topic fallback — the queue IS the ritual.
     expect(out).not.toContain("The warehouse years");
     expect(out).toContain("mark_question_asked");
@@ -252,10 +254,41 @@ describe("conversation modes", () => {
     expect(out).not.toContain("When the conversation naturally winds down");
   });
 
-  it("ritual with an empty queue asks about today instead of falling back to topics", () => {
-    const out = buildInterviewerInstructions({ ...base, mode: "ritual", queuedQuestions: [] });
+  it("ritual with an empty queue and no opening prompt asks about today instead of falling back to topics", () => {
+    const out = buildInterviewerInstructions({
+      ...base,
+      mode: "ritual",
+      queuedQuestions: [],
+      series: { ...base.series, openingPrompt: null },
+    });
     expect(out).toContain("The queue is empty");
     expect(out).not.toContain("1. Health & habits");
+  });
+
+  it("ritual folds the opening prompt into the QUESTION LIST — never an extra question outside it", () => {
+    const out = buildInterviewerInstructions({ ...base, mode: "ritual", queuedQuestions: [] });
+    // The opening prompt IS question 1, counted and marked like any list item…
+    expect(out).toContain("1. Start warm: Rotterdam first");
+    expect(out).toContain('"total": 1');
+    expect(out).not.toContain("The queue is empty");
+    // …and THE GOAL no longer tells the model to ask it as a bonus question.
+    expect(out).not.toContain("start from there");
+  });
+
+  it("ritual with both an opening prompt and a queue asks the opening prompt first", () => {
+    const out = buildInterviewerInstructions({
+      ...base,
+      mode: "ritual",
+      queuedQuestions: ["How did today go?"],
+    });
+    expect(out).toContain("1. Start warm: Rotterdam first");
+    expect(out).toContain("2. How did today go? [from the queue]");
+    expect(out).toContain('"total": 2');
+  });
+
+  it("quickfire keeps the opening prompt in THE GOAL (ritual-only change)", () => {
+    const out = buildInterviewerInstructions({ ...base, mode: "quickfire", queuedQuestions: ["Q1"] });
+    expect(out).toContain("start from there");
   });
 
   it("queue-only outside quickfire changes nothing", () => {

@@ -138,7 +138,11 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
 
   // ---- THE GOAL ----
   const goalLines = [`Goal for this series: ${series.goal}`];
-  if (series.openingPrompt) {
+  // Ritual folds the opening prompt into the QUESTION LIST instead (see
+  // below): "start from there" here would make the model ask it as an extra
+  // question OUTSIDE the list, which breaks "the session is over when the
+  // QUESTION LIST is" and the Question N of T count.
+  if (series.openingPrompt && input.mode !== "ritual") {
     goalLines.push(`Opening prompt for this session: "${series.openingPrompt}" — start from there.`);
   }
   if (input.mode === "flow" && input.queuedQuestions.length > 0) {
@@ -193,6 +197,11 @@ export function buildInterviewerInstructions(input: BuildInterviewerInstructions
     const sessionBudget = Math.min(input.remainingMinutes ?? 30, 45);
     const cap = Math.max(1, Math.round(sessionBudget / 1.5));
     const combined = [
+      // Ritual: the opening prompt is the ritual's own question — it leads
+      // the list so it's numbered, marked, and covered by the list-ends
+      // ENDING. (LiveInterview's markAsked mapping is quickfire-only, so a
+      // non-queue item at index 1 can't desync queue rows.)
+      ...(input.mode === "ritual" && series.openingPrompt ? [series.openingPrompt] : []),
       ...input.queuedQuestions.map((q) => `${q} [from the queue]`),
       ...(queueOnly || input.mode === "ritual"
         ? []
