@@ -8,6 +8,7 @@ import { serviceClient } from "@/db/service";
 import { isPlatformAdmin } from "@/lib/auth/is-platform-admin";
 import { canInterviewSeries } from "@/server/interviews/access";
 import { personaFor } from "@/lib/voices";
+import { flowNeedsQueuedQuestion } from "@/server/interviews/queue-gate";
 import { StartInterviewError, startInterview } from "@/server/interviews/start";
 import { LiveInterview } from "./LiveInterview";
 
@@ -98,6 +99,17 @@ export default async function InterviewPage({
     }
   }
 
+  // Flow has nothing to ask without a queued opener — stop here before a
+  // session row is created. Fetched ahead of startInterview so the gate
+  // sees the queue as it is; the same list feeds LiveInterview below.
+  const pendingQueue = (await listPendingQueuedQuestions(supabase, series.id)).map((q) => ({
+    id: q.id,
+    text: q.text,
+  }));
+  if (flowNeedsQueuedQuestion({ mode, queuedCount: pendingQueue.length, hasResumable })) {
+    return <NoQuestionsCard seriesId={series.id} interviewerName={personaFor(series.voice).name} />;
+  }
+
   let interviewId: string;
   try {
     const started = await startInterview(svc, {
@@ -124,11 +136,6 @@ export default async function InterviewPage({
     }
     throw err;
   }
-
-  const pendingQueue = (await listPendingQueuedQuestions(supabase, series.id)).map((q) => ({
-    id: q.id,
-    text: q.text,
-  }));
 
   return (
     <LiveInterview
@@ -172,6 +179,33 @@ function SeriesCompleteCard({
           </Link>
           <Link href={`/app/series/${seriesId}/settings`} className="text-[13px] font-medium text-muted">
             Series settings
+          </Link>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function NoQuestionsCard({ seriesId, interviewerName }: { seriesId: string; interviewerName: string }) {
+  return (
+    <div className="flex min-h-[70vh] w-full items-center justify-center px-4">
+      <Card className="max-w-md px-8 py-9 text-center">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-tint text-2xl">
+          ✎
+        </div>
+        <h2 className="text-[22px]">Nothing queued to ask yet</h2>
+        <p className="mt-2 text-[14.5px] leading-relaxed text-muted">
+          A Flow session opens with a question from the queue, and {interviewerName} only follows up
+          from there. Add at least one question and the interview is ready to start.
+        </p>
+        <div className="mt-6 flex flex-col items-center gap-2.5">
+          <Link href={`/app/series/${seriesId}/queue`}>
+            <Button variant="primary" size="big">
+              Add a question
+            </Button>
+          </Link>
+          <Link href={`/app/series/${seriesId}`} className="text-[13px] font-medium text-muted">
+            Back to the series
           </Link>
         </div>
       </Card>

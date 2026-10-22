@@ -17,6 +17,7 @@ import {
   listPendingQueuedQuestions,
 } from "@/db/queries";
 import { canInterviewSeries } from "@/server/interviews/access";
+import { flowNeedsQueuedQuestion } from "@/server/interviews/queue-gate";
 import { personaFor } from "@/lib/voices";
 import { AddQueueQuestion } from "./AddQueueQuestion";
 import { PendingSummaryRefresher } from "./PendingSummaryRefresher";
@@ -89,7 +90,7 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
   const series = await getSeries(supabase, id);
   if (!series) notFound();
 
-  const [summaries, knowledge, sessions, access, pendingQuestions, canAddQuestion] = await Promise.all([
+  const [summaries, knowledge, sessions, access, pendingQuestions, canAddQuestion, inProgressRes] = await Promise.all([
     getSeriesSummaries(supabase, [id]),
     getSeriesKnowledge(supabase, id),
     listInterviewsForSeries(supabase, id),
@@ -104,9 +105,19 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
       seriesSubjectUserId: series.subject_user_id,
       seriesId: series.id,
     }),
+    // A session this viewer left in progress stays resumable even when the
+    // queue has since been consumed — the Flow gate below must not hide it.
+    supabase
+      .from("interviews")
+      .select("id")
+      .eq("series_id", id)
+      .eq("conducted_by", user.id)
+      .eq("status", "in_progress")
+      .limit(1),
   ]);
 
   const summary = summaries[id];
+  const hasResumable = !inProgressRes.error && (inProgressRes.data?.length ?? 0) > 0;
 
   // Ritual queues are fixed by the members — the same questions every session,
   // so post-session topic suggestions never apply there.
@@ -156,6 +167,13 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
         : "Flow";
   const totalTalkSec = sessions.reduce((sum, s) => sum + (s.durationSec ?? 0), 0);
   const queuedCount = pendingQuestions.length;
+  // Flow asks only what's queued, so with nothing queued there is nothing to
+  // start. The interview route enforces the same rule for every other entry.
+  const startBlocked = flowNeedsQueuedQuestion({
+    mode: series.conversation_mode,
+    queuedCount,
+    hasResumable,
+  });
 
   const dot = <span aria-hidden>·</span>;
 
@@ -215,11 +233,28 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
       {/* Below `sm` these stack full-width; the floating story bar carries
           the same Talk action on mobile, so nothing here is the only path. */}
       <div className="mb-[22px] mt-4 flex flex-wrap items-center gap-2.5">
-        <Link href={`/app/series/${series.id}/interview`} className="w-full sm:w-auto">
-          <Button variant="primary" size="big" className="w-full justify-center">
-            Start interview{queuedCount > 0 ? ` · ${queuedCount} waiting` : ""}
-          </Button>
-        </Link>
+        {startBlocked ? (
+          <div className="flex w-full flex-col gap-1.5 sm:w-auto">
+            <Button
+              variant="primary"
+              size="big"
+              className="w-full justify-center"
+              disabled
+              aria-describedby="start-blocked-reason"
+            >
+              Start interview
+            </Button>
+            <span id="start-blocked-reason" className="text-[12.5px] text-muted">
+              Add a question to the queue first — Flow only asks what&apos;s queued.
+            </span>
+          </div>
+        ) : (
+          <Link href={`/app/series/${series.id}/interview`} className="w-full sm:w-auto">
+            <Button variant="primary" size="big" className="w-full justify-center">
+              Start interview{queuedCount > 0 ? ` · ${queuedCount} waiting` : ""}
+            </Button>
+          </Link>
+        )}
         {series.subject_user_id == null && (
           <Link href={`/app/series/${series.id}/handoff`} className="hover:no-underline">
             <Button variant="secondary">Hand the mic</Button>
